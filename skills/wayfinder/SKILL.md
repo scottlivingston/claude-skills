@@ -104,10 +104,12 @@ Ruling something out of scope is a scoping act, not a step on the route. When a 
 
 ## Completion and handoff
 
-The map is **complete** when the frontier is empty, no tickets remain open, and **Not yet specified** is empty — every implementation-relevant decision is recorded. Say so explicitly, then hand off:
+The map is **complete** when the frontier is empty, no tickets remain open, and **Not yet specified** is empty — every implementation-relevant decision is recorded. Say so explicitly, then hand off. Each step is its own session, and each skill points at the next:
 
-1. `/to-spec <map>` — distill Decisions-so-far and the closed tickets into a spec (map mode, no interview).
-2. `/ship <spec>` — tickets (one approval gate), then implementation with a fresh agent per ticket.
+1. `/to-spec <map>` — distill Decisions-so-far and the closed tickets into a spec issue (map mode, no interview).
+2. `/to-tickets <spec>` — HITL: break the spec into sub-issue tickets; the quiz is where the human approves the breakdown.
+3. `/ship <spec>` — implement the ticket DAG in parallel, fresh agent per ticket.
+4. `/two-axis-review` the branch against the spec, then merge via a PR that closes the spec issue.
 
 While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets.
 
@@ -129,7 +131,7 @@ User invokes with a loose idea.
 
 User invokes with a map (URL or number). A ticket is **optional** — without one, you pick the next decision, not the user.
 
-1. Load the **map** — the low-res view, not every ticket body.
+1. Load the **map** — the low-res view, not every ticket body. **If the map is already complete** (no open tickets, empty Not-yet-specified), don't hunt for work: say so and point at [Completion and handoff](#completion-and-handoff).
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
 3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand; invoke the skills the `## Notes` block names. If in doubt, use `/grilling` and `/domain-modeling`.
 4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.

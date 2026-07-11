@@ -79,6 +79,10 @@ Present the two reports under `## Standards` and `## Spec` headings, verbatim or
 
 End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes — that's the reranking the separation exists to prevent.
 
+### 6. Offer the merge (when the spec is a tracker issue)
+
+If the spec source was a tracker issue (e.g. a spec the branch was shipped against) and the findings are clean or fixed, offer to open a PR whose body `Closes #<spec>` so the merge closes the spec issue and links the work it fulfills. Only open it if the user says yes.
+
 ## Why two axes
 
 A change can pass one axis and fail the other:

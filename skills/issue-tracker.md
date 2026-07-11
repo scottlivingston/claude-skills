@@ -1,6 +1,6 @@
 # Issue tracker
 
-Shared tracker wiring for the wayfinder → to-spec → to-tickets → implement → two-axis-review workflow. Default: **GitHub issues** on the current repo (infer from `git remote -v`; `gh` does this automatically inside a clone). If the repo has no GitHub remote or `gh` is unavailable, fall back to **local markdown** below. A repo-level tracker doc (e.g. `docs/agents/issue-tracker.md`) overrides this file.
+Shared tracker wiring for the wayfinder → drain → to-spec → to-tickets → ship (or implement) → two-axis-review workflow. Default: **GitHub issues** on the current repo (infer from `git remote -v`; `gh` does this automatically inside a clone). If the repo has no GitHub remote or `gh` is unavailable, fall back to **local markdown** below. A repo-level tracker doc (e.g. `docs/agents/issue-tracker.md`) overrides this file.
 
 ## GitHub conventions
 
@@ -10,6 +10,7 @@ Shared tracker wiring for the wayfinder → to-spec → to-tickets → implement
 - **Comment**: `gh issue comment <number> --body "..."`
 - **Labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
+- **Sub-issue**: link a child to its parent via the sub-issues endpoint — `gh api --method POST repos/<owner>/<repo>/issues/<parent>/sub_issues -F sub_issue_id=<child-db-id>` (`<child-db-id>` is the numeric database id: `gh api repos/<owner>/<repo>/issues/<n> --jq .id`). Used for wayfinder map children and for implementation tickets under a spec issue.
 - "Publish to the issue tracker" = create a GitHub issue. "Fetch the relevant ticket" = `gh issue view <number> --comments`.
 
 ## Triage labels

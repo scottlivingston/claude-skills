@@ -21,7 +21,9 @@ In map mode, the map's resolutions usually settle the seams already — carry th
 
 3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
 
-In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map. Next step either way: `/to-tickets <spec>`, or `/ship <spec>` to run tickets-through-implementation with one approval gate.
+In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map.
+
+End by pointing the user at the next step: `/to-tickets <spec>` — a HITL session whose quiz is where the human approves the implementation breakdown; the tickets become sub-issues of this spec issue. `/ship` runs only after those tickets exist.
 
 <spec-template>
 
