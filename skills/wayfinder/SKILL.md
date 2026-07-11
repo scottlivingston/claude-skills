@@ -6,11 +6,13 @@ disable-model-invocation: true
 
 A loose idea has arrived — too big for one agent session, and wrapped in fog: the way from here to the **destination** isn't visible yet. Wayfinding is about finding that way, not charging at the destination. This skill charts the way as a **shared map** on the repo's issue tracker, then works its tickets one at a time until the route is clear.
 
-The destination varies per effort, and naming it is the first act of charting — it shapes every ticket. It might be a spec to hand off and iterate on, a decision to lock before planning starts, or a change made in place like a data-structure migration. The map is domain-agnostic — engineering work, course content, whatever fits the shape.
+The destination varies per effort, and naming it is the first act of charting — it shapes every ticket. It might be a spec to hand off and iterate on, or a decision to lock before planning starts. It is a **decision state, never the built thing**: building belongs to `/ship`, after the map completes (see [Completion and handoff](#completion-and-handoff)). The map is domain-agnostic — engineering work, course content, whatever fits the shape.
 
 ## Plan, don't do
 
-Wayfinder is **planning** by default: each ticket resolves a decision, and the map is done when the way is clear — nothing left to decide before someone goes and does the thing. The pull to just do the work is usually the signal you've reached the edge of the map and it's time to hand off. An effort can override this in its **Notes** — carrying execution into the map itself — but absent that, produce decisions, not deliverables.
+Wayfinder is **planning**: each ticket resolves a decision, and the map is done when the way is clear — nothing left to decide before someone goes and does the thing. The pull to just do the work is usually the signal you've reached the edge of the map and it's time to hand off. Produce decisions, not deliverables.
+
+**Implementation tickets never belong on the map.** When resolving a ticket surfaces "now build X", that's fog clearing, not a new ticket — record the decision that makes X buildable and leave the building to `/ship`. The one exception is the Task type below, and it earns its place strictly by unblocking a *decision*, never by delivering any part of the destination.
 
 ## Refer by name
 
@@ -100,6 +102,15 @@ Out-of-scope work never graduates — the frontier stops at the destination — 
 
 Ruling something out of scope is a scoping act, not a step on the route. When a ticket that already exists turns out to sit past the destination — mis-scoped in while charting, or exposed by a resolution — **close it** (a closed ticket is unambiguously off the frontier) and leave one line in the **Out of scope** section: the gist plus why it's out of scope, linking the closed ticket. It stays out of **Decisions so far**, which records the route actually walked — a scope boundary isn't a step on it.
 
+## Completion and handoff
+
+The map is **complete** when the frontier is empty, no tickets remain open, and **Not yet specified** is empty — every implementation-relevant decision is recorded. Say so explicitly, then hand off:
+
+1. `/to-spec <map>` — distill Decisions-so-far and the closed tickets into a spec (map mode, no interview).
+2. `/ship <spec>` — tickets (one approval gate), then implementation with a fresh agent per ticket.
+
+While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets.
+
 ## Invocation
 
 Two modes. Either way, **never resolve more than one ticket per session.**
@@ -123,5 +134,6 @@ User invokes with a map (URL or number). A ticket is **optional** — without on
 3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand; invoke the skills the `## Notes` block names. If in doubt, use `/grilling` and `/domain-modeling`.
 4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
 5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals a ticket — this one or another — sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
+6. If this resolution completed the map (see [Completion and handoff](#completion-and-handoff)), say so and point at the handoff — don't start it in this session.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the tracker concurrently.
