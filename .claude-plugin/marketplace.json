@@ -7,7 +7,7 @@
     {
       "name": "scott-skills",
       "source": "./",
-      "description": "Scott's personal workflow skills: wayfinder → to-spec → to-tickets → implement → two-axis-review, plus domain-modeling, grilling, prototype, research, and tdd."
+      "description": "Scott's personal workflow skills: wayfinder → drain → to-spec → ship (tickets, per-ticket implement agents, two-axis review), plus domain-modeling, grilling, prototype, research, and tdd."
     }
   ]
 }
