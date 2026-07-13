@@ -6,16 +6,7 @@ Packaged as a Claude Code plugin (`scott-skills`).
 
 ## The workflow
 
-```mermaid
-flowchart LR
-    idea([a loose idea]) --> wf["<b>/wayfinder</b><br/>decide"]
-    wf --> ts["<b>/to-spec</b><br/>spec"]
-    ts --> tt["<b>/to-tickets</b><br/>slice"]
-    tt --> sh["<b>/ship</b><br/>build"]
-    sh --> rv["<b>/two-axis-review</b><br/>review"]
-    rv --> pr([PR closes the spec])
-    dr["<b>/drain</b><br/>research in background"] -.-> wf
-```
+A loose idea goes in; a PR that closes its spec comes out. In order:
 
 - **/wayfinder** — chart the unknowns as decision tickets on the issue tracker, then resolve them one session at a time (`/wayfinder <map>`) until the way is clear
 - **/drain** — meanwhile, background agents clear the map's research and task tickets in parallel, so you only sit in the conversations that need a human
