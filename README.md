@@ -7,56 +7,22 @@ Packaged as a Claude Code plugin (`scott-skills`).
 ## The workflow
 
 ```mermaid
-sequenceDiagram
-    actor Human
-    participant Claude as Claude session
-    participant Tracker as Issue tracker
-    participant Agents as Background agents
-
-    rect rgba(128,128,128,0.08)
-    Note over Human,Agents: Plan
-    Human->>Claude: /wayfinder — a loose idea
-    Claude->>Tracker: create the map + first decision tickets
-    loop until the map is complete
-        par human-in-the-loop tickets
-            Human->>Claude: /wayfinder &lt;map&gt;
-            Claude->>Human: resolve one ticket together (grilling, prototype)
-            Claude->>Tracker: record the decision, add newly visible tickets
-        and AFK tickets
-            Human->>Claude: /drain &lt;map&gt;
-            Claude->>Agents: one agent per research/task ticket
-            Agents->>Tracker: post answers, close tickets
-        end
-    end
-    end
-
-    rect rgba(128,128,128,0.08)
-    Note over Human,Agents: Specify
-    Human->>Claude: /to-spec &lt;map&gt;
-    Claude->>Tracker: publish the spec issue, close the map
-    Human->>Claude: /to-tickets &lt;spec&gt;
-    Claude->>Human: quiz — approve the ticket breakdown
-    Claude->>Tracker: publish tickets as sub-issues with blocking edges
-    end
-
-    rect rgba(128,128,128,0.08)
-    Note over Human,Agents: Build
-    Human->>Claude: /ship &lt;spec&gt;
-    loop each wave of unblocked tickets
-        Claude->>Agents: one agent per ticket, isolated worktrees
-        Agents->>Claude: implemented + reviewed diffs
-        Claude->>Claude: merge serially, test each merge
-        Claude->>Tracker: close tickets with commit links
-    end
-    end
-
-    rect rgba(128,128,128,0.08)
-    Note over Human,Agents: Review & merge
-    Human->>Claude: /two-axis-review
-    Claude->>Human: Standards + Spec findings, side by side
-    Claude->>Tracker: PR that closes the spec issue
-    end
+flowchart LR
+    idea([a loose idea]) --> wf["<b>/wayfinder</b><br/>decide"]
+    wf --> ts["<b>/to-spec</b><br/>spec"]
+    ts --> tt["<b>/to-tickets</b><br/>slice"]
+    tt --> sh["<b>/ship</b><br/>build"]
+    sh --> rv["<b>/two-axis-review</b><br/>review"]
+    rv --> pr([PR closes the spec])
+    dr["<b>/drain</b><br/>research in background"] -.-> wf
 ```
+
+- **/wayfinder** — chart the unknowns as decision tickets on the issue tracker, then resolve them one session at a time (`/wayfinder <map>`) until the way is clear
+- **/drain** — meanwhile, background agents clear the map's research and task tickets in parallel, so you only sit in the conversations that need a human
+- **/to-spec** — distill the completed map into a spec issue; pure synthesis, no interview
+- **/to-tickets** — break the spec into vertical-slice tickets with blocking edges; you approve the breakdown
+- **/ship** — implement the ticket DAG with a fresh agent per ticket in isolated worktrees, merged serially
+- **/two-axis-review** — review the branch against Standards and Spec, then open the PR that closes the spec issue
 
 Each skill ends by pointing at the next, so any session tells you where you are in the chain. You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/implement` is the manual alternative to `/ship` — one frontier ticket at a time, same discipline, clearing context between tickets.
 
