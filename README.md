@@ -10,10 +10,16 @@ Packaged as a Claude Code plugin (`scott-skills`).
 loose idea
     │
     ▼
-/wayfinder ──────── chart the fog as a map of decision tickets; resolve one per session
+/wayfinder ──────── chart: name the destination, sketch the fog, create the first
+    │               decision tickets as children of a map issue (one session)
+    ▼
+/wayfinder <map> ── work: claim the next frontier ticket, resolve it with the human
+    │ ▲    │        (grilling, prototype), record the decision, graduate new tickets
+    │ └────┘        from the fog — one ticket per session, repeat until complete
     │    ▲
-    │    └─ /drain — background agents work the map's AFK tickets (research, tasks)
-    │               in parallel, so you only sit in the human-in-the-loop ones
+    │    └─ /drain <map> — meanwhile, background agents resolve the map's AFK
+    │               tickets (research, agent-doable tasks) in parallel, so the
+    │               human only ever sits in the human-in-the-loop sessions
     ▼
 /to-spec ────────── distill the completed map into a spec issue (no interview — pure synthesis)
     │
