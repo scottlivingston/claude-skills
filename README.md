@@ -6,32 +6,23 @@ Packaged as a Claude Code plugin (`scott-skills`).
 
 ## The workflow
 
-```
-loose idea
-    │
-    ▼
-/wayfinder ──────── chart: name the destination, sketch the fog, create the first
-    │               decision tickets as children of a map issue (one session)
-    ▼
-/wayfinder <map> ── work: claim the next frontier ticket, resolve it with the human
-    │ ▲    │        (grilling, prototype), record the decision, graduate new tickets
-    │ └────┘        from the fog — one ticket per session, repeat until complete
-    │    ▲
-    │    └─ /drain <map> — meanwhile, background agents resolve the map's AFK
-    │               tickets (research, agent-doable tasks) in parallel, so the
-    │               human only ever sits in the human-in-the-loop sessions
-    ▼
-/to-spec ────────── distill the completed map into a spec issue (no interview — pure synthesis)
-    │
-    ▼
-/to-tickets ─────── break the spec into vertical-slice tickets with blocking edges;
-    │               the quiz is where the human approves the breakdown
-    ▼
-/ship ───────────── implement the ticket DAG: fresh agent per ticket, isolated worktrees,
-    │               per-ticket review, serial merges — no human until the end
-    ▼
-/two-axis-review ── review the branch against Standards and Spec, then a PR
-                    whose merge closes the spec issue
+```mermaid
+flowchart TD
+    idea(["loose idea"]) --> chart
+
+    subgraph wayfinding ["wayfinding — one map, many sessions"]
+        chart["<b>/wayfinder</b><br/>chart: name the destination, sketch the fog,<br/>create the first decision tickets as children of a map issue"]
+        work["<b>/wayfinder &lt;map&gt;</b><br/>work: claim the next frontier ticket, resolve it with the human<br/>(grilling, prototype), record the decision, graduate new tickets from the fog"]
+        drain["<b>/drain &lt;map&gt;</b><br/>background agents resolve the AFK tickets<br/>(research, agent-doable tasks) in parallel"]
+        chart --> work
+        work -- "one ticket per session,<br/>repeat until the map is complete" --> work
+        drain -. "runs alongside, so the human only<br/>sits in the human-in-the-loop sessions" .- work
+    end
+
+    work --> tospec["<b>/to-spec &lt;map&gt;</b><br/>distill the completed map into a spec issue<br/>(no interview — pure synthesis)"]
+    tospec --> totickets["<b>/to-tickets &lt;spec&gt;</b><br/>break the spec into vertical-slice tickets with blocking edges;<br/>the quiz is where the human approves the breakdown"]
+    totickets --> ship["<b>/ship &lt;spec&gt;</b><br/>implement the ticket DAG: fresh agent per ticket, isolated worktrees,<br/>per-ticket review, serial merges — no human until the end"]
+    ship --> review["<b>/two-axis-review</b><br/>review the branch against Standards and Spec,<br/>then a PR whose merge closes the spec issue"]
 ```
 
 Each skill ends by pointing at the next, so any session tells you where you are in the chain. You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/implement` is the manual alternative to `/ship` — one frontier ticket at a time, same discipline, clearing context between tickets.
