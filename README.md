@@ -15,6 +15,8 @@ A loose idea goes in; a PR that closes its spec comes out. In order:
 - **/ship** — implement the ticket DAG with a fresh agent per ticket in isolated worktrees, merged serially
 - **/two-axis-review** — review the branch against Standards and Spec, then open the PR that closes the spec issue
 
+Or don't memorize the chain at all: after `/wayfinder`, just invoke **/next** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — one unit of work per invocation. While the map is live it also drains the AFK frontier in background agents while you sit in the HITL ticket, and it reconciles any results a previous session didn't fold in.
+
 Each skill ends by pointing at the next, so any session tells you where you are in the chain. You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/implement` is the manual alternative to `/ship` — one frontier ticket at a time, same discipline, clearing context between tickets.
 
 Everything is coordinated through the repo's issue tracker — GitHub issues by default, with a local-markdown fallback for repos without a remote. `skills/issue-tracker.md` holds the shared wiring; a repo-level tracker doc can override it.

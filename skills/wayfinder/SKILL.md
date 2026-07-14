@@ -113,6 +113,8 @@ The map is **complete** when the frontier is empty, no tickets remain open, and 
 
 While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets.
 
+`/next <map>` routes to whichever of these steps the tracker says is current — the human can drive the whole chain by invoking it each session.
+
 ## Invocation
 
 Two modes. Either way, **never resolve more than one ticket per session.**
