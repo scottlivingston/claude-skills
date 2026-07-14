@@ -29,7 +29,7 @@ Everything is coordinated through the repo's issue tracker — GitHub issues by 
 
 **Don't chart what you can't see.** The map is deliberately incomplete. A question becomes a ticket only when it can be *stated* precisely (not answered — stated); everything dimmer stays in a "Not yet specified" section and graduates into tickets as resolutions clear the fog. Scope is fixed by naming the destination first, and anything beyond it is ruled out of scope explicitly rather than left ambient.
 
-**Everything is sized to a context window.** Each ticket — planning or implementation — is sized to one fresh agent session. Wayfinder resolves at most one ticket per session; ship never gives two tickets to one agent. Fresh context per unit of work is the point, not an inconvenience.
+**Everything is sized to a context window.** Each ticket — planning or implementation — is sized to one fresh agent session. Wayfinder resolves at most one ticket per invocation — light tickets may share a live session across repeated `/next` calls, with `/next` making the continue-or-clear call after each; ship never gives two tickets to one agent. Fresh context per unit of work is the point, not an inconvenience.
 
 **Human time goes only where a human is needed.** Every planning ticket is typed HITL (grilling, prototypes, human-gated tasks) or AFK (research, agent-doable tasks). `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — and an agent must never stand in for the human's side of a HITL ticket.
 

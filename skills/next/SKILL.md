@@ -46,11 +46,12 @@ The one stage `/next` composes rather than delegates whole, because the frontier
 
 1. **Query the frontier**: open, unblocked, unclaimed children.
 2. **Drain the AFK frontier in the background.** Claim every frontier ticket labelled `afk`, then spawn one background agent per ticket, exactly per the `/drain` skill (its selection, claiming, and agent-brief rules apply verbatim). Fire and forget — the agents post resolutions and close their tickets; do not wait on them.
-3. **Sit in the first HITL frontier ticket.** Claim it, then resolve it with the human per the wayfinder skill — one ticket, this session, never more. If the frontier has no HITL ticket, this session is the drain coordinator instead: fold results as agents finish, loop the AFK frontier until it's dry, then report the HITL queue.
+3. **Sit in the first HITL frontier ticket.** Claim it, then resolve it with the human per the wayfinder skill — one ticket, this invocation, never more. If the frontier has no HITL ticket, this session is the drain coordinator instead: fold results as agents finish, loop the AFK frontier until it's dry, then report the HITL queue.
 4. **Fold as you go.** When a drain agent finishes mid-conversation, fold its result into the map between questions — a single map writer beats a parallel drain session racing this one. Results still pending when the session ends are caught by the next invocation's reconcile step.
 
 ## Rules
 
 - **One stage per invocation.** Never compress two stages into one session — finishing to-spec does not mean starting to-tickets. The sizing is the point; end by saying `/next`.
+- **Re-invocation in a live session is fine — make the budget call out loud.** One ticket per invocation is the unit; one ticket per *context window* is not a rule. When the human says `/next` again in the same session, don't balk and don't re-read skill files already in context — just route again. After each ticket, state the posture: a light ticket with plenty of room → invite another `/next` here; a heavy one → say so and recommend `/clear` first.
 - **Never jump a gate.** Route *into* the to-tickets quiz, never past it; never resolve a HITL ticket without the human; never auto-approve on the human's behalf.
 - **Announce the stage before acting** — "the map has 4 open tickets, 2 AFK; draining those and sitting with you on <ticket name>" — so the human always knows where the effort stands without reading the tracker.

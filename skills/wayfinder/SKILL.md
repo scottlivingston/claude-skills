@@ -117,7 +117,7 @@ While charting is still underway, `/drain <map>` works the AFK frontier tickets 
 
 ## Invocation
 
-Two modes. Either way, **never resolve more than one ticket per session.**
+Two modes. Either way, **resolve at most one ticket per invocation.** Fresh context per ticket is the default; light tickets may share a live session, but only across separate `/next` invocations — that skill owns the continue-or-clear call after each ticket.
 
 ### Chart the map
 
