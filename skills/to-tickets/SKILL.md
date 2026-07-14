@@ -32,16 +32,31 @@ Break the work into **tracer bullet** tickets.
 - A completed slice is demoable or verifiable on its own
 - Each slice is sized to fit in a single fresh context window
 - Any prefactoring should be done first
+- Slices after the skeleton hang off it as INDEPENDENT capabilities, not increments of one growing demo — "add X to what we had" chains; "X, standalone, atop the skeleton" parallelizes
 
 </vertical-slice-rules>
 
-Give each ticket its **blocking edges** — the other tickets that must complete before it can start. A ticket with no blockers can start immediately.
+Give each ticket its **blocking edges** — the other tickets that must complete before it can start. A ticket with no blockers can start immediately. The default is **no edge**; every edge must pass this test:
+
+<edge-test>
+
+Add an edge A → B only when B cannot land green without code A delivers — B's acceptance criteria are impossible to pass until A is done. These are NOT edges:
+
+- Touching the same files (merge-conflict risk is not a blocker)
+- Coming later in the narrative ("first we build X, then Y" is story order, not a dependency)
+- Sharing a layer or theme
+
+When B needs only A's **interface**, not its implementation, pull the contract (types, stubs, schema) into the skeleton ticket so B can start against the stub — don't chain B behind A.
+
+</edge-test>
 
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change — rename a column, retype a shared symbol — whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket — green is promised only there.
 
 ### 4. Quiz the user
 
-Present the proposed breakdown as a numbered list. For each ticket, show:
+Before presenting, compute the **wave structure**: wave 1 is every ticket with no blockers, wave 2 is every ticket unblocked once wave 1 lands, and so on. If most waves have width 1 — a linear chain — treat that as a finding to justify, not a default: re-test each edge against the edge test, and consider re-slicing along independent capabilities instead of one incremental storyline. (Hub-and-spoke — one skeleton ticket blocking many independent slices — is a healthy shape; a chain usually means fake edges.)
+
+Present the proposed breakdown as a numbered list, followed by the wave structure so the user can see the parallelism at a glance. For each ticket, show:
 
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
