@@ -10,7 +10,7 @@ An anchor is a backticked, repo-relative path with a line number:
 `src/billing/invoice.ts:142` — where the retry backoff is computed (`computeBackoff`)
 ```
 
-- **Relative path from the working directory**, `:line` suffix, wrapped in backticks. This is the form editors (Zed, VS Code, JetBrains) make cmd-clickable in a terminal. No `file://` URLs, no markdown links around paths.
+- **Relative path from the working directory**, `:line` suffix, wrapped in backticks. This is the form editors (Zed, VS Code, JetBrains) make cmd-clickable in a terminal. No `file://` URLs, no markdown links around paths. (While a TUI like Claude Code holds the terminal's mouse mode, plain cmd-click is forwarded to the app — in Zed, **shift+cmd+click** bypasses that and follows the anchor.)
 - **Verify before you cite.** Read the file and confirm the line number in this conversation — never guess or recall one. A wrong anchor is worse than none: the human lands somewhere irrelevant and stops trusting the links.
 - **Name the symbol beside the anchor** (`computeBackoff` above) so the reference survives small drift and the human knows what they're looking for when they land.
 - **One line of *why look here* per anchor.** What they'll see and why it bears on the question — not what the code does line-by-line; the code says that itself.
