@@ -23,7 +23,7 @@ Skills speak in five canonical triage roles; the label strings here are used ver
 
 Beyond triage, the workflow uses these label strings verbatim:
 
-- `in-progress` — a session is actively working the ticket. Adding it is the **claim** (always the first write, before any work); removing it unclaims. An open ticket without `in-progress` is up for grabs.
+- `in-progress` — a session is actively working the ticket. Adding it is the **claim** (always the first write, before any work); removing it unclaims. An open ticket without `in-progress` is up for grabs. Claim: `gh issue edit <n> --add-label in-progress`; unclaim: `gh issue edit <n> --remove-label in-progress`.
 - `spec` — a spec issue published by `/to-spec`.
 - `impl` — an implementation ticket published by `/to-tickets` (a sub-issue of its spec).
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
@@ -31,7 +31,7 @@ Beyond triage, the workflow uses these label strings verbatim:
 
 ### Label bootstrap
 
-`gh issue create --label X` fails if the label doesn't exist in the repo, so before the first labeled create in a repo, ensure the set exists (idempotent — `--force` updates in place):
+`gh issue create --label X` and `gh issue edit --add-label X` both fail if the label doesn't exist in the repo, so before the first labeled create **or edit** in a repo, ensure the set exists (idempotent — `--force` updates in place):
 
 ```sh
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
@@ -60,7 +60,7 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 - **Child ticket**: an issue linked to the map as a GitHub sub-issue (`gh api` on the sub-issues endpoint). Where sub-issues aren't enabled, add the child to a task list in the map body and put `Part of #<map>` at the top of the child body. Labels: `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`) plus its mode, `hitl` or `afk`.
 - **Blocking**: GitHub's **native issue dependencies** — the canonical, UI-visible representation. Add an edge with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`, where `<blocker-db-id>` is the blocker's numeric **database id** (`gh api repos/<owner>/<repo>/issues/<n> --jq .id`, _not_ the `#number` or `node_id`). GitHub reports `issue_dependencies_summary.blocked_by` (open blockers only — the live gate). Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body. A ticket is unblocked when every blocker is closed.
 - **Frontier query**: list the map's open children (`gh issue list --state open`, scoped to the map's sub-issues / task list), drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or the `in-progress` label; first in map order wins.
-- **Claim**: `gh issue edit <n> --add-label in-progress` — the session's first write. Unclaim: `--remove-label in-progress`.
+- **Claim** / **unclaim**: the `in-progress` label commands under Workflow labels above — claiming is always the session's first write.
 - **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>` and remove the `in-progress` label, then append a context pointer (gist + link) to the map's Decisions-so-far.
 
 ## Local markdown (fallback)
