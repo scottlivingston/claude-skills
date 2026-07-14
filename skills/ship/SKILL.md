@@ -24,11 +24,11 @@ Read the spec in full (body + comments). List its sub-issue tickets with their b
 
 Repeat until no tickets remain open:
 
-1. **Frontier**: the open tickets whose blockers are all closed. **Claim them all** (assign) before any work.
+1. **Frontier**: the open tickets whose blockers are all closed. **Claim them all** (label `in-progress`) before any work.
 2. **Parallel implement**: one fresh agent per frontier ticket, each in an **isolated worktree** — via parallel `Agent` calls with worktree isolation, or a dynamic `Workflow` (this skill is your authorization to use it). Each agent gets the spec, its ticket body, and the `/implement` discipline: `/tdd` at the seams the spec agreed, typecheck regularly, single test files regularly, commit in its worktree. Fresh context per ticket is the point — never two tickets in one agent.
 3. **Per-ticket review**: review each finished ticket's diff along the two axes (standards + ticket/spec fidelity); a fix agent applies findings worth fixing in the same worktree.
 4. **Serial merge**: merge the worktree branches into the ship branch **one at a time**, running the affected tests after each merge (full suite if cheap). Blocking edges encode logical order, not file overlap — the serial merge is where overlap surfaces. On conflict, a fix agent resolves it preserving both tickets' intent, then re-tests. Never merge on red.
-5. **Tracker updates as you go**: on merge, close the ticket with a comment linking its commits; if an agent parked its ticket (red tests, or a decision the spec doesn't hold), unclaim it and comment exactly what's missing — and if it was a spec gap, also comment the gap on the **spec issue** so the spec stays truthful. Post a one-line wave summary comment on the spec issue (tickets landed, tickets parked).
+5. **Tracker updates as you go**: on merge, close the ticket with a comment linking its commits and remove `in-progress`; if an agent parked its ticket (red tests, or a decision the spec doesn't hold), unclaim it (remove `in-progress`) and comment exactly what's missing — and if it was a spec gap, also comment the gap on the **spec issue** so the spec stays truthful. Post a one-line wave summary comment on the spec issue (tickets landed, tickets parked).
 
 A parked ticket doesn't stop the run unless it blocks everything — continue with the tickets it doesn't block, surface it in the final report.
 

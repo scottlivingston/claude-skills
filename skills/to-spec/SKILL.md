@@ -19,7 +19,7 @@ For the issue tracker and triage label vocabulary, read `issue-tracker.md` in th
 
 In map mode, the map's resolutions usually settle the seams already — carry them into the spec without re-asking. Only check with the user if the map left the seams genuinely undecided (and note that as a gap in the map). In conversation mode, check with the user that these seams match their expectations.
 
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
+3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `spec` label and the `ready-for-agent` triage label - no need for additional triage. (If the labels don't exist yet, run the tracker doc's label bootstrap first.)
 
 In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map.
 
