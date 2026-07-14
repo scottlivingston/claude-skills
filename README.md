@@ -31,6 +31,8 @@ Everything is coordinated through the repo's issue tracker — GitHub issues by 
 
 **Human time goes only where a human is needed.** Every planning ticket is typed HITL (grilling, prototypes, human-gated tasks) or AFK (research, agent-doable tasks). `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — and an agent must never stand in for the human's side of a HITL ticket.
 
+**HITL questions arrive anchored in the code.** A human can't make an informed call about code they haven't seen, so any question, proposed seam, or ticket breakdown that hinges on existing code carries verified, cmd-clickable `path:line` references — links into the editor, never pasted snippets (`skills/code-anchors.md` holds the convention). When anchors aren't enough, `/domain-expansion` turns the pending question into a guided reading tour of the relevant code, then re-puts the question. Deciding with the code in view is also how the human keeps up with a codebase that agents are changing faster than anyone can read the diffs.
+
 **Approval gates are explicit, and downstream stages don't improvise.** The human approves the implementation breakdown in the `/to-tickets` quiz; after that, `/ship` makes no product decisions. When an agent hits a decision the spec doesn't hold, it parks the ticket, reports the gap on the spec issue, and the run continues around it.
 
 **Implementation is vertical slices, in parallel, merged serially.** Tickets are tracer bullets — narrow but complete paths through every layer, demoable alone — not horizontal layers. (Wide mechanical refactors are the one exception, sequenced as expand–contract.) Ship runs a fresh agent per frontier ticket in an isolated git worktree, reviews each diff, then merges worktrees one at a time with tests after each merge. Never merge on red.
@@ -44,6 +46,7 @@ Everything is coordinated through the repo's issue tracker — GitHub issues by 
 Used by the chain, and useful on their own:
 
 - **grilling** — relentless one-question-at-a-time interview to stress-test a plan; facts get looked up, decisions get asked
+- **domain-expansion** — a guided reading tour of the code behind the current question, as clickable anchors; for when a grilling question lands on unfamiliar terrain
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
 - **prototype** — throwaway code that answers a design question (interactive logic harness, or switchable UI variants)
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo

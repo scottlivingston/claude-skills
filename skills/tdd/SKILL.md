@@ -21,7 +21,7 @@ A **seam** is the public boundary you test at: the interface where you observe b
 
 **Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them with the user. No test is written at an unconfirmed seam. You can't test everything — agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case.
 
-Ask: "What's the public interface, and which seams should we test?"
+Ask: "What's the public interface, and which seams should we test?" Anchor each proposed seam per `code-anchors.md` in this plugin's `skills/` directory — a verified clickable `path:line` reference to the existing interface (or to where a new one would sit) — so the user confirms seams by reading them, not by trusting your description of them.
 
 ## Anti-patterns
 

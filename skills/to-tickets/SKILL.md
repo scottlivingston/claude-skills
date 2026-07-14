@@ -46,6 +46,7 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
+- **Where it lands**: one to three anchors into the code this slice touches, per `code-anchors.md` in this plugin's `skills/` directory — verified clickable `path:line` references, so the user can judge the breakdown against code they may not know. (These anchors are for the quiz only — the published tickets still avoid file paths, per the note below.)
 
 Ask the user:
 
