@@ -8,7 +8,7 @@ Implement the work described by the user in the spec or tickets.
 
 ## Tracker discipline
 
-When the work comes from a ticket on the issue tracker (see `issue-tracker.md` in this plugin's `skills/` directory; a repo-level tracker doc overrides it):
+When the work comes from a ticket on the issue tracker (see `issue-tracker.md` in this plugin's `skills/` directory):
 
 - **Claim first**: label the ticket `in-progress` before any work, so concurrent sessions and `/ship` runs skip it. One ticket per session — never batch.
 - **On completion**: close the ticket with a comment linking its commits, and remove `in-progress`.

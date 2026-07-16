@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 One command for the whole wayfinder → to-spec → to-tickets → ship → review chain. The tracker is the memory, so the current stage is never remembered — it is **queried**: this skill reads the effort's state off the tracker, announces the stage, and runs that stage's skill. Each invocation does **one stage's unit of work**, sized to this session, then stops and says `/next` again.
 
-`/next` is a router, not a stage. Everything below routes *into* an existing skill — read that skill and follow it; never improvise a stage inline. For tracker operations, read `issue-tracker.md` in this plugin's `skills/` directory, one level up from this SKILL.md (a repo-level tracker doc overrides it).
+`/next` is a router, not a stage. Everything below routes *into* an existing skill — read that skill and follow it; never improvise a stage inline. For tracker operations, read `issue-tracker.md` in this plugin's `skills/` directory, one level up from this SKILL.md — its "Which tracker?" section resolves which implementation this repo uses.
 
 ## Find the effort
 

@@ -9,7 +9,7 @@ This skill produces a spec (you may know this document as a PRD) from one of two
 - **Conversation mode** (no argument): synthesize the current conversation context and codebase understanding.
 - **Map mode** (argument is a `wayfinder:map` issue URL or number): load the map, then **zoom every entry in Decisions so far** — fetch each closed ticket's body and resolution comment; the one-line gists on the map are an index, not the decisions themselves. The spec synthesizes those resolutions. Anything still open on the map (open tickets, non-empty Not-yet-specified) means the map isn't complete — stop and say so rather than spec around a hole.
 
-For the issue tracker and triage label vocabulary, read `issue-tracker.md` in this plugin's `skills/` directory, one level up from this SKILL.md (a repo-level tracker doc overrides it).
+For the issue tracker and triage vocabulary, read `issue-tracker.md` in this plugin's `skills/` directory, one level up from this SKILL.md.
 
 ## Process
 
@@ -19,7 +19,7 @@ For the issue tracker and triage label vocabulary, read `issue-tracker.md` in th
 
 In map mode, the map's resolutions usually settle the seams already — carry them into the spec without re-asking. Only check with the user if the map left the seams genuinely undecided (and note that as a gap in the map). In conversation mode, check with the user that these seams match their expectations.
 
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `spec` label and the `ready-for-agent` triage label - no need for additional triage. (If the labels don't exist yet, run the tracker doc's label bootstrap first.)
+3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `spec` label and the `ready-for-agent` triage label - no need for additional triage. (If the markers don't exist yet, run the tracker doc's bootstrap first.)
 
 In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map.
 

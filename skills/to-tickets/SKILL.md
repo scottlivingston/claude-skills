@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Break a plan, spec, or conversation into a set of **tickets** — tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
-For the issue tracker and triage label vocabulary, read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md) (a repo-level tracker doc overrides it).
+For the issue tracker and triage vocabulary, read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md).
 
 ## Process
 
@@ -76,7 +76,7 @@ Iterate until the user approves the breakdown.
 Publish the approved tickets. **How** depends on the configured tracker (see `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md)) — the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below — one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. When the source is a spec issue, make each ticket a **sub-issue of the spec** (on GitHub: the sub-issues endpoint — same mechanism as the tracker doc's wayfinding operations), so the spec issue is the single parent the eventual PR closes. Use the platform's native blocking relationship for edges between tickets; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `impl` label plus the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction. (If the labels don't exist yet, run the tracker doc's label bootstrap first.)
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. When the source is a spec issue, make each ticket a **child of the spec** (the tracker doc's parent/child operation; on GitHub, the sub-issues endpoint), so the spec issue is the single parent the eventual PR closes. Use the platform's native blocking relationship for edges between tickets; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `impl` label plus the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction. (If the markers don't exist yet, run the tracker doc's bootstrap first.)
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 

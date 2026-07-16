@@ -24,7 +24,7 @@ The map is a single issue on this repo's issue tracker, labelled `wayfinder:map`
 
 The map is an **index**, not a store. It lists the decisions made and points at the tickets that hold their detail; a decision lives in exactly one place — its ticket — so the map never restates it, only gists it and links.
 
-**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** Read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md) ("Wayfinding operations"): GitHub issues by default, local-markdown fallback when the repo has no GitHub remote. If the repo carries its own tracker doc with a "Wayfinding operations" section, that overrides.
+**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** Read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md) — its "Which tracker?" section resolves which implementation this repo uses, and each implementation carries its wayfinding specifics.
 
 ### The map body
 
@@ -125,7 +125,7 @@ User invokes with a loose idea.
 
 1. **Name the destination.** Run a `/grilling` and `/domain-modeling` session to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Grill again, **breadth-first** this time: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear, the whole journey small enough for one session — you don't need a map. Stop and ask the user how they'd like to proceed.
-3. **Create the map** (label `wayfinder:map`; run the tracker doc's label bootstrap first so the labels exist): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.
+3. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first so the markers exist): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.
 4. **Create the tickets you can specify now** as child issues of the map — then wire blocking edges in a **second pass** (issues need ids before they can reference each other). Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
 5. Stop — charting the map is one session's work; do not also resolve tickets.
 

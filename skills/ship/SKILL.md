@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Ship turns an approved ticket DAG into committed, reviewed code with no human in the loop until the end. All decisions were made upstream — the wayfinder map, the spec, the `/to-tickets` quiz. Ship never makes product decisions; when it hits one, it parks the ticket and reports.
 
-The user invokes with a **spec** (issue URL/number) whose implementation tickets already exist as its sub-issues. For the issue tracker, read `issue-tracker.md` in this plugin's `skills/` directory (a repo-level tracker doc overrides it).
+The user invokes with a **spec** (issue URL/number) whose implementation tickets already exist as its sub-issues. For the issue tracker, read `issue-tracker.md` in this plugin's `skills/` directory.
 
 ## Guardrails
 
@@ -24,7 +24,7 @@ Read the spec in full (body + comments). List its sub-issue tickets with their b
 
 Repeat until no tickets remain open:
 
-1. **Frontier**: the open tickets whose blockers are all closed. **Claim them all** before any work: `gh issue edit <n> --add-label in-progress` for each (bootstrap the label first if the repo lacks it; local fallback per the tracker doc). **Checkpoint**: do not spawn any agent until every frontier ticket verifiably carries `in-progress` (`gh issue list --label in-progress`).
+1. **Frontier**: the open tickets whose blockers are all closed. **Claim them all** before any work, via the tracker doc's claim operation (run its bootstrap first if the `in-progress` marker doesn't exist yet). **Checkpoint**: do not spawn any agent until the tracker doc's claim check verifiably shows every frontier ticket claimed — on GitHub, `gh issue list --label in-progress`.
 2. **Parallel implement**: one fresh agent per frontier ticket, each in an **isolated worktree** — via parallel `Agent` calls with worktree isolation, or a dynamic `Workflow` (this skill is your authorization to use it). Each agent gets the spec, its ticket body, and the `/implement` discipline: `/tdd` at the seams the spec agreed, typecheck regularly, single test files regularly, commit in its worktree. Each agent's **first action** is to confirm its ticket carries `in-progress` and add the label if missing — a backstop, not a substitute for the checkpoint above. Fresh context per ticket is the point — never two tickets in one agent.
 3. **Per-ticket review**: review each finished ticket's diff along the two axes (standards + ticket/spec fidelity); a fix agent applies findings worth fixing in the same worktree.
 4. **Serial merge**: merge the worktree branches into the ship branch **one at a time**, running the affected tests after each merge (full suite if cheap). Blocking edges encode logical order, not file overlap — the serial merge is where overlap surfaces. On conflict, a fix agent resolves it preserving both tickets' intent, then re-tests. Never merge on red.

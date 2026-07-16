@@ -10,7 +10,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
 Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
 
-For the issue tracker, read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md) (a repo-level tracker doc such as `docs/agents/issue-tracker.md` overrides it).
+For the issue tracker, read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md).
 
 ## Process
 
