@@ -1,7 +1,7 @@
 {
   "name": "scott-skills",
   "description": "Scott's personal workflow skills: wayfinder → drain → to-spec → ship (tickets, per-ticket implement agents, two-axis review), driven stage-by-stage with /next, plus domain-modeling, domain-expansion, grilling, prototype, research, and tdd.",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "author": {
     "name": "Scott Livingston"
   }
