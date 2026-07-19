@@ -13,7 +13,7 @@ A loose idea goes in; a PR that closes its spec comes out. In order:
 - **/to-spec** — distill the completed map into a spec issue; pure synthesis, no interview
 - **/to-tickets** — break the spec into vertical-slice tickets with blocking edges; you approve the breakdown
 - **/ship** — implement the ticket DAG with a fresh agent per ticket in isolated worktrees, merged serially
-- **/two-axis-review** — review the branch against Standards and Spec, then open the PR that closes the spec issue
+- **/two-axis-review** — review the branch against Standards and Spec with labeled findings, each carrying a validated fix proposal; triage the whole report in one reply (`STD-1 fix, SPEC-2 ticket, …`), spinning session-sized fixes back into the ticket workflow, then open the PR that closes the spec issue
 
 Or don't memorize the chain at all: after `/wayfinder`, just invoke **/next** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — one unit of work per invocation. While the map is live it also drains the AFK frontier in background agents while you sit in the HITL ticket, and it reconciles any results a previous session didn't fold in.
 
