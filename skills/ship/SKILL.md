@@ -1,7 +1,6 @@
 ---
 name: ship
-description: Implement a spec's ticket DAG in parallel — fresh agent per ticket in an isolated worktree, per-ticket review, serial merges — updating the tracker as it goes. Runs after /to-tickets; ends by handing off to /two-axis-review and a PR that closes the spec.
-disable-model-invocation: true
+description: Implement a spec's ticket DAG in parallel — fresh agent per ticket in an isolated worktree, per-ticket review, serial merges — updating the tracker as it goes. Runs after /to-tickets; ends by handing off to /two-axis-review and a PR that closes the spec. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
 Ship turns an approved ticket DAG into committed, reviewed code with no human in the loop until the end. All decisions were made upstream — the wayfinder map, the spec, the `/to-tickets` quiz. Ship never makes product decisions; when it hits one, it parks the ticket and reports.

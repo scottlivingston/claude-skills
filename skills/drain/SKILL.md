@@ -1,7 +1,6 @@
 ---
 name: drain
-description: Work all AFK tickets (research, agent-doable tasks) on a wayfinder map's frontier in parallel background agents, while the human handles the HITL tickets. Use during charting to keep the AFK frontier moving.
-disable-model-invocation: true
+description: Work all AFK tickets (research, agent-doable tasks) on a wayfinder map's frontier in parallel background agents, while the human handles the HITL tickets. Use during charting to keep the AFK frontier moving. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
 Drain the **AFK frontier** of a wayfinder map: every open, unblocked, unclaimed child ticket that an agent can resolve alone. HITL tickets (grilling, prototype, human-checklist tasks) are never touched — they belong to a live session with the human.

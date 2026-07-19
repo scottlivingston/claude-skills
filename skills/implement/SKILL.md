@@ -1,7 +1,6 @@
 ---
 name: implement
-description: "Implement a piece of work based on a spec or set of tickets."
-disable-model-invocation: true
+description: "Implement a piece of work based on a spec or set of tickets. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously."
 ---
 
 Implement the work described by the user in the spec or tickets.

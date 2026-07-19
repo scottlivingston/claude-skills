@@ -1,7 +1,6 @@
 ---
 name: to-spec
-description: Turn the current conversation — or a completed wayfinder map — into a spec and publish it to the project issue tracker. No interview, just synthesis of what was already discussed or decided.
-disable-model-invocation: true
+description: Turn the current conversation — or a completed wayfinder map — into a spec and publish it to the project issue tracker. No interview, just synthesis of what was already discussed or decided. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
 This skill produces a spec (you may know this document as a PRD) from one of two inputs. Do NOT interview the user — just synthesize what is already known.
