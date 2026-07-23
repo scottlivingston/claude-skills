@@ -55,18 +55,20 @@ When B needs only A's **interface**, not its implementation, pull the contract (
 
 Before presenting, compute the **wave structure**: wave 1 is every ticket with no blockers, wave 2 is every ticket unblocked once wave 1 lands, and so on. If most waves have width 1 — a linear chain — treat that as a finding to justify, not a default: re-test each edge against the edge test, and consider re-slicing along independent capabilities instead of one incremental storyline. (Hub-and-spoke — one skeleton ticket blocking many independent slices — is a healthy shape; a chain usually means fake edges.)
 
-Present the proposed breakdown as a numbered list, followed by the wave structure so the user can see the parallelism at a glance. For each ticket, show:
+Present the proposed breakdown **as plain markdown text in your reply** — a numbered list, followed by the wave structure so the user can see the parallelism at a glance. For each ticket, show:
 
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 - **Where it lands**: one to three anchors into the code this slice touches, per `code-anchors.md` in this plugin's `skills/` directory — verified clickable `path:line` references, so the user can judge the breakdown against code they may not know. (These anchors are for the quiz only — the published tickets still avoid file paths, per the note below.)
 
-Ask the user:
+Only after the full breakdown is on screen as message text, ask the user:
 
 - Does the granularity feel right? (too coarse / too fine)
 - Are the blocking edges correct — does each ticket only depend on tickets that genuinely gate it?
 - Should any tickets be merged or split further?
+
+If you use the AskUserQuestion tool for this, the breakdown MUST already have been printed as ordinary text in the same reply, before the tool call — the question dialog cannot display the breakdown, and the user cannot answer questions about a list they haven't seen. Never put the breakdown itself (or a summary standing in for it) inside the tool's question or option text.
 
 Iterate until the user approves the breakdown.
 
