@@ -25,6 +25,7 @@ Workflow roles:
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
 - `spec` — a spec issue published by `/to-spec`.
 - `impl` — an implementation ticket published by `/to-tickets` (a child of its spec).
+- `review-finding` — a ticket published from a `/two-axis-review` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
 - `wayfinder:map` and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`) — wayfinder's map and its ticket types.
 
@@ -70,6 +71,7 @@ Every vocabulary role is a GitHub **label** with the same string, on the current
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
 gh label create spec               --force -c "#0e8a16" -d "Spec issue (published by /to-spec)"
 gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /to-tickets)"
+gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review finding (/two-axis-review)"
 gh label create hitl               --force -c "#d93f0b" -d "Needs the human in the loop"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
 gh label create wayfinder:map      --force -c "#006b75" -d "Wayfinder map"
