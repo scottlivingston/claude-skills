@@ -45,7 +45,7 @@ One dynamic workflow implements the ticket DAG: a fresh agent per frontier ticke
 
 ### 6. Review — `/two-axis-review`
 
-The branch is reviewed along two axes that are never merged into one list: **Standards** (does the code follow this repo's conventions, plus a fixed code-smell baseline?) and **Spec** (does it do what the spec asked?). Every finding is labeled and carries a validated fix proposal. Mechanical validated fixes are auto-applied (one revertable commit each); the rest are walked past you one at a time — one finding, one verdict (**fix** / **ticket** / **later** / **skip**), next.
+The branch is reviewed along two axes that are never merged into one list: **Standards** (does the code follow the repo's documented conventions — canonically `CONVENTIONS.md`, with per-directory files scoping a monorepo's apps — plus a fixed code-smell baseline?) and **Spec** (does it do what the spec asked?). Every finding is labeled and carries a validated fix proposal. Mechanical validated fixes are auto-applied (one revertable commit each); the rest are walked past you one at a time — one finding, one verdict (**fix** / **ticket** / **later** / **skip**), next.
 
 ### 7. Loop until clean
 
@@ -69,7 +69,7 @@ You can also enter partway: `/to-spec` with no argument specs the current conver
 
 **Human time goes only where a human is needed.** Every planning ticket is typed HITL or AFK. `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — and an agent must never stand in for the human's side of a HITL ticket. A grilling agent that answers its own questions has broken the workflow.
 
-**HITL questions arrive anchored in the code.** A human can't make an informed call about code they haven't seen, so any question that hinges on existing code carries verified, cmd-clickable `path:line` references — links into the editor, never pasted snippets (`skills/code-anchors.md` holds the convention). Deciding with the code in view is also how the human keeps up with a codebase that agents are changing faster than anyone can read the diffs.
+**HITL questions arrive anchored in the code.** A human can't make an informed call about code they haven't seen, so any question that hinges on existing code carries verified, cmd-clickable `path:line` references — links into the editor, never pasted snippets (the `code-anchors` skill holds the convention). Deciding with the code in view is also how the human keeps up with a codebase that agents are changing faster than anyone can read the diffs.
 
 **Approval gates are explicit, and downstream stages don't improvise.** The human approves the implementation breakdown in the `/to-tickets` quiz; after that, `/ship` makes no product decisions. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap rather than guessing.
 
@@ -77,13 +77,15 @@ You can also enter partway: `/to-spec` with no argument specs the current conver
 
 **Review runs on two axes that are never merged.** Standards and Spec are reviewed by separate sub-agents and reported side by side — code can pass one axis and fail the other, and a single ranked list lets one axis mask the other. Every verdict is recorded on the spec, so the ship ↔ review loop never re-asks a settled finding.
 
+**Standards live in `CONVENTIONS.md`, and the loop sharpens it.** Reviewable coding standards get one canonical home — `CONVENTIONS.md` at the repo root, with per-directory files as deltas in monorepos, nearest scope winning (the `conventions` skill holds the convention; repos without one fall back to whatever standards docs exist). `later` verdicts append their rediscovered rule there, so judgement calls the review keeps re-finding become documented standards the next round enforces — the standards doc gets sharper every lap. `CLAUDE.md` points at it, never duplicates it.
+
 **Tests live at pre-agreed seams.** `/tdd` is red–green at seams agreed up front — with the user live, or inherited from the spec's Seams-under-test list (fed by design tickets) when agents run AFK — behavior over implementation details, one test → one implementation, never a bulk test suite written ahead of the code.
 
 ## The assumptions
 
 What must be true of your project and working style for this workflow to fit:
 
-- **You have an issue tracker with labels, sub-issues, and blocking links.** GitHub issues by default (via `gh`); a local-markdown fallback exists for repos without a remote. `skills/issue-tracker.md` defines the tracker contract every skill speaks; a repo can swap in its own tracker with a `.claude/issue-tracker.md` implementing that contract — fully, or as a delta over the default ("as GitHub, except…").
+- **You have an issue tracker with labels, sub-issues, and blocking links.** GitHub issues by default (via `gh`); a local-markdown fallback exists for repos without a remote. The `issue-tracker` skill defines the tracker contract every skill speaks; a repo can swap in its own tracker with a `.claude/issue-tracker.md` implementing that contract — fully, or as a delta over the default ("as GitHub, except…").
 - **The effort is bigger than one context window.** That's what the map is for. If charting surfaces no fog — the whole journey fits one session — wayfinder tells you to skip the map and just do the work.
 - **A human is actually available.** Grilling, prototypes, design decisions, the to-tickets approval quiz, spec-gap resolutions, and review verdicts are all HITL by design. This workflow reduces where human attention goes; it does not remove it.
 - **You work in a git repo with a test suite you trust.** Ship implements in isolated worktrees and gates every serial merge on green tests; without meaningful tests, "never merge on red" protects nothing.

@@ -23,7 +23,7 @@ The map is a single issue on this repo's issue tracker, labelled `wayfinder:map`
 
 The map is an **index**, not a store. It lists the decisions made and points at the tickets that hold their detail; a decision lives in exactly one place — its ticket — so the map never restates it, only gists it and links.
 
-**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** Read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md) — its "Which tracker?" section resolves which implementation this repo uses, and each implementation carries its wayfinding specifics.
+**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** Invoke `/issue-tracker` — its "Which tracker?" section resolves which implementation this repo uses, and each implementation carries its wayfinding specifics.
 
 ### The map body
 
@@ -73,7 +73,7 @@ The answer isn't part of the body — it's recorded on resolution (see [Work thr
 
 ## Ticket Types
 
-Every ticket is either **HITL** — human in the loop, worked *with* a human who speaks for themselves — or **AFK**, driven by the agent alone. The mode is recorded as a `hitl` or `afk` label at creation (research is always `afk`; prototype, grilling, and design always `hitl`; task is decided per ticket). A HITL ticket only resolves through that live exchange; the agent never stands in for the human's side of it (a grilling agent that answers its own questions has broken this). In every HITL exchange, questions that hinge on existing code arrive **anchored** — clickable `path:line` references per `code-anchors.md` in this plugin's `skills/` directory — and `/domain-expansion` gives a guided code tour when an anchor isn't enough, so the human decides with the code in view, not from memory of it.
+Every ticket is either **HITL** — human in the loop, worked *with* a human who speaks for themselves — or **AFK**, driven by the agent alone. The mode is recorded as a `hitl` or `afk` label at creation (research is always `afk`; prototype, grilling, and design always `hitl`; task is decided per ticket). A HITL ticket only resolves through that live exchange; the agent never stands in for the human's side of it (a grilling agent that answers its own questions has broken this). In every HITL exchange, questions that hinge on existing code arrive **anchored** — clickable `path:line` references per `/code-anchors` — and `/domain-expansion` gives a guided code tour when an anchor isn't enough, so the human decides with the code in view, not from memory of it.
 
 - **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases. Creates a markdown summary as a linked asset. Use when knowledge outside the current working directory is required.
 - **Prototype** (HITL): Raise the fidelity of the discussion by making a cheap, rough, concrete artifact to react to — an outline, a rough take, a stub, or UI/logic code via the /prototype skill. Links the prototype as an asset. Use when "how should it look" or "how should it behave" is the key question.

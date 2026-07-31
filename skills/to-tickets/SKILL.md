@@ -7,7 +7,7 @@ description: Break a plan, spec, or the current conversation into a set of trace
 
 Break a plan, spec, or conversation into a set of **tickets** — tracer-bullet vertical slices, each declaring the tickets that **block** it.
 
-For the issue tracker and triage vocabulary, read `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md).
+For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
 ## Process
 
@@ -60,7 +60,7 @@ Present the proposed breakdown **as plain markdown text in your reply** — a nu
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
-- **Where it lands**: one to three anchors into the code this slice touches, per `code-anchors.md` in this plugin's `skills/` directory — verified clickable `path:line` references, so the user can judge the breakdown against code they may not know. (These anchors are for the quiz only — the published tickets still avoid file paths, per the note below.)
+- **Where it lands**: one to three anchors into the code this slice touches, per `/code-anchors` — verified clickable `path:line` references, so the user can judge the breakdown against code they may not know. (These anchors are for the quiz only — the published tickets still avoid file paths, per the note below.)
 
 Only after the full breakdown is on screen as message text, ask the user:
 
@@ -74,7 +74,7 @@ Iterate until the user approves the breakdown.
 
 ### 5. Publish the tickets to the configured tracker
 
-Publish the approved tickets. **How** depends on the configured tracker (see `issue-tracker.md` in this plugin's `skills/` directory (one level up from this SKILL.md)) — the tickets are the same either way, only the shape of the blocking edges changes:
+Publish the approved tickets. **How** depends on the configured tracker (see `/issue-tracker`) — the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below — one ticket per file, never a single combined file.
 - **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. When the source is a spec issue, make each ticket a **child of the spec** (the tracker doc's parent/child operation; on GitHub, the sub-issues endpoint), so the spec issue is the single parent the eventual PR closes. Use the platform's native blocking relationship for edges between tickets; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `impl` label plus the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction. (If the markers don't exist yet, run the tracker doc's bootstrap first.)

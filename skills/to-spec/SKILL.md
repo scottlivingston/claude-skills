@@ -8,7 +8,7 @@ This skill produces a spec (you may know this document as a PRD) from one of two
 - **Conversation mode** (no argument): synthesize the current conversation context and codebase understanding.
 - **Map mode** (argument is a `wayfinder:map` issue URL or number): load the map, then **zoom every entry in Decisions so far** — fetch each closed ticket's body and resolution comment; the one-line gists on the map are an index, not the decisions themselves. The spec synthesizes those resolutions. Anything still open on the map (open tickets, non-empty Not-yet-specified) means the map isn't complete — stop and say so rather than spec around a hole.
 
-For the issue tracker and triage vocabulary, read `issue-tracker.md` in this plugin's `skills/` directory, one level up from this SKILL.md.
+For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
 ## Process
 

@@ -7,7 +7,7 @@ description: Expand the code context behind the current question. Use when the h
 
 A HITL question has landed on unfamiliar terrain: the human is being asked to decide something that hinges on code they haven't read, and the one or two anchors on the question aren't enough. This skill expands the domain of the question — a guided tour of the relevant code, delivered as a reading path of clickable anchors — then puts the question again.
 
-Read `code-anchors.md` in this plugin's `skills/` directory (one level up from this SKILL.md) for the anchor format. The whole tour is links the human cmd-clicks and reads in their own editor — **never pasted code**.
+Invoke `/code-anchors` for the anchor format. The whole tour is links the human cmd-clicks and reads in their own editor — **never pasted code**.
 
 This is a side-quest inside a HITL exchange, and the HITL rule still holds: **the tour informs the human's answer; it never becomes the answer.** End by re-putting the question and waiting.
 

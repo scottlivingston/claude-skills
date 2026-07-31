@@ -1,3 +1,8 @@
+---
+name: issue-tracker
+description: The issue-tracker contract every workflow skill speaks — vocabulary, ticket/structure/workflow operations — with GitHub and local-markdown implementations and a per-repo override. Consult before creating, reading, labeling, linking, or querying tickets on the tracker.
+---
+
 # Issue tracker
 
 Shared tracker wiring for the wayfinder → drain → to-spec → to-tickets → ship (or implement) → two-axis-review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.

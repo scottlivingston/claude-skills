@@ -5,7 +5,7 @@ description: Work all AFK tickets (research, agent-doable tasks) on a wayfinder 
 
 Drain the **AFK frontier** of a wayfinder map: every open, unblocked, unclaimed child ticket that an agent can resolve alone. HITL tickets (grilling, prototype, human-checklist tasks) are never touched — they belong to a live session with the human.
 
-The user invokes with a map (URL or number). Read the wayfinder skill in this plugin for the map/ticket vocabulary, and `issue-tracker.md` in this plugin's `skills/` directory for the tracker operations.
+The user invokes with a map (URL or number). Read the wayfinder skill in this plugin for the map/ticket vocabulary, and invoke `/issue-tracker` for the tracker operations.
 
 ## Process
 

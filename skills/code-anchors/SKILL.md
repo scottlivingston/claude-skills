@@ -1,3 +1,8 @@
+---
+name: code-anchors
+description: The anchor format for citing code to the human — verified, clickable path:line references, never pasted snippets. Consult whenever putting a question, proposal, or claim about existing code to the user, in any conversation, not just inside workflow skills.
+---
+
 # Code anchors
 
 Shared convention for grounding HITL moments in the codebase. Whenever a skill puts a question, a proposal, or a claim about existing code to the human, the human must be able to *see that code* without breaking flow — they cmd-click a reference and read it in their own editor. Anchors are how: clickable references, never pasted code.
