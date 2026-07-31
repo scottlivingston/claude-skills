@@ -16,9 +16,9 @@ For the issue tracker and triage vocabulary, read `issue-tracker.md` in this plu
 
 2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
 
-In map mode, the map's resolutions usually settle the seams already — carry them into the spec without re-asking. Only check with the user if the map left the seams genuinely undecided (and note that as a gap in the map). In conversation mode, check with the user that these seams match their expectations.
+In map mode, the map's resolutions — design tickets especially — settle the seams: carry them into the spec's **Seams under test** list without re-asking. Only check with the user if the map left the seams genuinely undecided (and note that as a gap in the map). In conversation mode, check with the user that these seams match their expectations — the one interview moment this skill allows, because `/tdd` downstream refuses to test at seams no human confirmed.
 
-3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `spec` label and the `ready-for-agent` triage label - no need for additional triage. (If the markers don't exist yet, run the tracker doc's bootstrap first.)
+3. Write the spec using the template below, then publish it to the project issue tracker. Apply the `spec` label — no triage label: the spec's next step is the HITL `/to-tickets` quiz, and `/next` routes on the `spec` label plus the state of its children, not on triage. (If the marker doesn't exist yet, run the tracker doc's bootstrap first.)
 
 In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map.
 
@@ -58,14 +58,13 @@ A list of implementation decisions that were made. This can include:
 - API contracts
 - Specific interactions
 
-Do NOT include specific file paths or code snippets. They may end up being outdated very quickly.
-
-Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it within the relevant decision and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+Decision-encoding snippets are **first-class content**: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — is inlined within the relevant decision, trimmed to the decision-rich parts with its origin noted. These are contracts `/two-axis-review` validates the implementation against. What the spec avoids is *speculative* implementation code, and specific file paths or line numbers — they go stale fast.
 
 ## Testing Decisions
 
 A list of testing decisions that were made. Include:
 
+- **Seams under test** — the agreed seams, each described at the interface level: what boundary it is and what behaviour is observable there. This list is the confirmation `/tdd` requires; ship's agents test at these seams and no others, and work no listed seam covers is a spec gap.
 - A description of what makes a good test (only test external behavior, not implementation details)
 - Which modules will be tested
 - Prior art for the tests (i.e. similar types of tests in the codebase)

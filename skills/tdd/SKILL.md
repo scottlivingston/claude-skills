@@ -19,9 +19,12 @@ See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking g
 
 A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside. Tests live at seams, never against internals.
 
-**Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them with the user. No test is written at an unconfirmed seam. You can't test everything — agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case.
+**Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them. You can't test everything — agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case. Confirmation takes one of two forms:
 
-Ask: "What's the public interface, and which seams should we test?" Anchor each proposed seam per `code-anchors.md` in this plugin's `skills/` directory — a verified clickable `path:line` reference to the existing interface (or to where a new one would sit) — so the user confirms seams by reading them, not by trusting your description of them.
+- **Live session**: ask the user — "What's the public interface, and which seams should we test?" Anchor each proposed seam per `code-anchors.md` in this plugin's `skills/` directory — a verified clickable `path:line` reference to the existing interface (or to where a new one would sit) — so the user confirms seams by reading them, not by trusting your description of them.
+- **AFK session driven by a spec** (a `/ship` agent, say): the spec's **Seams under test** list *is* the confirmation — the human agreed it upstream, via design tickets on the wayfinder map or at `/to-spec` time. Don't re-ask, and don't widen it.
+
+Either way, no test is written at an unconfirmed seam. An AFK agent whose work no listed seam covers has found a **spec gap** — park and report it per the ship discipline, never invent a seam.
 
 ## Anti-patterns
 
@@ -33,4 +36,4 @@ Ask: "What's the public interface, and which seams should we test?" Anchor each 
 
 - **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle.
-- **Refactoring is not part of the loop.** It belongs to the review stage (see the `code-review` skill), not the red → green implementation cycle.
+- **Refactoring is not part of the loop.** It belongs to the review stage (`/two-axis-review`, whose Standards axis carries the smell baseline), not the red → green implementation cycle.

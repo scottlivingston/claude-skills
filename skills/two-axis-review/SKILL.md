@@ -74,7 +74,7 @@ Send a single message with two `Agent` tool calls. Use the `general-purpose` sub
 
 - The diff command and commit list.
 - The path or fetched contents of the spec.
-- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
+- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Treat the spec's inline decision snippets (state machines, schemas, type shapes, contracts) as requirements — divergence from one is a finding like any other. Quote the spec line for each finding. Under 400 words."
 
 If the spec is missing, skip the Spec sub-agent and note this in the final report.
 
@@ -89,6 +89,8 @@ Each finding carries: its ID, a `file:line` location, a one-line description, th
 - A finding whose subject **predates this diff** (visible in context, not introduced by the change) and matches an open ticket → mark **already ticketed: #N** — no proposal, no validator, not in the verdict queue.
 - A finding this diff **introduces** that matches a ticketed pattern → mark **instance of open #N** and keep it in the queue — new instances of a known pattern are new debt, and fixing your own new instances doesn't reduce repo consistency.
 - An uncertain match → mark **possibly duplicates #N** and keep it in the queue. A visible duplicate is recoverable; a silent suppression isn't.
+
+**Dedup against prior rounds.** Also fetch the review **summary comments** on the spec issue (step 11 posts one per round): every finding adjudicated in an earlier round — fixed, ticketed, parked as `later`, or **skipped** — is already decided. A finding matching one → mark **already adjudicated (<verdict>)**: no proposal, no validator, not in the verdict queue, one line in the wrap-up. This memory is what makes the ship ↔ review loop converge — no finding is ever re-litigated.
 
 ### 6. Propose a fix per finding
 
@@ -145,7 +147,7 @@ Dumping every finding block here defeats the whole point of the loop below. Keep
 
 Walk the queue one finding per turn. **One finding on screen, one verdict, next.** A wall of blocks is what makes review feedback expensive; this loop is the skill's main ergonomic promise, so never collapse it back into a batch dump on your own initiative.
 
-Order the queue: auto-applied findings first (a revert should land before later fixes stack on top of it), then Standards, then Spec; within each axis, hard violations before judgement calls. Findings marked **already ticketed: #N** are not in the queue at all.
+Order the queue: auto-applied findings first (a revert should land before later fixes stack on top of it), then Standards, then Spec; within each axis, hard violations before judgement calls. Findings marked **already ticketed: #N** or **already adjudicated** are not in the queue at all.
 
 For each finding, print its block:
 
@@ -163,7 +165,7 @@ The `n of N` counter goes in the header so the user always knows how much is lef
 
 Then ask for that one finding's verdict with `AskUserQuestion` — a single question, options tailored to the finding:
 
-- **Needs your call:** `fix` (queue for the fix subagent), `ticket` (child of the spec), `later` (standalone repo-wide cleanup ticket), `skip` (drop). Lead with the one the validation actually supports — `fix` for a `validated` `quick-fix`, `ticket` for a `validated` `needs-a-session`, `later` for anything `repo-wide`, `skip` for a `rejected` proposal — and mark it `(Recommended)`.
+- **Needs your call:** `fix` (queue for the fix subagent), `ticket` (child of the spec), `later` (truly out of scope for this spec — standalone cleanup ticket), `skip` (drop). Lead with the one the validation actually supports — `fix` for a `validated` `quick-fix`, `ticket` for a `validated` `needs-a-session`, `later` for anything `repo-wide`, `skip` for a `rejected` proposal — and mark it `(Recommended)`.
 - **Auto-applied:** `keep` first, then `revert`, then `ticket` (the fix landed but something adjacent still needs work).
 
 `explain` isn't an option button — the user reaches it through the free-text answer, along with any freeform note. When they do: answer it, then **re-ask the same ID** before advancing. Never carry an unresolved ID past its turn.
@@ -179,13 +181,13 @@ When the loop ends, act on each verdict:
 - **fix** — collect every `fix` verdict into one batch and spawn a **round-2 fix subagent** with the step 8 discipline: serial, one commit per finding ID, test suite at the end, breakers reverted and reported. It must **re-ground each proposal against current `HEAD`** — earlier fix commits have moved lines since the sketches were written; find the quoted snippet, don't trust `file:line`. A `fix` verdict on a `rejected` or `needs-human` proposal is never applied blind — that objection gets surfaced and a revised fix agreed **in the loop, on that finding's turn**, before the queue advances.
 - **revert** — done by you in the main session, not a subagent: `git revert` that finding's commit; if later fix commits conflict with the revert, hand-apply the inverse instead. Valid for any fix-subagent commit from any round.
 - **ticket** — **cluster by file** before publishing: `ticket`-verdicted findings that touch the same file(s) become **one ticket** as long as the combined work still fits a single fresh session; past that cap, split into independent tickets with **no blocking edges** — file overlap is not a blocker, and `/ship`'s serial merge is where overlap is absorbed. Each ticket: title from the finding or cluster; body carrying the findings / why they matter / proposed fixes / validation verdicts, anchored by file + quoted snippet (no line numbers — they go stale); labels `impl` + `ready-for-agent` + `review-finding` (bootstrap first if needed). When the spec source was a tracker issue, make each ticket a **child of that spec issue** so `/ship <spec>`'s frontier query and `/next` pick them up with no extra wiring.
-- **later** — publish a **standalone** ticket, *not* a child of the spec, labelled `review-finding` + `needs-triage`. Body: the repo-wide pattern statement, the diff findings quoted as evidence, the proposed fix approach, and a task item to **add the rule to the repo's coding-standards doc** so future reviews enforce it as a documented standard instead of rediscovering it. A `later` ticket is a parking lot: no frontier query reaches it, and nothing works it until the user promotes it — typically by running `/to-tickets` on it to turn the cleanup into its own spec and DAG.
+- **later** — for work that is **truly out of scope for this spec**. (Contrast with `ticket`: *ticket* = fix it in the next ship round, in its own session; *later* = not part of this effort at all.) Publish a **standalone** ticket, *not* a child of the spec, labelled `review-finding` + `needs-triage`. Body: the repo-wide pattern statement, the diff findings quoted as evidence, the proposed fix approach, and a task item to **add the rule to the repo's coding-standards doc** so future reviews enforce it as a documented standard instead of rediscovering it. A `later` ticket is a parking lot: no frontier query reaches it, it never blocks the loop or the PR, and nothing works it until the user decides to pick it up — at which point it seeds a **fresh effort** (its own spec, or a wayfinder map if it needs charting), never an appendix to this one.
 - **skip** — drop it; note it as skipped in the wrap-up.
 - **keep** — the auto-applied fix stands; nothing to do.
 
 Close with a wrap-up recap — one line per ID and its terminal outcome, which is the first and only time the whole set appears together.
 
-After publishing, post **one summary comment on the spec issue**: what was auto-applied, which child tickets were created, which standalone `later` tickets exist. The spec's sub-issue list shouldn't be the only trace of the review.
+After publishing, post **one summary comment on the spec issue** — the round's full adjudication record: every finding ID and its terminal outcome, **including skips** (one-line reason each) and reverts, plus the child tickets created and the standalone `later` tickets. The next round's step 5 dedups against this comment — a verdict not recorded here will be re-found and re-asked, so completeness here is what makes the loop converge.
 
 Every queued finding must reach a terminal outcome — applied, ticketed, parked as `later`, skipped, kept, or reverted. Anything that gained a new proposal mid-triage (a revised fix agreed after an `explain`) goes back through the round-2 fix subagent, not straight to disk. Findings whose proposals were `rejected` stay report-only by default — the finding may be real even when the fix isn't — so never auto-ticket them without the user's explicit verdict.
 
@@ -194,6 +196,10 @@ Every queued finding must reach a terminal outcome — applied, ticketed, parked
 If the spec source was a tracker issue and the findings are clean or fixed, offer to open a PR whose body `Closes #<spec>` so the merge closes the spec issue and links the work it fulfills. Only open it if the user says yes.
 
 **Suppress this offer while the spec issue has open children** — including any tickets step 10 just published. Merging would close a spec with known open defects; offer a plain PR (no `Closes`) instead, or wait for the children to land. Standalone `later` tickets are **not** children and do not suppress the offer — that's why they're standalone.
+
+## The ship ↔ review loop
+
+This review is half of a loop: `/ship` implements, this skill reviews, `ticket` verdicts become spec children, `/next` routes back to shipping, and the pair repeats. The loop is **done** when a round yields no `fix` or `ticket` verdicts — which is exactly when step 12's PR offer un-suppresses. Each round must shrink: `fix`/`ticket` remove findings by resolving them, `skip`/`later` remove them by adjudication memory (steps 5 and 11), and `spec-suspect` findings amend the *spec* rather than churning the code. If a round grows instead — more new findings than the previous round — say so plainly: the spec is under-defined or a standard is undocumented, and the next move is sharpening those documents, not another lap.
 
 ## Why two axes
 

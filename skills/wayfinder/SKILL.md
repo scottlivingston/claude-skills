@@ -63,7 +63,7 @@ Each ticket is a **child issue** of the map; the tracker's issue id is its ident
 <the decision or investigation this ticket resolves>
 ```
 
-Each ticket carries a `wayfinder:<type>` label — one of `research`, `prototype`, `grilling`, `task` — plus a mode label, `hitl` or `afk` (see [Ticket Types](#ticket-types)).
+Each ticket carries a `wayfinder:<type>` label — one of `research`, `prototype`, `grilling`, `design`, `task` — plus a mode label, `hitl` or `afk` (see [Ticket Types](#ticket-types)).
 
 A session **claims** a ticket by labelling it `in-progress`, **first**, before any work, so concurrent sessions skip it. That label _is_ the claim: an open ticket without `in-progress` is unclaimed, and abandoning a ticket means removing the label.
 
@@ -73,11 +73,12 @@ The answer isn't part of the body — it's recorded on resolution (see [Work thr
 
 ## Ticket Types
 
-Every ticket is either **HITL** — human in the loop, worked *with* a human who speaks for themselves — or **AFK**, driven by the agent alone. The mode is recorded as a `hitl` or `afk` label at creation (research is always `afk`, prototype and grilling always `hitl`, task is decided per ticket). A HITL ticket only resolves through that live exchange; the agent never stands in for the human's side of it (a grilling agent that answers its own questions has broken this). In every HITL exchange, questions that hinge on existing code arrive **anchored** — clickable `path:line` references per `code-anchors.md` in this plugin's `skills/` directory — and `/domain-expansion` gives a guided code tour when an anchor isn't enough, so the human decides with the code in view, not from memory of it.
+Every ticket is either **HITL** — human in the loop, worked *with* a human who speaks for themselves — or **AFK**, driven by the agent alone. The mode is recorded as a `hitl` or `afk` label at creation (research is always `afk`; prototype, grilling, and design always `hitl`; task is decided per ticket). A HITL ticket only resolves through that live exchange; the agent never stands in for the human's side of it (a grilling agent that answers its own questions has broken this). In every HITL exchange, questions that hinge on existing code arrive **anchored** — clickable `path:line` references per `code-anchors.md` in this plugin's `skills/` directory — and `/domain-expansion` gives a guided code tour when an anchor isn't enough, so the human decides with the code in view, not from memory of it.
 
 - **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases. Creates a markdown summary as a linked asset. Use when knowledge outside the current working directory is required.
 - **Prototype** (HITL): Raise the fidelity of the discussion by making a cheap, rough, concrete artifact to react to — an outline, a rough take, a stub, or UI/logic code via the /prototype skill. Links the prototype as an asset. Use when "how should it look" or "how should it behave" is the key question.
 - **Grilling** (HITL): Conversation via the /grilling and /domain-modeling skills, one question at a time. The default case.
+- **Design** (HITL): Decide the shape of the code before it's built — module boundaries, interfaces and function signatures, data shapes, and the seams tests will live at — via the /design skill. Resolutions carry decision-encoding snippets (interface stubs, type shapes) that flow into the spec, and the agreed seams feed the spec's Seams-under-test list. Use when the question is "what structure should power this" rather than "what should it do".
 - **Task** (HITL or AFK): Manual work that must happen before a *decision* can be made — nothing to decide, prototype, or research, but the discussion is blocked until it's done. Signing up for a service so its API can be judged, provisioning access, moving data so its shape can be seen. This is the one type that *does* rather than decides — and it earns its place by unblocking a decision, not by delivering the destination. The agent drives it alone where it can (AFK); otherwise it hands the human a precise checklist (HITL). Resolved when the work is done; the answer records what was done and any resulting facts (credentials location, new URLs, row counts) later tickets depend on.
 
 ## Fog of war

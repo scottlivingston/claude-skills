@@ -119,6 +119,6 @@ The end-to-end behaviour this ticket makes work, from the user's perspective —
 
 </issue-template>
 
-In either form, avoid specific file paths or code snippets — they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts — not a working demo, just the important bits.
+In either form, tickets carry **decision-encoding snippets** as first-class content: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — is inlined, trimmed to the decision-rich parts with its origin noted, and becomes part of what review validates the implementation against. What tickets avoid is *speculative* implementation code — sketches of how to build things no decision has settled — and specific file paths or line numbers, which go stale fast. (Review-finding tickets published by `/two-axis-review` are the one exception on paths: a finding is about existing code, so it anchors by file + quoted snippet.)
 
 End by pointing the user at the next step: `/ship <spec>` drives the whole DAG — parallel fresh agents per ticket, reviewed and merged wave by wave. The manual alternative is `/implement`, one frontier ticket at a time, clearing context between tickets.

@@ -27,7 +27,7 @@ Workflow roles:
 - `impl` — an implementation ticket published by `/to-tickets` (a child of its spec).
 - `review-finding` — a ticket published from a `/two-axis-review` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
-- `wayfinder:map` and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`) — wayfinder's map and its ticket types.
+- `wayfinder:map` and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`design`/`task`) — wayfinder's map and its ticket types.
 
 ### Ticket operations
 
@@ -78,6 +78,7 @@ gh label create wayfinder:map      --force -c "#006b75" -d "Wayfinder map"
 gh label create wayfinder:research --force -c "#c5def5" -d "Wayfinder ticket: research"
 gh label create wayfinder:prototype --force -c "#c5def5" -d "Wayfinder ticket: prototype"
 gh label create wayfinder:grilling --force -c "#c5def5" -d "Wayfinder ticket: grilling"
+gh label create wayfinder:design   --force -c "#c5def5" -d "Wayfinder ticket: design"
 gh label create wayfinder:task     --force -c "#c5def5" -d "Wayfinder ticket: task"
 gh label create needs-triage       --force -c "#ededed" -d "Maintainer must evaluate"
 gh label create needs-info         --force -c "#ededed" -d "Waiting on reporter"
@@ -104,27 +105,28 @@ The **map** is a single issue labelled `wayfinder:map`, holding the Notes / Deci
 
 ## Local markdown implementation (fallback)
 
-Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line.
+Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/two-axis-review`'s `later` cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
 
 ### Ticket operations
 
 - One feature per directory: `.scratch/<feature-slug>/`; the spec is `.scratch/<feature-slug>/spec.md`.
 - **Create**: a new file under `.scratch/<feature-slug>/`. Implementation tickets are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` — never a single combined tickets file.
-- **Mark / unmark**: edit the `Status:` line (triage roles, `in-progress`, `resolved`).
+- **Mark / unmark**: edit the `Status:` line (triage roles, `in-progress`) or the `Labels:` line (everything else).
+- **Close**: set `Status: closed`, optionally appending a closing comment under `## Comments`.
 - **Comment**: append under a `## Comments` heading.
 - **Bootstrap**: nothing to do — markers are just lines in files.
 
 ### Structure operations
 
 - **Parent/child**: the directory is the parent — children live in its `issues/` subdirectory.
-- **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `resolved`.
+- **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `closed`.
 
 ### Workflow operations
 
 - **Claim**: set `Status: in-progress` and save before any work; unclaim by reverting it. **Claim check**: read the `Status:` lines.
 - **Frontier query**: scan the effort's `issues/` directory for files that are open, unblocked, and unclaimed; first by number wins.
-- **Resolve**: append the answer under an `## Answer` heading, set `Status: resolved`, then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
+- **Resolve**: append the answer under an `## Answer` heading, then Close (`Status: closed`), then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
 
 ### Wayfinding specifics
 
-The **map** is `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Fog body. Each **child ticket** is `.scratch/<effort>/issues/NN-<slug>.md` with the question in the body, a `Type:` line (`research`/`prototype`/`grilling`/`task`), a `Mode:` line (`hitl`/`afk`), and a `Status:` line.
+The **map** is `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Fog body. Each **child ticket** is `.scratch/<effort>/issues/NN-<slug>.md` with the question in the body, a `Type:` line (`research`/`prototype`/`grilling`/`design`/`task`), a `Mode:` line (`hitl`/`afk`), and a `Status:` line.

@@ -9,11 +9,11 @@ Packaged as a Claude Code plugin (`scott-skills`).
 A loose idea goes in; a PR that closes its spec comes out. In order:
 
 - **/wayfinder** — chart the unknowns as decision tickets on the issue tracker, then resolve them one session at a time (`/wayfinder <map>`) until the way is clear
-- **/drain** — meanwhile, background agents clear the map's research and task tickets in parallel, so you only sit in the conversations that need a human
+- **/drain** — meanwhile, background agents clear the map's AFK tickets (research, agent-doable tasks) in parallel, so you only sit in the conversations that need a human
 - **/to-spec** — distill the completed map into a spec issue; pure synthesis, no interview
 - **/to-tickets** — break the spec into vertical-slice tickets with blocking edges; you approve the breakdown
-- **/ship** — implement the ticket DAG with a fresh agent per ticket in isolated worktrees, merged serially
-- **/two-axis-review** — review the branch against Standards and Spec with labeled findings, each carrying a validated fix proposal; mechanical validated fixes are auto-applied by a serial fix subagent (one revertable commit per finding), and the rest are walked past you one finding at a time — one block, one verdict (fix / ticket / later / skip), next — spinning session-sized fixes back into the ticket workflow and parking repo-wide patterns as standalone cleanup tickets, then open the PR that closes the spec issue
+- **/ship** — one dynamic workflow implements the ticket DAG — fresh agent per ticket in isolated worktrees, serial merges, a review pass over each wave's integrated diff — while the managing session only delegates and reports
+- **/two-axis-review** — review the branch against Standards and Spec with labeled findings, each carrying a validated fix proposal; mechanical validated fixes are auto-applied by a serial fix subagent (one revertable commit per finding), and the rest are walked past you one finding at a time — one block, one verdict (fix / ticket / later / skip), next. Ticket verdicts feed the next ship round, `later` parks truly-out-of-scope patterns as standalone cleanup tickets, and every verdict is recorded on the spec so no finding is ever re-asked. The ship ↔ review pair loops until a round comes back clean, then the PR that closes the spec issue is offered
 
 Or don't memorize the chain at all: after `/wayfinder`, just invoke **/next** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — one unit of work per invocation. While the map is live it also drains the AFK frontier in background agents while you sit in the HITL ticket, and it reconciles any results a previous session didn't fold in.
 
@@ -31,17 +31,17 @@ Everything is coordinated through the repo's issue tracker — GitHub issues by 
 
 **Everything is sized to a context window.** Each ticket — planning or implementation — is sized to one fresh agent session. Wayfinder resolves at most one ticket per invocation — light tickets may share a live session across repeated `/next` calls, with `/next` making the continue-or-clear call after each; ship never gives two tickets to one agent. Fresh context per unit of work is the point, not an inconvenience.
 
-**Human time goes only where a human is needed.** Every planning ticket is typed HITL (grilling, prototypes, human-gated tasks) or AFK (research, agent-doable tasks). `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — and an agent must never stand in for the human's side of a HITL ticket.
+**Human time goes only where a human is needed.** Every planning ticket is typed HITL (grilling, prototypes, design, human-gated tasks) or AFK (research, agent-doable tasks). `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — and an agent must never stand in for the human's side of a HITL ticket.
 
 **HITL questions arrive anchored in the code.** A human can't make an informed call about code they haven't seen, so any question, proposed seam, or ticket breakdown that hinges on existing code carries verified, cmd-clickable `path:line` references — links into the editor, never pasted snippets (`skills/code-anchors.md` holds the convention). When anchors aren't enough, `/domain-expansion` turns the pending question into a guided reading tour of the relevant code, then re-puts the question. Deciding with the code in view is also how the human keeps up with a codebase that agents are changing faster than anyone can read the diffs.
 
 **Approval gates are explicit, and downstream stages don't improvise.** The human approves the implementation breakdown in the `/to-tickets` quiz; after that, `/ship` makes no product decisions. When an agent hits a decision the spec doesn't hold, it parks the ticket, reports the gap on the spec issue, and the run continues around it.
 
-**Implementation is vertical slices, in parallel, merged serially.** Tickets are tracer bullets — narrow but complete paths through every layer, demoable alone — not horizontal layers. (Wide mechanical refactors are the one exception, sequenced as expand–contract.) Ship runs a fresh agent per frontier ticket in an isolated git worktree, reviews each diff, then merges worktrees one at a time with tests after each merge. Never merge on red.
+**Implementation is vertical slices, in parallel, merged serially.** Tickets are tracer bullets — narrow but complete paths through every layer, demoable alone — not horizontal layers. (Wide mechanical refactors are the one exception, sequenced as expand–contract.) Ship's workflow runs a fresh agent per frontier ticket in an isolated git worktree, merges worktrees one at a time with tests after each merge, then reviews each wave's integrated diff — confident standards fixes land immediately, everything else defers to the closing review. Never merge on red.
 
-**Review runs on two axes that are never merged.** Standards (does the code follow this repo's conventions, plus a fixed Fowler code-smell baseline?) and Spec (does it do what the issue asked?) are reviewed by separate sub-agents and reported side by side — code can pass one axis and fail the other, and a single ranked list lets one axis mask the other.
+**Review runs on two axes that are never merged.** Standards (does the code follow this repo's conventions, plus a fixed Fowler code-smell baseline?) and Spec (does it do what the issue asked?) are reviewed by separate sub-agents and reported side by side — code can pass one axis and fail the other, and a single ranked list lets one axis mask the other. The ship ↔ review loop converges by construction: every verdict — including skips — is recorded on the spec, and no finding is ever re-litigated.
 
-**Tests live at pre-agreed seams.** `/tdd` is red–green at public interfaces confirmed with the user up front — behavior over implementation details, one test → one implementation, never a bulk test suite written ahead of the code.
+**Tests live at pre-agreed seams.** `/tdd` is red–green at seams agreed up front — with the user live, or inherited from the spec's Seams-under-test list (fed by design tickets) when agents run AFK — behavior over implementation details, one test → one implementation, never a bulk test suite written ahead of the code.
 
 ## Standalone skills
 
@@ -50,6 +50,7 @@ Used by the chain, and useful on their own:
 - **grilling** — relentless one-question-at-a-time interview to stress-test a plan; facts get looked up, decisions get asked
 - **domain-expansion** — a guided reading tour of the code behind the current question, as clickable anchors; for when a grilling question lands on unfamiliar terrain
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
+- **design** — decide the shape of code before it's built — module boundaries, interfaces, data shapes, and the seams tests will live at — captured as contract snippets that flow into the spec
 - **prototype** — throwaway code that answers a design question (interactive logic harness, or switchable UI variants)
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
 - **tdd** — the red–green loop, seams, mocking guidance, and test anti-patterns
