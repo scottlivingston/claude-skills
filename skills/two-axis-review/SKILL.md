@@ -1,6 +1,6 @@
 ---
 name: two-axis-review
-description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs the find→validate→propose→validate→auto-apply pipeline as one dynamic workflow — both axis reviews in parallel, every finding labeled and adversarially validated (refuted findings dropped), a fix proposed per survivor and adversarially validated, mechanical validated fixes auto-applied by a serial fix agent — then walks the rest past the user one finding at a time for a verdict — queue more fixes, publish tracker tickets, or park repo-wide patterns as standalone cleanup tickets. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
+description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs the find→validate→propose→validate→auto-apply pipeline as one dynamic workflow — both axis reviews in parallel (partitioned into shared subsystem groups when the diff is wide), every finding labeled and adversarially validated (refuted findings dropped), a fix proposed per survivor and adversarially validated, mechanical validated fixes auto-applied by a serial fix agent — then walks the rest past the user one finding at a time for a verdict — queue more fixes, publish tracker tickets, or park repo-wide patterns as standalone cleanup tickets. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
 ---
 
 Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards** — does the code conform to this repo's documented coding standards?
 - **Spec** — does the code faithfully implement the originating issue / PRD / spec?
 
-The whole find-and-validate pipeline — both axis reviews in parallel, per-run finding IDs, adversarial finding validation (a refuted finding is dropped there, before any fix is drafted), fix proposals for the survivors, adversarial fix validation, and the auto-applied mechanical tier — runs as **one dynamic `Workflow`**: stage order is enforced by script rather than discipline, and the manager's context stays clean for triage. The manager then walks the remaining findings past the user **one at a time**, collecting a verdict each — queuing further fixes to the fix subagent, publishing session-sized findings as tickets the rest of the workflow (`/ship`, `/next`) can pick up, and parking repo-wide patterns as standalone cleanup tickets. Nothing is ever edited in the review session itself.
+The whole find-and-validate pipeline — both axis reviews in parallel (partitioned into shared subsystem groups when the diff is too wide for one reader), per-run finding IDs, adversarial finding validation (a refuted finding is dropped there, before any fix is drafted), fix proposals for the survivors, adversarial fix validation, and the auto-applied mechanical tier — runs as **one dynamic `Workflow`**: stage order is enforced by script rather than discipline, and the manager's context stays clean for triage. The manager then walks the remaining findings past the user **one at a time**, collecting a verdict each — queuing further fixes to the fix subagent, publishing session-sized findings as tickets the rest of the workflow (`/ship`, `/next`) can pick up, and parking repo-wide patterns as standalone cleanup tickets. Nothing is ever edited in the review session itself.
 
 For the issue tracker, invoke `/issue-tracker`.
 
@@ -22,8 +22,9 @@ Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so th
 
 Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here — not inside the workflow.
 
-Record two more facts for later:
+Record three more facts for later:
 
+- How big is the diff (`git diff <fixed-point>...HEAD --stat`)? The size decides whether step 4 partitions the reviews.
 - Is the working tree clean (`git status --porcelain`)? A dirty tree disables the auto-apply tier (step 9).
 - Is `HEAD` the repo's default branch? If so, get the user's OK (or a branch) before any auto-commit lands (step 9).
 
@@ -76,17 +77,27 @@ Pass as `args` everything the stages need — the workflow has no conversation c
 
 Give every stage a `schema` so verdicts come back as typed fields — `finding-refuted` vs `fix-rejected` is an enum value, never prose the manager interprets. Run the per-finding stages as a `pipeline` — a Standards finding needn't wait for the Spec reviewer — with two deliberate barriers: the per-axis proposer (step 7 batches an axis's survivors into one agent) and the final serial fix agent (step 9). The workflow returns the full labeled queue — every finding with its flags, verdicts, proposal, size, and applied SHA or status — and that return value is all the manager sees of the pipeline.
 
-**Reviewer stage** — two parallel agents, one per axis.
+**Partition wide diffs.** One reviewer per axis is the default and, when the diff fits, the better one — a single reader sees every cross-file pattern. Past what one reviewer can hold alongside its standards and spec (soft heuristic: more than ~15 files or ~1,500 changed lines, judged from step 1's `--stat`), the script inserts a **partition stage**: one cheap agent reads the file list and stats — not the full diff — plus the spec and the standards-scope map, and clusters the changed files into logical groups, by subsystem or directory, which also aligns with scoped `CONVENTIONS.md` boundaries. Each group becomes a path-scoped diff command (`git diff <fixed-point>...HEAD -- <paths>`), and **both axes share the one partition** — then one reviewer per group per axis:
+
+- A **Standards chunk reviewer** gets its group's diff command and only the standards governing those paths (plus the smell baseline).
+- A **Spec chunk reviewer** gets its group's diff command and the **full spec** — the spec is small; the diff is what's big — so each slice still catches both wrong implementations and scope creep. Its report also lists **which spec requirements its slice touches**.
+
+Partitioning silently breaks two whole-diff properties; the script restores each:
+
+- **Cross-file smells.** Duplicated Code, Repeated Switches, Shotgun Surgery, and Divergent Change span groups by nature — no chunk reviewer can see them. One extra **cross-cutting sweeper** reads the whole diff at low resolution (file list and hunk headers, reading closer only where something looks suspicious), hunting only those four.
+- **Missing requirements.** "Asked for and never built" is a property of the union, not any slice. The script unions the chunks' requirement-coverage lists; each requirement no slice claims goes to one small checker agent — absent from the changed files ≠ unimplemented; it may pre-exist — before entering the queue as a finding.
+
+**Reviewer stage** — one agent per axis, or per group and axis when partitioned.
 
 **Standards reviewer prompt** — include:
 
-- The full diff command and commit list.
+- The diff command (path-scoped, when partitioned) and commit list.
 - The list of standards-source files you found in step 3 — with the directory scope each one binds, and the instruction that a scoped `CONVENTIONS.md` governs only files under its directory, nearest scope winning — **plus the smell baseline from step 3** pasted in full; the reviewer has no other access to the baseline.
 - The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls — documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep two or three places outside the diff; if the pattern predates this change, flag the finding `repo-wide`. Skip anything tooling enforces. Under 400 words."
 
 **Spec reviewer prompt** — include:
 
-- The diff command and commit list.
+- The diff command (path-scoped, when partitioned) and commit list.
 - The path or fetched contents of the spec.
 - The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Treat the spec's inline decision snippets (state machines, schemas, type shapes, contracts) as requirements — divergence from one is a finding like any other. Quote the spec line for each finding. Under 400 words."
 
@@ -94,7 +105,7 @@ If the spec is missing, the script skips the Spec reviewer stage; note this in t
 
 ### 5. Label the findings
 
-A labeling stage normalizes each report into a list of discrete findings — the aggregator's "light cleaning" — and the script assigns each an ID: `STD-1`, `STD-2`, … for Standards, `SPEC-1`, `SPEC-2`, … for Spec, numbered in report order. (Axis-prefixed IDs keep the axes separate and need no coordination between the reviewers; IDs are per-run — a re-run renumbers.)
+A labeling stage normalizes each report into a list of discrete findings — the aggregator's "light cleaning". When the reviews were partitioned, it also dedups across group boundaries: the cross-cutting sweeper and a chunk reviewer may report the same hunk. The script assigns each finding an ID: `STD-1`, `STD-2`, … for Standards, `SPEC-1`, `SPEC-2`, … for Spec, numbered in report order. (Axis-prefixed IDs keep the axes separate and need no coordination between the reviewers; IDs are per-run — a re-run renumbers.)
 
 Each finding carries: its ID, a `file:line` location, a one-line description, the hard-violation vs judgement-call flag, the `repo-wide` flag where raised, and the cited source (the standard's rule, or the spec line). The hard flag is axis-specific: on **Standards**, only a documented-standard breach can be hard — baseline smells never are; on **Spec**, hardness is settled by the finding validator's classification in step 6 (`code-diverges` is hard, `spec-suspect` is a judgement call). Do **not** merge or rerank findings across axes — the two axes are deliberately separate (see _Why two axes_).
 
