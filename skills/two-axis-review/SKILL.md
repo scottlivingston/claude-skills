@@ -1,6 +1,6 @@
 ---
 name: two-axis-review
-description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs both reviews in parallel sub-agents, labels every finding, adversarially validates each finding (refuted findings are dropped), proposes a fix per survivor and adversarially validates each fix, auto-applies the mechanical validated fixes via a serial fix subagent, then walks the rest past the user one finding at a time for a verdict — queue more fixes, publish tracker tickets, or park repo-wide patterns as standalone cleanup tickets. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
+description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs the find→validate→propose→validate→auto-apply pipeline as one dynamic workflow — both axis reviews in parallel, every finding labeled and adversarially validated (refuted findings dropped), a fix proposed per survivor and adversarially validated, mechanical validated fixes auto-applied by a serial fix agent — then walks the rest past the user one finding at a time for a verdict — queue more fixes, publish tracker tickets, or park repo-wide patterns as standalone cleanup tickets. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
 ---
 
 Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards** — does the code conform to this repo's documented coding standards?
 - **Spec** — does the code faithfully implement the originating issue / PRD / spec?
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context. The skill then labels each finding with a per-run ID, adversarially validates each finding — a refuted finding is dropped there, before any fix is drafted — proposes a fix per surviving finding, adversarially validates each proposal, **auto-applies the mechanical validated tier** through a single serial fix subagent, and walks the remaining findings past the user **one at a time**, collecting a verdict each — queuing further fixes to the fix subagent, publishing session-sized findings as tickets the rest of the workflow (`/ship`, `/next`) can pick up, and parking repo-wide patterns as standalone cleanup tickets. Nothing is ever edited in the review session itself.
+The whole find-and-validate pipeline — both axis reviews in parallel, per-run finding IDs, adversarial finding validation (a refuted finding is dropped there, before any fix is drafted), fix proposals for the survivors, adversarial fix validation, and the auto-applied mechanical tier — runs as **one dynamic `Workflow`**: stage order is enforced by script rather than discipline, and the manager's context stays clean for triage. The manager then walks the remaining findings past the user **one at a time**, collecting a verdict each — queuing further fixes to the fix subagent, publishing session-sized findings as tickets the rest of the workflow (`/ship`, `/next`) can pick up, and parking repo-wide patterns as standalone cleanup tickets. Nothing is ever edited in the review session itself.
 
 For the issue tracker, invoke `/issue-tracker`.
 
@@ -20,7 +20,7 @@ Whatever the user said is the fixed point — a commit SHA, branch name, tag, `m
 
 Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
 
-Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here — not inside two parallel sub-agents.
+Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here — not inside the workflow.
 
 Record two more facts for later:
 
@@ -34,11 +34,11 @@ Look for the originating spec, in this order:
 1. Issue references in the commit messages (`#123`, `Closes #45`, etc.) — fetch via the tracker doc above.
 2. A path the user passed as an argument.
 3. A PRD/spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
-4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent will skip and report "no spec available".
+4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** reviewer stage will skip and report "no spec available".
 
 ### 3. Identify the standards sources
 
-The canonical source is `CONVENTIONS.md`, per `/conventions`: the root file plus, in a monorepo, any `CONVENTIONS.md` on the ancestor path of a file the diff touches — nearest scope wins on conflict, scoped files read as deltas over root. Collect the governing set for the files this diff touches, and record which directories each scoped file binds — the Standards sub-agent needs that mapping to judge each file by its own scope's rules.
+The canonical source is `CONVENTIONS.md`, per `/conventions`: the root file plus, in a monorepo, any `CONVENTIONS.md` on the ancestor path of a file the diff touches — nearest scope wins on conflict, scoped files read as deltas over root. Collect the governing set for the files this diff touches, and record which directories each scoped file binds — the Standards reviewer needs that mapping to judge each file by its own scope's rules.
 
 Repos not using the convention still get reviewed: fall back to anything that documents how code should be written (`CODING_STANDARDS.md`, `CONTRIBUTING.md`, `STYLEGUIDE.md`, equivalents under `docs/`).
 
@@ -62,41 +62,53 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 - **Middle Man** — a class or function that mostly just delegates onward. → cut it, call the real target direct.
 - **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
 
-### 4. Spawn both sub-agents in parallel
+### 4. Author and launch the pipeline workflow
 
-Send a single message with two `Agent` tool calls. Use the `general-purpose` subagent for both.
+Steps 4–9 — review, label, validate findings, propose, validate fixes, auto-apply — run as **one dynamic `Workflow`** (this skill is your authorization to use it). The manager authors the script, launches it, relays progress, and does no review work itself; the stage briefs in steps 4–9 are the prompts for the script's agents. Script order is what makes the pipeline honest: a proposer cannot see a finding whose validator refuted it, because the script never hands it one.
 
-**Standards sub-agent prompt** — include:
+Pass as `args` everything the stages need — the workflow has no conversation context:
+
+- the diff command and the commit list with full messages,
+- the spec contents (or "no spec"),
+- the standards sources with the directory scope each binds, plus the smell baseline pasted in full,
+- the dedup inputs for step 5 — fetch the open `review-finding` tickets and the spec issue's prior-round summary comments **before** launching,
+- the auto-apply preconditions recorded in step 1 (tree clean? default branch OK'd?).
+
+Give every stage a `schema` so verdicts come back as typed fields — `finding-refuted` vs `fix-rejected` is an enum value, never prose the manager interprets. Run the per-finding stages as a `pipeline` — a Standards finding needn't wait for the Spec reviewer — with two deliberate barriers: the per-axis proposer (step 7 batches an axis's survivors into one agent) and the final serial fix agent (step 9). The workflow returns the full labeled queue — every finding with its flags, verdicts, proposal, size, and applied SHA or status — and that return value is all the manager sees of the pipeline.
+
+**Reviewer stage** — two parallel agents, one per axis.
+
+**Standards reviewer prompt** — include:
 
 - The full diff command and commit list.
-- The list of standards-source files you found in step 3 — with the directory scope each one binds, and the instruction that a scoped `CONVENTIONS.md` governs only files under its directory, nearest scope winning — **plus the smell baseline from step 3** pasted in full; the sub-agent has no other access to the baseline.
+- The list of standards-source files you found in step 3 — with the directory scope each one binds, and the instruction that a scoped `CONVENTIONS.md` governs only files under its directory, nearest scope winning — **plus the smell baseline from step 3** pasted in full; the reviewer has no other access to the baseline.
 - The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls — documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep two or three places outside the diff; if the pattern predates this change, flag the finding `repo-wide`. Skip anything tooling enforces. Under 400 words."
 
-**Spec sub-agent prompt** — include:
+**Spec reviewer prompt** — include:
 
 - The diff command and commit list.
 - The path or fetched contents of the spec.
 - The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Treat the spec's inline decision snippets (state machines, schemas, type shapes, contracts) as requirements — divergence from one is a finding like any other. Quote the spec line for each finding. Under 400 words."
 
-If the spec is missing, skip the Spec sub-agent and note this in the final report.
+If the spec is missing, the script skips the Spec reviewer stage; note this in the final report.
 
 ### 5. Label the findings
 
-Normalize each report into a list of discrete findings — this is the aggregator's "light cleaning". Assign each finding an ID: `STD-1`, `STD-2`, … for Standards, `SPEC-1`, `SPEC-2`, … for Spec, numbered in report order. (Axis-prefixed IDs keep the axes separate and need no coordination between the sub-agents; IDs are per-run — a re-run renumbers.)
+A labeling stage normalizes each report into a list of discrete findings — the aggregator's "light cleaning" — and the script assigns each an ID: `STD-1`, `STD-2`, … for Standards, `SPEC-1`, `SPEC-2`, … for Spec, numbered in report order. (Axis-prefixed IDs keep the axes separate and need no coordination between the reviewers; IDs are per-run — a re-run renumbers.)
 
 Each finding carries: its ID, a `file:line` location, a one-line description, the hard-violation vs judgement-call flag, the `repo-wide` flag where raised, and the cited source (the standard's rule, or the spec line). The hard flag is axis-specific: on **Standards**, only a documented-standard breach can be hard — baseline smells never are; on **Spec**, hardness is settled by the finding validator's classification in step 6 (`code-diverges` is hard, `spec-suspect` is a judgement call). Do **not** merge or rerank findings across axes — the two axes are deliberately separate (see _Why two axes_).
 
-**Dedup against open review tickets.** List open `review-finding` tickets (tracker doc). Match conservatively: a standalone cleanup ticket matches at the rule/pattern level; a spec-child ticket matches only same file + same rule. Then:
+**Dedup against open review tickets.** Match against the open `review-finding` tickets passed in `args` (the manager listed them pre-launch, per the tracker doc). Match conservatively: a standalone cleanup ticket matches at the rule/pattern level; a spec-child ticket matches only same file + same rule. Then:
 
 - A finding whose subject **predates this diff** (visible in context, not introduced by the change) and matches an open ticket → mark **already ticketed: #N** — no proposal, no validator, not in the verdict queue.
 - A finding this diff **introduces** that matches a ticketed pattern → mark **instance of open #N** and keep it in the queue — new instances of a known pattern are new debt, and fixing your own new instances doesn't reduce repo consistency.
 - An uncertain match → mark **possibly duplicates #N** and keep it in the queue. A visible duplicate is recoverable; a silent suppression isn't.
 
-**Dedup against prior rounds.** Also fetch the review **summary comments** on the spec issue (step 12 posts one per round): every finding adjudicated in an earlier round — fixed, ticketed, parked as `later`, **skipped**, or **refuted by a validator** — is already decided. A finding matching one → mark **already adjudicated (<verdict>)**: no proposal, no validator, not in the verdict queue, one line in the wrap-up. This memory is what makes the ship ↔ review loop converge — no finding is ever re-litigated.
+**Dedup against prior rounds.** Also match against the spec issue's review **summary comments**, likewise passed in `args` (step 12 posts one per round): every finding adjudicated in an earlier round — fixed, ticketed, parked as `later`, **skipped**, or **refuted by a validator** — is already decided. A finding matching one → mark **already adjudicated (<verdict>)**: no proposal, no validator, not in the verdict queue, one line in the wrap-up. This memory is what makes the ship ↔ review loop converge — no finding is ever re-litigated.
 
 ### 6. Validate each finding — adversarially, before any fix exists
 
-Validation by the finding's author is theater — and validating a finding only *through* its fix conflates two questions: a validator that refutes a fix by undercutting the finding's premise produces an incoherent verdict. So findings are validated **on their own, before any fix is proposed**. Spawn **fresh validator sub-agents** that did not author the findings, prompted to **refute the finding itself**, one per finding, all in parallel. If there are more than 8 findings total, batch instead: one validator per axis, still fresh agents, still refutation-framed.
+Validation by the finding's author is theater — and validating a finding only *through* its fix conflates two questions: a validator that refutes a fix by undercutting the finding's premise produces an incoherent verdict. So findings are validated **on their own, before any fix is proposed**: a stage of **fresh validator agents** that did not author the findings, prompted to **refute the finding itself**, one per finding, all in parallel. If there are more than 8 findings total, batch instead: one validator per axis, still fresh agents, still refutation-framed.
 
 Each validator gets the finding, the diff command, the commit list **with full messages** (`git log <fixed-point>..HEAD`), and both axes' inputs (the standards sources / smell baseline, and the spec), and answers one question: **is the finding real?** Read the cited source and the actual hunk — does the standard rule or spec line say what the reviewer claims, does the code actually breach it, and does the claimed harm survive what the compiler and tooling already guarantee?
 
@@ -112,7 +124,7 @@ Verdict per finding:
 
 ### 7. Propose a fix per validated finding
 
-Spawn **one proposer sub-agent per axis** (in parallel, `general-purpose`) — findings within an axis share context, and per-axis keeps agent count sane. Give each proposer its axis's **surviving** findings — with the validators' reasoning attached — the diff command, and this brief:
+**One proposer agent per axis** (in parallel) — findings within an axis share context, and per-axis keeps agent count sane. Give each proposer its axis's **surviving** findings — with the validators' reasoning attached — the diff command, and this brief:
 
 "For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Also size each fix: `quick-fix` (a few edits — a candidate for the batched fix subagent) or `needs-a-session` (a fresh context window's worth of work). Keep each proposal under 100 words."
 
@@ -120,7 +132,7 @@ For baseline smells, the smell's generic "→ how to fix" is the starting point 
 
 ### 8. Validate each proposal — adversarially, independently
 
-Validation by the proposal's author is theater. Spawn **fresh validator sub-agents** — not the proposers, and not step 6's finding validators — prompted to **refute the fix**, one per proposal, all in parallel; past 8, batch per axis as in step 6.
+Validation by the proposal's author is theater. This stage's **fresh validator agents** — not the proposers, and not step 6's finding validators — are prompted to **refute the fix**, one per proposal, all in parallel; past 8, batch per axis as in step 6.
 
 Each validator gets the finding (with its step 6 validation reasoning), the proposal, the diff command, the commit list, and both axes' inputs, and checks:
 
@@ -145,11 +157,11 @@ Two preconditions, both recorded in step 1:
 - **Clean tree.** If the working tree was dirty, the whole tier demotes to needs-your-call — one line in the report says why. Never commit around a user's uncommitted work.
 - **Not the default branch** — or the user has OK'd committing there (offer a branch instead).
 
-Spawn **one fix subagent** in the main checkout — never parallel worktrees; serial application by a single agent is what makes review fixes stop colliding. It applies the batch in order, **one commit per finding ID** (`review: STD-3 — <one-liner>`), runs the full test suite once at the end, reverts any finding-commit that breaks it, and demotes that finding to needs-your-call with the failure attached. It runs **to completion before triage begins** — the triage loop cites its commit SHAs.
+The workflow's final stage is **one fix agent** in the main checkout — never parallel worktrees; serial application by a single agent is what makes review fixes stop colliding. It applies the batch in order, **one commit per finding ID** (`review: STD-3 — <one-liner>`), runs the full test suite once at the end, reverts any finding-commit that breaks it, and demotes that finding to needs-your-call with the failure attached. Because it is the last stage, the workflow completes with every auto-apply landed — triage never races it, and the triage loop cites its commit SHAs.
 
 ### 10. Open with the summary only
 
-Before triaging anything, post one short orientation message — **not** the findings themselves:
+When the workflow returns, post one short orientation message built from its queue — **not** the findings themselves:
 
 - The applied list, a cross-axis convenience list, not a re-ranking: **Applied automatically:** STD-1 (`abc1234`), SPEC-3 (`def5678`).
 - Counts per axis, how many the validators refuted (dropped; wrap-up only), and how many need a verdict.
