@@ -13,7 +13,7 @@ For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
 ### 1. Gather context
 
-Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments.
+Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments. For a spec, "full" includes its addressable decisions (`D1`…`Dn`, per the tracker doc's spec-decision convention) — the Decision Index in the body lists them.
 
 ### 2. Explore the codebase (optional)
 
@@ -49,6 +49,8 @@ When B needs only A's **interface**, not its implementation, pull the contract (
 
 </edge-test>
 
+**Route the spec's decisions.** When the source is a spec with a Decision Index, each ticket **cites the decision IDs it implements** — the routing is what lets `/ship` hand each agent only the decisions its ticket needs instead of the whole log. Route while drafting, then check **coverage**: every decision must be cited by at least one ticket. An orphaned decision is a finding for the quiz, never something to silently absorb — it means either a missing ticket or a decision that decided nothing.
+
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change — rename a column, retype a shared symbol — whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket — green is promised only there.
 
 ### 4. Quiz the user
@@ -60,12 +62,16 @@ Present the proposed breakdown **as plain markdown text in your reply** — a nu
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
+- **Decisions**: the decision IDs this ticket cites (spec sources only) — the agent implementing it will receive exactly these in full
 - **Where it lands**: one to three anchors into the code this slice touches, per `/code-anchors` — verified clickable `path:line` references, so the user can judge the breakdown against code they may not know. (These anchors are for the quiz only — the published tickets still avoid file paths, per the note below.)
+
+For a spec source, follow the wave structure with the **coverage check's result**: any decision no ticket cites, listed by ID — each is either a missing ticket or a dead decision, the user's call.
 
 Only after the full breakdown is on screen as message text, ask the user:
 
 - Does the granularity feel right? (too coarse / too fine)
 - Are the blocking edges correct — does each ticket only depend on tickets that genuinely gate it?
+- Is the decision routing right — each ticket citing the decisions it genuinely needs, and what should happen to any orphaned decision?
 - Should any tickets be merged or split further?
 
 If you use the AskUserQuestion tool for this, the breakdown MUST already have been printed as ordinary text in the same reply, before the tool call — the question dialog cannot display the breakdown, and the user cannot answer questions about a list they haven't seen. Never put the breakdown itself (or a summary standing in for it) inside the tool's question or option text.
@@ -89,6 +95,8 @@ Do NOT close or modify any parent issue.
 
 **What to build:** the end-to-end behaviour this ticket makes work, from the user's perspective — not a layer-by-layer implementation list.
 
+**Decisions:** the spec decision IDs this ticket implements (`D3, D7`), or omit when the source has no Decision Index.
+
 **Blocked by:** the numbers/titles of the tickets that gate this one, or "None — can start immediately".
 
 **Status:** ready-for-agent
@@ -108,6 +116,10 @@ A reference to the parent issue on the tracker (if the source was an existing is
 
 The end-to-end behaviour this ticket makes work, from the user's perspective — not layer-by-layer implementation.
 
+## Decisions
+
+The spec decision IDs this ticket implements (`D3, D7`) — omit this section when the source has no Decision Index.
+
 ## Acceptance criteria
 
 - [ ] Criterion 1
@@ -119,6 +131,6 @@ The end-to-end behaviour this ticket makes work, from the user's perspective —
 
 </issue-template>
 
-In either form, tickets carry **decision-encoding snippets** as first-class content: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — is inlined, trimmed to the decision-rich parts with its origin noted, and becomes part of what review validates the implementation against. What tickets avoid is *speculative* implementation code — sketches of how to build things no decision has settled — and specific file paths or line numbers, which go stale fast. (Review-finding tickets published by `/two-axis-review` are the one exception on paths: a finding is about existing code, so it anchors by file + quoted snippet.)
+In either form, tickets don't duplicate what the spec already holds: when the source spec has addressable decisions, a ticket **cites decision IDs rather than copying their snippets** — `/ship` hands each agent the cited decisions' full text, so a copy could only drift. Tickets from a plan or conversation (no addressable decisions) still carry **decision-encoding snippets** as first-class content: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — inlined, trimmed to the decision-rich parts with its origin noted, part of what review validates the implementation against. Either way, what tickets avoid is *speculative* implementation code — sketches of how to build things no decision has settled — and specific file paths or line numbers, which go stale fast. (Review-finding tickets published by `/two-axis-review` are the one exception on paths: a finding is about existing code, so it anchors by file + quoted snippet.)
 
 End by pointing the user at the next step: `/ship <spec>` drives the whole DAG — parallel fresh agents per ticket, reviewed and merged wave by wave. The manual alternative is `/implement`, one frontier ticket at a time, clearing context between tickets.

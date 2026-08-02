@@ -49,6 +49,13 @@ Workflow roles:
 - **Parent/child**: link a ticket as a child of a parent — implementation tickets under their spec, wayfinder tickets under their map.
 - **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Prefer the tracker's native dependency relationship — it renders the frontier visually in the tracker's own UI — and fall back to a body convention only where none exists.
 
+### Spec decisions
+
+A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed one line each in the spec body's Decision Index (see `/to-spec`). Two operations:
+
+- **Publish decision**: attach one decision (ID, title, body) to a spec, in index order.
+- **Read**: reading a spec "in full" means the body plus every decision, in index order; a single decision is fetchable by ID. Decisions are **spec content**, distinct from process comments (wave summaries, review round summaries, spec-gap notes) — an implementation must keep the two tellable apart. A spec with no Decision Index is just its body (the pre-index format).
+
 ### Workflow operations
 
 - **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed — a verifiable checkpoint (e.g. `/ship` refuses to spawn agents until every frontier ticket passes it).
@@ -98,6 +105,10 @@ gh label create ready-for-human    --force -c "#f9d0c4" -d "Requires human imple
 - **Parent/child**: GitHub **sub-issues** — `gh api --method POST repos/<owner>/<repo>/issues/<parent>/sub_issues -F sub_issue_id=<child-db-id>` (`<child-db-id>` is the numeric database id: `gh api repos/<owner>/<repo>/issues/<n> --jq .id`). Where sub-issues aren't enabled, add the child to a task list in the parent body and put `Part of #<parent>` at the top of the child body.
 - **Blocking**: GitHub's **native issue dependencies**. Add an edge with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`, where `<blocker-db-id>` is the blocker's numeric **database id** (`gh api repos/<owner>/<repo>/issues/<n> --jq .id`, _not_ the `#number` or `node_id`). GitHub reports `issue_dependencies_summary.blocked_by` (open blockers only — the live gate). Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body.
 
+### Spec decisions
+
+One **issue comment per decision** on the spec issue, posted in index order immediately after the issue is created. Each opens with the marker line `<!-- spec-decision D<n> -->`, then the decision's `### D<n>: <title>` heading and body. The marker is the separator between spec content and process comments — a comment without it is never spec content, and no process comment (wave summary, review round summary, spec-gap note) ever carries it. Read a spec in full with `gh issue view <n> --comments`, taking the body plus the marked comments in ID order. The convention is also what keeps a spec clear of GitHub's 65,536-character cap on any single body or comment: the kernel and each decision sit far below the cap individually, so nothing is ever trimmed to fit.
+
 ### Workflow operations
 
 - **Claim** / **unclaim**: `gh issue edit <n> --add-label in-progress` / `--remove-label in-progress`. **Claim check**: `gh issue list --label in-progress`.
@@ -125,6 +136,7 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 - **Parent/child**: the directory is the parent — children live in its `issues/` subdirectory.
 - **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `closed`.
+- **Spec decisions**: inline in `spec.md` — a `## Decisions` section after the kernel, one `### D<n>: <title>` heading per decision in index order. No size cap locally; the headings alone provide the addressability.
 
 ### Workflow operations
 

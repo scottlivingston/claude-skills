@@ -35,7 +35,7 @@ First state that matches, top to bottom:
 | Map open, no open children, Not-yet-specified non-empty | Still charting | A wayfinder session: graduate what's now specifiable into tickets (create-then-wire), then stop |
 | Map open, no open children, Not-yet-specified empty | Map complete | `/to-spec <map>` |
 | Spec open, no `impl` sub-issues | Needs breakdown | `/to-tickets <spec>` — HITL; the quiz is the human's approval gate |
-| Spec open, `impl` sub-issues with spec-gap comments on parked tickets | Spec gap | Sit with the human on the gap (grill, anchored in code); record the decision on the spec, unpark the ticket |
+| Spec open, `impl` sub-issues with spec-gap comments on parked tickets | Spec gap | Sit with the human on the gap (grill, anchored in code); record the decision on the spec — as a new indexed decision cited by the ticket, when the spec has a Decision Index (per `/to-spec` and the tracker doc) — and unpark the ticket |
 | Spec open, open `impl` sub-issues | Shipping | `/ship <spec>` (or `/implement` for one frontier ticket, if the user prefers stepping) |
 | Spec open, all `impl` sub-issues closed | Ready for review | `/two-axis-review` against the merge-base, spec issue as the Spec source; then the PR that `Closes #<spec>` |
 | Spec closed | Done | Say so. There is no next. |

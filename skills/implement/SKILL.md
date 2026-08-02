@@ -10,6 +10,7 @@ Implement the work described by the user in the spec or tickets.
 When the work comes from a ticket on the issue tracker (see `/issue-tracker`):
 
 - **Claim first**: label the ticket `in-progress` before any work, so concurrent sessions and `/ship` runs skip it. One ticket per session — never batch.
+- **Load bounded context**: when the ticket cites spec decision IDs (a `Decisions:` line or section), read the spec's kernel body plus exactly those decisions in full (the tracker doc's spec-decision read) — not the whole decision log. If mid-work you need a decision the ticket doesn't cite, look it up in the kernel's Decision Index, fetch it by ID, and note the missed routing in a ticket comment.
 - **On completion**: close the ticket with a comment linking its commits, and remove `in-progress`.
 - **If blocked or parked** (red tests, or a decision the spec doesn't hold): do NOT close it — remove `in-progress`, comment exactly what's missing, and if it was a spec gap, also comment the gap on the spec issue.
 
