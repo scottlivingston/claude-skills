@@ -22,7 +22,7 @@ Read the spec in full — the kernel body plus its addressable decisions, per th
 
 ### 2. Author and launch the workflow
 
-Run the whole implementation as **one dynamic `Workflow`** (this skill is your authorization to use it). Pass the DAG — ticket ids, titles, blocking edges, cited decision IDs — as `args`. The script loops waves until no tickets remain open; per wave:
+Run the whole implementation as **one dynamic `Workflow`** (this skill is your authorization to use it). The script loops waves until no tickets remain open; per wave:
 
 1. **Claim**: claim every frontier ticket (the tracker doc's claim operation; run its bootstrap first if the markers don't exist), and verify the claim check passes before spawning any implementer.
 2. **Parallel implement**: one fresh agent per frontier ticket, each in an **isolated worktree**. Each agent gets the spec **kernel** (Testing Decisions and Seams under test verbatim, Decision Index included), the **full text of the decisions its ticket cites** — never the whole decision log; bounded, relevant context is the point — its ticket body, and the `/implement` + `/tdd` discipline: red–green at the spec's seams, typecheck regularly, run single test files regularly, commit in its worktree. Its first action is confirming its ticket carries `in-progress`. Fresh context per ticket is the point — never two tickets in one agent. An agent that finds it needs a decision its ticket doesn't cite checks the Decision Index first: fetch that decision by ID (the tracker doc's read) and note the missed routing in a ticket comment. A decision the spec doesn't hold **anywhere**, or work no listed seam covers, **parks** the ticket: the agent unclaims it, comments exactly what's missing on the ticket, and comments the gap on the **spec issue** so the spec stays truthful.
@@ -32,6 +32,17 @@ Run the whole implementation as **one dynamic `Workflow`** (this skill is your a
 6. **Wave summary**: one comment on the spec issue — tickets landed, tickets parked, fixes applied, findings deferred.
 
 A parked ticket doesn't stop the run unless it blocks everything — later waves exclude tickets whose blockers didn't land, and the run continues around them.
+
+**Inline the DAG, don't thread it.** Step 1 already read every ticket, so bake the ids, titles, blocking edges, and cited decision IDs into the script as a literal; `args` buys nothing here except a failure mode — it has been observed arriving as a JSON *string*, so `args.tickets` is `undefined` on the first line. That one dies loudly before spawning anything; the quieter version is worse — `${args.x}` interpolated into an implementer's prompt yields the literal `undefined`, nothing fails, and the agent rediscovers its ticket with Bash or builds without it. If something must go through `args` anyway, open the script by normalizing and failing loud:
+
+```js
+const A = typeof args === 'string' ? JSON.parse(args) : (args || {})
+const missing = ['tickets'].filter(k => !(k in A))
+if (missing.length) throw new Error('args missing: ' + missing.join(', '))
+log('args keys: ' + Object.keys(A).join(', '))
+```
+
+**Escape backticks in pasted prose.** Ticket bodies, the spec kernel, and cited decisions all go into the agents' prompts verbatim, inside template literals — and any one of them quoting a symbol, path, or shell command in a markdown code span terminates the literal and kills the launch with a parse error, before a single ticket is claimed. Escape every backtick in pasted text (`` \` ``), or build the long briefs from single-quoted concatenation.
 
 ### 3. Monitor and hand off
 
