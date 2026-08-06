@@ -5,7 +5,7 @@ description: Decide the shape of code before it's built — module boundaries, i
 
 # Design
 
-A design ticket resolves the question "what structure should power this?" — the module boundaries, the interfaces and function signatures, the data shapes, and the **seams** tests will live at. It is grilling's interview discipline pointed at code structure: the human decides, round by round, with the code in view.
+A design ticket resolves the question "what structure should power this?" — the module boundaries, the interfaces and function signatures, the data shapes, and the **seams** tests will live at. It is grilling's interview discipline pointed at code structure: the human decides, round by round, with a clear picture of the system.
 
 This is planning, not building: the output is **decisions**, recorded on the ticket — never implementation. The pull to just start coding is the signal the design is done.
 
@@ -13,9 +13,9 @@ This is planning, not building: the output is **decisions**, recorded on the tic
 
 1. **Pin the question.** What structure is being decided, and for what behaviour? Load the surrounding context — the map's Destination and Notes when working a wayfinder ticket, the conversation otherwise.
 
-2. **Read the terrain first.** Existing modules, interfaces, and conventions near the change. Check `CONTEXT.md` for vocabulary and ADRs for constraints (per `/domain-modeling`). Every structural question put to the human is **anchored** per `/code-anchors` — they decide with the code in view — and `/domain-expansion` gives a guided tour when anchors aren't enough.
+2. **Read the terrain first.** Existing modules, interfaces, and conventions near the change. Check `CONTEXT.md` for vocabulary and ADRs for constraints (per `/domain-modeling`). Structural questions reach the human in that domain language — what exists and how it behaves, not file paths — with `/domain-expansion` briefing them when a question lands on terrain they don't hold a model of, and code citations per `/code-anchors` on request.
 
-3. **Interview one decision at a time**, per `/grilling`: propose a shape, recommend an answer, wait. Work top-down — boundaries before interfaces, interfaces before signatures. For each interface agreed, also agree its **seam**: is this a boundary tests observe behaviour at, and what behaviour is observable there? Prefer existing seams to new ones; the ideal number of new seams is the smallest that serves the destination.
+3. **Interview round by round**, per `/grilling`: propose a shape, recommend an answer, wait. Work top-down — boundaries before interfaces, interfaces before signatures. For each interface agreed, also agree its **seam**: is this a boundary tests observe behaviour at, and what behaviour is observable there? Prefer existing seams to new ones; the ideal number of new seams is the smallest that serves the destination.
 
 4. **Capture decisions as contracts.** Where a snippet states the decision more precisely than prose — a type shape, an interface stub, a function signature, a state shape — write the snippet, trimmed to the decision-rich parts. These are the decision-encoding snippets `/to-spec` inlines and review later validates against.
 

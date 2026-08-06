@@ -55,7 +55,7 @@ When domain relationships are being discussed, stress-test them with specific sc
 
 ### Cross-reference with code
 
-When the user states how something works, check whether the code agrees. If you find a contradiction, surface it — and anchor it, per `/code-anchors`, so the user can cmd-click straight to the disagreeing line: "Your code cancels entire Orders (`src/orders/cancel.ts:88`, `cancelOrder`), but you just said partial cancellation is possible — which is right?"
+When the user states how something works, check whether the code agrees. If you find a contradiction, surface it in domain language: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?" Keep the disagreeing line's reference ready for when the user asks to see it (`/code-anchors`).
 
 ### Update CONTEXT.md inline
 

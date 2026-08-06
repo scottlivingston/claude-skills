@@ -63,7 +63,7 @@ Present the proposed breakdown **as plain markdown text in your reply** — a nu
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 - **Decisions**: the decision IDs this ticket cites (spec sources only) — the agent implementing it will receive exactly these in full
-- **Where it lands**: one to three anchors into the code this slice touches, per `/code-anchors` — verified clickable `path:line` references, so the user can judge the breakdown against code they may not know. (These anchors are for the quiz only — the published tickets still avoid file paths, per the note below.)
+- **Where it lands**: the module or subsystem this slice touches, named in the project's own vocabulary — one plain phrase, so the user can judge the breakdown at the concept level. Code references per `/code-anchors` on request. (The published tickets still avoid file paths, per the note below.)
 
 For a spec source, follow the wave structure with the **coverage check's result**: any decision no ticket cites, listed by ID — each is either a missing ticket or a dead decision, the user's call.
 

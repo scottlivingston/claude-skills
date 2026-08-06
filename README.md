@@ -27,7 +27,7 @@ Every ticket carries a type and a mode — **HITL** (worked live with the human)
 Two supports run through all of this:
 
 - **`/drain`** works the AFK frontier in parallel background agents while you sit only in the HITL conversations. Human time goes only where a human is needed.
-- **`/domain-expansion`** turns any question that lands on unfamiliar code into a guided reading tour — every code-dependent question arrives as clickable `path:line` anchors, so you decide with the code in view.
+- **`/domain-expansion`** turns any question that lands on unfamiliar terrain into a plain-language briefing on what the system does today — capabilities and concepts in the project's own vocabulary, with the code itself one ask away.
 
 Each session resolves **one ticket**: the answer is recorded on the ticket, the ticket is closed, newly visible questions become new tickets, and fog that just became specifiable graduates. The map is complete when no tickets remain and the fog is empty — every implementation-relevant decision is recorded.
 
@@ -69,7 +69,7 @@ You can also enter partway: `/to-spec` with no argument specs the current conver
 
 **Human time goes only where a human is needed.** Every planning ticket is typed HITL or AFK. `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — and an agent must never stand in for the human's side of a HITL ticket. A grilling agent that answers its own questions has broken the workflow.
 
-**HITL questions arrive anchored in the code.** A human can't make an informed call about code they haven't seen, so any question that hinges on existing code carries verified, cmd-clickable `path:line` references — links into the editor, never pasted snippets (the `code-anchors` skill holds the convention). Deciding with the code in view is also how the human keeps up with a codebase that agents are changing faster than anyone can read the diffs.
+**HITL questions speak the domain language.** A human engages with capabilities and concepts — the project's ubiquitous language (`CONTEXT.md`) — not with file paths; prose dense with code references pushes them out of the decision instead of into it. Reading the code is the agent's job; the human gets the digest. When a question lands on terrain they don't hold a model of, `/domain-expansion` briefs them in plain language on what the system does today, and when they ask to see the source, it arrives as verified, cmd-clickable `path:line` references — links into the editor, never pasted snippets (the `code-anchors` skill holds the citation format).
 
 **Approval gates are explicit, and downstream stages don't improvise.** The human approves the implementation breakdown in the `/to-tickets` quiz; after that, `/ship` makes no product decisions. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap rather than guessing.
 
@@ -98,7 +98,7 @@ Used by the chain, and useful on their own:
 
 - **grilling** — relentless round-by-round interview over the design tree to stress-test a plan; facts get looked up, decisions get asked
 - **wait-what** — stop and re-pitch the last message in plain language, using the project's ubiquitous vocabulary
-- **domain-expansion** — a guided reading tour of the code behind the current question, as clickable anchors; for when a question lands on unfamiliar terrain
+- **domain-expansion** — a plain-language briefing on the system behaviour behind the current question, in the project's ubiquitous language; for when a question lands on unfamiliar terrain
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
 - **design** — decide the shape of code before it's built — module boundaries, interfaces, data shapes, and the seams tests will live at — captured as contract snippets that flow into the spec
 - **codebase-design** — shared vocabulary for deep modules: module, interface, depth, seam, adapter, leverage, locality

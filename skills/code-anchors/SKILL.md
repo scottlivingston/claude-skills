@@ -1,11 +1,11 @@
 ---
 name: code-anchors
-description: The anchor format for citing code to the human — verified, clickable path:line references, never pasted snippets. Consult whenever putting a question, proposal, or claim about existing code to the user, in any conversation, not just inside workflow skills.
+description: The anchor format for citing code to the human — verified, clickable path:line references, never pasted snippets. Consult when the user asks to see the code behind a question or claim, or when a specific line genuinely must be cited.
 ---
 
 # Code anchors
 
-Shared convention for grounding HITL moments in the codebase. Whenever a skill puts a question, a proposal, or a claim about existing code to the human, the human must be able to *see that code* without breaking flow — they cmd-click a reference and read it in their own editor. Anchors are how: clickable references, never pasted code.
+Shared convention for citing code to the human. HITL exchanges speak the project's domain language by default — capabilities and concepts, not file paths — so an anchor appears when the human *asks* to see the code, or when a claim genuinely needs its source cited. When code is cited, this is how: a clickable reference the human cmd-clicks and reads in their own editor, never pasted code.
 
 ## The anchor format
 
@@ -23,10 +23,10 @@ An anchor is a backticked, repo-relative path with a line number:
 ## Rules
 
 1. **Never paste the code an anchor points to.** The human reads it in their editor; pasted snippets go stale, bloat the exchange, and train them to stop clicking. (Quoting a single identifier or value inline to make a sentence readable is fine.)
-2. **Anchor claims, not vibes.** Any statement of the form "the code currently does X" carries an anchor. If you can't anchor it, you haven't verified it — go read the code or drop the claim.
-3. **Ration them.** A question carries 1–3 anchors — the load-bearing ones only. A guided tour (see below) carries up to ~8, ordered as a reading path. More than that is a dump, not an anchor set.
+2. **Verified claims only.** A statement of the form "the code currently does X" rests on code you have read this conversation, whether or not an anchor appears. If you can't cite it, you haven't verified it — go read the code or drop the claim.
+3. **Ration them.** One to three anchors per ask — the load-bearing ones only. More than that is a dump, and anchors woven through prose make it unreadable; the anchor list sits after the prose, not inside it.
 4. **Anchor the decision point, not the file.** Point at the specific line where the behavior forks or the value is set, not `:1` of a file.
 
-## When anchors aren't enough
+## When an anchor isn't the right answer
 
-Anchors assume the human roughly knows the terrain and just needs the exact spot. When they don't — the question references a subsystem they've never read — the fix is a **guided tour**, not more anchors on the question: the `/domain-expansion` skill takes the pending question and walks the human through the relevant code as an ordered reading path. Skills that ask anchored questions should remind the human this exists rather than pre-emptively touring everything.
+An anchor assumes the human wants to read the source. When what they're missing is a working model of the area — the question references a subsystem they've never dealt with — the fix is `/domain-expansion`: a plain-language briefing on what the system does today, in the project's own vocabulary, with the code itself still one ask away.
