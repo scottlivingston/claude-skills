@@ -18,7 +18,7 @@ Every ticket carries a type and a mode — **HITL** (worked live with the human)
 
 | Ticket type | Mode | Powered by | Resolves |
 | --- | --- | --- | --- |
-| **Grilling** | HITL | `/grilling` + `/domain-modeling` | The default: a one-question-at-a-time interview that turns "what should it do?" into recorded decisions |
+| **Grilling** | HITL | `/grilling` + `/domain-modeling` | The default: a round-by-round interview over the design tree that turns "what should it do?" into recorded decisions |
 | **Design** | HITL | `/design` | The shape of code before it's built — module boundaries, interfaces, data shapes, the seams tests will live at |
 | **Prototype** | HITL | `/prototype` | "How should it look / behave?" — cheap throwaway code or artifacts to react to |
 | **Research** | AFK | `/research` | Questions answerable from documentation and primary sources; lands as a cited markdown file |
@@ -96,13 +96,17 @@ What must be true of your project and working style for this workflow to fit:
 
 Used by the chain, and useful on their own:
 
-- **grilling** — relentless one-question-at-a-time interview to stress-test a plan; facts get looked up, decisions get asked
+- **grilling** — relentless round-by-round interview over the design tree to stress-test a plan; facts get looked up, decisions get asked
+- **wait-what** — stop and re-pitch the last message in plain language, using the project's ubiquitous vocabulary
 - **domain-expansion** — a guided reading tour of the code behind the current question, as clickable anchors; for when a question lands on unfamiliar terrain
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
 - **design** — decide the shape of code before it's built — module boundaries, interfaces, data shapes, and the seams tests will live at — captured as contract snippets that flow into the spec
-- **prototype** — throwaway code that answers a design question (interactive logic harness, or switchable UI variants)
+- **codebase-design** — shared vocabulary for deep modules: module, interface, depth, seam, adapter, leverage, locality
+- **prototype** — throwaway code that answers a design question (a shareable single-file HTML logic demo, or switchable UI variants)
+- **wizard** — generate an interactive bash wizard that walks a human through steps only they can perform (credentials, provisioning, cutovers)
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
 - **tdd** — the red–green loop, seams, mocking guidance, and test anti-patterns
+- **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
 - **two-axis-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 
 ## Install

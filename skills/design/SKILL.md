@@ -5,7 +5,7 @@ description: Decide the shape of code before it's built — module boundaries, i
 
 # Design
 
-A design ticket resolves the question "what structure should power this?" — the module boundaries, the interfaces and function signatures, the data shapes, and the **seams** tests will live at. It is grilling's interview discipline pointed at code structure: the human decides, one question at a time, with the code in view.
+A design ticket resolves the question "what structure should power this?" — the module boundaries, the interfaces and function signatures, the data shapes, and the **seams** tests will live at. It is grilling's interview discipline pointed at code structure: the human decides, round by round, with the code in view.
 
 This is planning, not building: the output is **decisions**, recorded on the ticket — never implementation. The pull to just start coding is the signal the design is done.
 

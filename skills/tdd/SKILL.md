@@ -26,6 +26,8 @@ A **seam** is the public boundary you test at: the interface where you observe b
 
 Either way, no test is written at an unconfirmed seam. An AFK agent whose work no listed seam covers has found a **spec gap** — park and report it per the ship discipline, never invent a seam.
 
+When the shape of that interface is itself in question — how deep the module is, where the seam belongs, what the interface should expose — use the `/codebase-design` skill for the vocabulary. It is the shared source of the module, interface, depth, seam, adapter, leverage and locality terms, and it is a reference to consult, not a session to run.
+
 ## Anti-patterns
 
 - **Implementation-coupled** — mocks internal collaborators, tests private methods, or verifies through a side channel (querying the database instead of using the interface). The tell: the test breaks when you refactor but behavior hasn't changed.
