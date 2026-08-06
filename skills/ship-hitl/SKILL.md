@@ -15,7 +15,7 @@ Ship-hitl turns an approved ticket DAG into committed, verified code — like `/
 
 Unanswered **spec-axis** questions close a gate: the next wave does not launch until the user answers them, so wave 2 never builds on a misread of the spec. A wave with no such questions posts its ledger and rolls straight into the next — a clean run stays AFK end to end.
 
-This skill is an **experiment**: a self-contained fork of `/ship` plus `/two-axis-review`'s pipeline. Those skills stay unchanged and authoritative for their own flows; this doc owns its own copy of the pipeline and may diverge from theirs. If the experiment graduates, the pipeline gets extracted into a shared skill both cite.
+This skill is an **experiment**: a self-contained fork of `/ship` plus `/review`'s pipeline. Those skills stay unchanged and authoritative for their own flows; this doc owns its own copy of the pipeline and may diverge from theirs. If the experiment graduates, the pipeline gets extracted into a shared skill both cite.
 
 The user invokes with a **spec** (issue URL/number) whose implementation tickets already exist as its sub-issues. For the issue tracker, invoke `/issue-tracker`; for standards sources, `/conventions`.
 
@@ -26,7 +26,7 @@ The user invokes with a **spec** (issue URL/number) whose implementation tickets
 - Never merge to shared branches, push, or open PRs unless the user asked explicitly.
 - **The manager orchestrates and asks — nothing else.** Implementation, merging, review, fixes, ticket filing, and tracker updates all happen inside workflow agents. The manager's own work is authoring workflows, reading their returns, running the question loop, and posting ledger comments.
 - **Waves are derived, never stored.** The durable truth is the ticket DAG plus the spec issue's ledger comments. The frontier — open tickets with no open blocker and no claim — is recomputed from the tracker at every wave boundary, so parked tickets drop out and mid-run review tickets join in automatically.
-- **No taste findings.** The standards axis reports breaches of written rules only. If `/conventions` finds nothing scoped to the touched files, the axis is idle and the ledger says so plainly — the axis activates when rules get written, not before. Style and design review belong to `/two-axis-review` and `/simplify`, run deliberately, not to this gate.
+- **No taste findings.** The standards axis reports breaches of written rules only. If `/conventions` finds nothing scoped to the touched files, the axis is idle and the ledger says so plainly — the axis activates when rules get written, not before. Style and design review belong to `/review` and `/simplify`, run deliberately, not to this gate.
 
 ## The ledger
 
@@ -98,7 +98,7 @@ Everything escalated at the closing pass gets asked — there is no spec-only ga
 
 ### 6. Done
 
-A closing pass whose escalations are all answered and whose auto-tickets are all landed ends the run. Push notification, then the report: per ticket — commits; per wave — the audit trail (auto-applies with SHAs, auto-tickets, refutations) and the questions asked with their answers; parked tickets and exactly what each needs. Then run the full test suite once more and offer the PR whose body `Closes #<spec>`. **Suppress the offer while the spec has open children** — including parked tickets; offer a plain PR (no `Closes`) instead. Only open either if the user says yes.
+A closing pass whose escalations are all answered and whose auto-tickets are all landed ends the run. Push notification, then the report: per ticket — commits; per wave — the audit trail (auto-applies with SHAs, auto-tickets, refutations) and the questions asked with their answers; parked tickets and exactly what each needs. Then run the full test suite once more and offer the PR whose body `Closes #<spec>`. **Suppress the offer while the spec has open children** — including parked tickets; offer a plain PR (no `Closes`) instead. Only open either if the user says yes. If the user then asks to merge it, **squash-merge** (`gh pr merge --squash`) — the spec lands as one commit on the default branch, not its ticket-by-ticket history.
 
 ## The wave pipeline
 
@@ -112,7 +112,7 @@ The verification stages inside each wave workflow (and, with `C<k>` IDs, the clo
 
 **Spec reviewer**: gets the diff command, commit list, and the kernel-plus-cited-decisions. Brief: "Report: (a) acceptance criteria or requirements that are missing or partial; (b) behaviour not asked for (scope creep); (c) requirements implemented wrong. Treat decision snippets — state machines, schemas, contracts — as requirements; divergence from one is a finding. Where the spec is **silent** on a case the diff had to decide, that is not a violation — report it as a spec question only when the choice is consequential, stating the case and the choice the code made. Quote the spec line, with its decision ID where it has one, per finding. Under 400 words." Reviewing the integrated wave rather than each ticket alone is deliberate: it sees how parallel tickets compose.
 
-A wave too wide for one reader per axis (soft heuristic: >~15 files or ~1,500 changed lines) partitions exactly as `/two-axis-review` does: one cheap partition stage clusters files into subsystem groups aligned with scoped-standards boundaries and routes cited decisions to groups; both axes share the partition; one in-wave cross-cutting sweeper and a requirements-union over the chunks restore what partitioning breaks. Most waves won't need this. Findings scale with reviewer count, so don't partition a wave that doesn't need it.
+A wave too wide for one reader per axis (soft heuristic: >~15 files or ~1,500 changed lines) partitions exactly as `/review` does: one cheap partition stage clusters files into subsystem groups aligned with scoped-standards boundaries and routes cited decisions to groups; both axes share the partition; one in-wave cross-cutting sweeper and a requirements-union over the chunks restore what partitioning breaks. Most waves won't need this. Findings scale with reviewer count, so don't partition a wave that doesn't need it.
 
 ### Labeling and dedup
 
@@ -186,10 +186,10 @@ Plain script logic over the schema fields — no agent decides this:
 - Give every stage a `schema` so verdicts come back as typed enum fields, never prose the manager interprets — the routing step depends on it. Run per-finding stages as a `pipeline`; the deliberate barriers are the per-axis proposers, the routing step, the serial fix agent, and the ledger post.
 - The pending-questions comment is posted **by the workflow** (its final stage), not the manager — the queue must be durable even if the session dies the moment the workflow returns.
 
-## What this deletes relative to /ship and /two-axis-review
+## What this deletes relative to /ship and /review
 
-From `/ship`: the lightweight wave review and its "confident fixes" agent (the verification pipeline replaces both); the end-of-run handoff to `/two-axis-review` in a fresh session (the closing pass absorbs it); and the cross-skill ship ↔ review ↔ `/next` lap (review tickets rejoin the frontier in-run).
+From `/ship`: the lightweight wave review and its "confident fixes" agent (the verification pipeline replaces both); the end-of-run handoff to `/review` in a fresh session (the closing pass absorbs it); and the cross-skill ship ↔ review ↔ `/next` lap (review tickets rejoin the frontier in-run).
 
-From `/two-axis-review`'s pipeline as originally forked: the **Fowler smell baseline** on the per-wave standards axis (written rules only; the closing sweeper keeps its four composition smells, aimed at parallel-implementation drift); the **hard vs judgement flag** (with the baseline gone, every standards finding cites a written rule and every spec finding is classified `code-diverges`/`spec-suspect` — the routing needs nothing else); and the **disposition triage** — `fix`/`ticket`/`later`/`skip` verdicts on every surviving finding presumed a user who could hold the code in their head. Routing owns disposition now; the user owns intent.
+From `/review`'s pipeline as originally forked: the **Fowler smell baseline** on the per-wave standards axis (written rules only; the closing sweeper keeps its four composition smells, aimed at parallel-implementation drift); the **hard vs judgement flag** (with the baseline gone, every standards finding cites a written rule and every spec finding is classified `code-diverges`/`spec-suspect` — the routing needs nothing else); and the **disposition triage** — `fix`/`ticket`/`later`/`skip` verdicts on every surviving finding presumed a user who could hold the code in their head. Routing owns disposition now; the user owns intent.
 
-`/ship` and `/two-axis-review` themselves are unchanged — `/ship` remains the no-human-until-the-end tool, and `/two-axis-review` remains the deliberate, full-depth review with the human as disposition authority.
+`/ship` and `/review` themselves are unchanged — `/ship` remains the no-human-until-the-end tool, and `/review` remains the deliberate, full-depth review with the human as disposition authority.

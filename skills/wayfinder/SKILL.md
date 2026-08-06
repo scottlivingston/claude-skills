@@ -109,7 +109,7 @@ The map is **complete** when the frontier is empty, no tickets remain open, and 
 1. `/to-spec <map>` — distill Decisions-so-far and the closed tickets into a spec issue (map mode, no interview).
 2. `/to-tickets <spec>` — HITL: break the spec into sub-issue tickets; the quiz is where the human approves the breakdown.
 3. `/ship <spec>` — implement the ticket DAG in parallel, fresh agent per ticket.
-4. `/two-axis-review` the branch against the spec, then merge via a PR that closes the spec issue.
+4. `/review` the branch against the spec, then merge via a PR that closes the spec issue.
 
 While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets.
 

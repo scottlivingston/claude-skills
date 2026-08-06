@@ -86,11 +86,11 @@ One unit per Decision Index entry, published per the tracker doc's spec-decision
 - **Decided:** the verdict, stated so an implementer can act on it without reading any debate.
 - **Because:** the rationale, one or two lines — no more.
 - **Rejected:** the alternatives that lost, one line.
-- **Origin:** link(s) to the map ticket(s) that settled it, or "this conversation". The full debate lives at the link, never here — `/two-axis-review`'s `spec-suspect` validators follow it when a deviation needs adjudicating; no other reader should need it.
+- **Origin:** link(s) to the map ticket(s) that settled it, or "this conversation". The full debate lives at the link, never here — `/review`'s `spec-suspect` validators follow it when a deviation needs adjudicating; no other reader should need it.
 
 Then the decision's substance:
 
-- **Decision-encoding snippets are first-class content**: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — is inlined here, trimmed to the decision-rich parts. These are the contracts `/two-axis-review` validates the implementation against. What a decision avoids is *speculative* implementation code, and specific file paths or line numbers — they go stale fast.
+- **Decision-encoding snippets are first-class content**: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — is inlined here, trimmed to the decision-rich parts. These are the contracts `/review` validates the implementation against. What a decision avoids is *speculative* implementation code, and specific file paths or line numbers — they go stale fast.
 - **The decision's test plan**, where it has one: the concrete cases that pin this decision at the kernel's seams. The test *philosophy* stays in the kernel's Testing Decisions; the per-decision case list lives here, beside the contract it verifies.
 
 </decision-template>

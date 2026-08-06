@@ -1,5 +1,5 @@
 ---
-name: two-axis-review
+name: review
 description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs the find→validate→propose→validate→auto-apply pipeline as one dynamic workflow — both axis reviews in parallel (partitioned into shared subsystem groups when the diff is wide), every finding labeled and adversarially validated (refuted findings dropped), a fix proposed per survivor and adversarially validated, mechanical validated fixes auto-applied by a serial fix agent — then walks the rest past the user one finding at a time for a verdict — queue more fixes, publish tracker tickets, or park repo-wide patterns as standalone cleanup tickets. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
 ---
 
@@ -255,7 +255,7 @@ Every queued finding must reach a terminal outcome — applied, ticketed, parked
 
 ### 13. Offer the merge (when the spec is a tracker issue)
 
-If the spec source was a tracker issue and the findings are clean or fixed, offer to open a PR whose body `Closes #<spec>` so the merge closes the spec issue and links the work it fulfills. Only open it if the user says yes.
+If the spec source was a tracker issue and the findings are clean or fixed, offer to open a PR whose body `Closes #<spec>` so the merge closes the spec issue and links the work it fulfills. Only open it if the user says yes. If the user then asks to merge it, **squash-merge** (`gh pr merge --squash`) — the spec lands as one commit on the default branch, not its ticket-by-ticket history.
 
 **Suppress this offer while the spec issue has open children** — including any tickets step 12 just published. Merging would close a spec with known open defects; offer a plain PR (no `Closes`) instead, or wait for the children to land. Standalone `later` tickets are **not** children and do not suppress the offer — that's why they're standalone.
 

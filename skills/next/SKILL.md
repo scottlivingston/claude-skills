@@ -37,7 +37,7 @@ First state that matches, top to bottom:
 | Spec open, no `impl` sub-issues | Needs breakdown | `/to-tickets <spec>` — HITL; the quiz is the human's approval gate |
 | Spec open, `impl` sub-issues with spec-gap comments on parked tickets | Spec gap | Sit with the human on the gap (grill, grounded in the domain model); record the decision on the spec — as a new indexed decision cited by the ticket, when the spec has a Decision Index (per `/to-spec` and the tracker doc) — and unpark the ticket |
 | Spec open, open `impl` sub-issues | Shipping | `/ship <spec>` (or `/implement` for one frontier ticket, if the user prefers stepping) |
-| Spec open, all `impl` sub-issues closed | Ready for review | `/two-axis-review` against the merge-base, spec issue as the Spec source; then the PR that `Closes #<spec>` |
+| Spec open, all `impl` sub-issues closed | Ready for review | `/review` against the merge-base, spec issue as the Spec source; then the PR that `Closes #<spec>` |
 | Spec closed | Done | Say so. There is no next. |
 
 ## Working the map

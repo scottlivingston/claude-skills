@@ -5,7 +5,7 @@ description: The issue-tracker contract every workflow skill speaks — vocabula
 
 # Issue tracker
 
-Shared tracker wiring for the wayfinder → drain → to-spec → to-tickets → ship (or implement) → two-axis-review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
+Shared tracker wiring for the wayfinder → drain → to-spec → to-tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
 
 ## Which tracker?
 
@@ -30,7 +30,7 @@ Workflow roles:
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
 - `spec` — a spec issue published by `/to-spec`.
 - `impl` — an implementation ticket published by `/to-tickets` (a child of its spec).
-- `review-finding` — a ticket published from a `/two-axis-review` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
+- `review-finding` — a ticket published from a `/review` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
 - `wayfinder:map` and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`design`/`task`) — wayfinder's map and its ticket types.
 
@@ -83,7 +83,7 @@ Every vocabulary role is a GitHub **label** with the same string, on the current
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
 gh label create spec               --force -c "#0e8a16" -d "Spec issue (published by /to-spec)"
 gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /to-tickets)"
-gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review finding (/two-axis-review)"
+gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review finding (/review)"
 gh label create hitl               --force -c "#d93f0b" -d "Needs the human in the loop"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
 gh label create wayfinder:map      --force -c "#006b75" -d "Wayfinder map"
@@ -121,7 +121,7 @@ The **map** is a single issue labelled `wayfinder:map`, holding the Notes / Deci
 
 ## Local markdown implementation (fallback)
 
-Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/two-axis-review`'s `later` cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
+Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/review`'s `later` cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
 
 ### Ticket operations
 

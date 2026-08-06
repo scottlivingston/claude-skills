@@ -43,7 +43,7 @@ The spec is broken into **implementation tickets** — vertical tracer-bullet sl
 
 One dynamic workflow implements the ticket DAG: a fresh agent per frontier ticket in an isolated git worktree, worktrees merged serially with tests after each merge, and a review pass over each wave's integrated diff. Never merge on red. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap on the spec issue — the run continues around it, and the gap comes back to you. (`/implement` is the manual alternative: one frontier ticket at a time, same discipline.)
 
-### 6. Review — `/two-axis-review`
+### 6. Review — `/review`
 
 The branch is reviewed along two axes that are never merged into one list: **Standards** (does the code follow the repo's documented conventions — canonically `CONVENTIONS.md`, with per-directory files scoping a monorepo's apps — plus a fixed code-smell baseline?) and **Spec** (does it do what the spec asked?). Every finding is labeled and carries a validated fix proposal. Mechanical validated fixes are auto-applied (one revertable commit each); the rest are walked past you one at a time — one finding, one verdict (**fix** / **ticket** / **later** / **skip**), next.
 
@@ -55,7 +55,7 @@ The branch is reviewed along two axes that are never merged into one list: **Sta
 
 You don't memorize the chain. Start an effort with `/wayfinder <idea>`; after that, invoke **`/next`** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — exactly one unit of work per invocation, then it stops and says `/next` again. While the map is live it also drains the AFK frontier in the background while you sit in a HITL ticket, and it folds in any results a previous session didn't.
 
-You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/two-axis-review` reviews any branch or diff since a fixed point.
+You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/review` reviews any branch or diff since a fixed point.
 
 ## The opinions
 
@@ -107,7 +107,7 @@ Used by the chain, and useful on their own:
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
 - **tdd** — the red–green loop, seams, mocking guidance, and test anti-patterns
 - **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
-- **two-axis-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
+- **review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 
 ## Install
 
