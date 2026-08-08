@@ -5,7 +5,7 @@ description: The issue-tracker contract every workflow skill speaks — vocabula
 
 # Issue tracker
 
-Shared tracker wiring for the wayfinder → drain → to-spec → to-tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
+Shared tracker wiring for the wayfinder → drain → map-review → to-spec → to-tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
 
 ## Which tracker?
 
@@ -28,6 +28,7 @@ Triage roles: `needs-triage` (maintainer must evaluate), `needs-info` (waiting o
 Workflow roles:
 
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
+- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the cross-read. `/next` routes a completed map without it to `/map-review`, with it to `/to-spec`. Reopening any child ticket removes it.
 - `spec` — a spec issue published by `/to-spec`.
 - `impl` — an implementation ticket published by `/to-tickets` (a child of its spec).
 - `review-finding` — a ticket published from a `/review` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
@@ -81,6 +82,7 @@ Every vocabulary role is a GitHub **label** with the same string, on the current
 
 ```sh
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
+gh label create map-reviewed       --force -c "#0e8a16" -d "Map resolutions cross-read and coherent (/map-review)"
 gh label create spec               --force -c "#0e8a16" -d "Spec issue (published by /to-spec)"
 gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /to-tickets)"
 gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review finding (/review)"

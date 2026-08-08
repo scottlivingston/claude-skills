@@ -6,7 +6,7 @@ description: Turn the current conversation — or a completed wayfinder map — 
 This skill produces a spec (you may know this document as a PRD) from one of two inputs. Do NOT interview the user — just synthesize what is already known.
 
 - **Conversation mode** (no argument): synthesize the current conversation context and codebase understanding.
-- **Map mode** (argument is a `wayfinder:map` issue URL or number): load the map, then **zoom every entry in Decisions so far** — fetch each closed ticket's body and resolution comment; the one-line gists on the map are an index, not the decisions themselves. The spec synthesizes those resolutions. Anything still open on the map (open tickets, non-empty Not-yet-specified) means the map isn't complete — stop and say so rather than spec around a hole.
+- **Map mode** (argument is a `wayfinder:map` issue URL or number): load the map, then **zoom every entry in Decisions so far** — fetch each closed ticket's body and resolution comment; the one-line gists on the map are an index, not the decisions themselves. The spec synthesizes those resolutions. Anything still open on the map (open tickets, non-empty Not-yet-specified) means the map isn't complete — stop and say so rather than spec around a hole. A complete map should also carry the `map-reviewed` marker — `/map-review`'s cross-read of the resolutions; if it's absent, flag that the review hasn't run and let the user choose: review first, or spec anyway.
 
 For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 

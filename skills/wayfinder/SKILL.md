@@ -106,10 +106,11 @@ Ruling something out of scope is a scoping act, not a step on the route. When a 
 
 The map is **complete** when the frontier is empty, no tickets remain open, and **Not yet specified** is empty — every implementation-relevant decision is recorded. Say so explicitly, then hand off. Each step is its own session, and each skill points at the next:
 
-1. `/to-spec <map>` — distill Decisions-so-far and the closed tickets into a spec issue (map mode, no interview).
-2. `/to-tickets <spec>` — HITL: break the spec into sub-issue tickets; the quiz is where the human approves the breakdown.
-3. `/ship <spec>` — implement the ticket DAG in parallel, fresh agent per ticket.
-4. `/review` the branch against the spec, then merge via a PR that closes the spec issue.
+1. `/map-review <map>` — cross-read every resolution as one body of decisions, the view no single charting session had; tensions are adjudicated with the human, and a coherent map is marked `map-reviewed`.
+2. `/to-spec <map>` — distill Decisions-so-far and the closed tickets into a spec issue (map mode, no interview).
+3. `/to-tickets <spec>` — HITL: break the spec into sub-issue tickets; the quiz is where the human approves the breakdown.
+4. `/ship <spec>` — implement the ticket DAG in parallel, fresh agent per ticket.
+5. `/review` the branch against the spec, then merge via a PR that closes the spec issue.
 
 While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets.
 

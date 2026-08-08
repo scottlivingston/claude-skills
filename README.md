@@ -1,6 +1,6 @@
 # claude-skills
 
-An opinionated, end-to-end workflow for Claude Code: take a loose idea, chart the unknowns as decision tickets on your issue tracker, resolve them with the right skill for each kind of question, distill the decisions into a spec, break the spec into implementation tickets, ship them with parallel agents, review on two axes — and loop ship ↔ review until a round comes back clean.
+An opinionated, end-to-end workflow for Claude Code: take a loose idea, chart the unknowns as decision tickets on your issue tracker, resolve them with the right skill for each kind of question, cross-read the finished map for coherence, distill the decisions into a spec, break the spec into implementation tickets, ship them with parallel agents, review on two axes — and loop ship ↔ review until a round comes back clean.
 
 Packaged as a Claude Code plugin (`scott-skills`).
 
@@ -31,23 +31,27 @@ Two supports run through all of this:
 
 Each session resolves **one ticket**: the answer is recorded on the ticket, the ticket is closed, newly visible questions become new tickets, and fog that just became specifiable graduates. The map is complete when no tickets remain and the fog is empty — every implementation-relevant decision is recorded.
 
-### 3. Distill the spec — `/to-spec`
+### 3. Review the map — `/map-review`
+
+A complete map is a mechanical fact — frontier empty, fog gone — not a semantic one: its decisions were made in separate sessions, and no single context ever held all the resolutions at once. Before the spec is written, one session reads **every resolution in full, together**, hunting only what no per-ticket session could see: contradictions, early calls superseded by later context, gaps where the decisions don't compose into a clear route, undecided seams, scope leaks, and drifted index gists. Mechanical fixes are applied silently; real tensions are adjudicated with you one at a time, and fixes land as edits to the map and its tickets — never a separate artifact. A coherent map is marked `map-reviewed`; reopened decisions send the effort back to charting. It never re-litigates a settled decision's merits — cheap by default is what keeps it run rather than skipped.
+
+### 4. Distill the spec — `/to-spec`
 
 The completed map — its decision index and closed tickets — is synthesized into a single **spec issue**. No interview, no new decisions: to-spec only writes down what the map already settled. Design-ticket resolutions carry their interface stubs and seams into the spec, so implementation inherits agreed contracts and a Seams-under-test list.
 
-### 4. Break it down — `/to-tickets`
+### 5. Break it down — `/to-tickets`
 
 The spec is broken into **implementation tickets** — vertical tracer-bullet slices, each sized to one fresh agent session, with blocking edges forming a DAG. This is an explicit approval gate: you review and approve the breakdown in a quiz before anything is built. After this gate, downstream stages make no product decisions.
 
-### 5. Ship — `/ship`
+### 6. Ship — `/ship`
 
 One dynamic workflow implements the ticket DAG: a fresh agent per frontier ticket in an isolated git worktree, worktrees merged serially with tests after each merge, and a review pass over each wave's integrated diff. Never merge on red. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap on the spec issue — the run continues around it, and the gap comes back to you. (`/implement` is the manual alternative: one frontier ticket at a time, same discipline.)
 
-### 6. Review — `/review`
+### 7. Review — `/review`
 
 The branch is reviewed along two axes that are never merged into one list: **Standards** (does the code follow the repo's documented conventions — canonically `CONVENTIONS.md`, with per-directory files scoping a monorepo's apps — plus a fixed code-smell baseline?) and **Spec** (does it do what the spec asked?). Every finding is labeled and carries a validated fix proposal. Mechanical validated fixes are auto-applied (one revertable commit each); the rest are walked past you one at a time — one finding, one verdict (**fix** / **ticket** / **later** / **skip**), next.
 
-### 7. Loop until clean
+### 8. Loop until clean
 
 `ticket` verdicts become implementation tickets that feed the next `/ship` round; `later` parks out-of-scope patterns as standalone cleanup tickets; every verdict — including skips — is recorded on the spec so no finding is ever re-litigated. Ship and review alternate until a review round comes back clean, then the PR that closes the spec issue is offered. The loop converges by construction: the set of unaddressed findings only shrinks.
 
