@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Implement a spec's ticket DAG by authoring and launching one dynamic workflow — fresh agent per ticket in an isolated worktree, serial merges, a review pass per wave — while the managing session delegates everything and does no work itself. Runs after /to-tickets; ends by handing off to /review and a PR that closes the spec. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
+description: Implement a spec's ticket DAG by filling this skill's workflow template and launching it as one dynamic workflow — fresh agent per ticket in an isolated worktree, serial merges, a review pass per wave — while the managing session delegates everything and does no work itself. Runs after /to-tickets; ends by handing off to /review and a PR that closes the spec. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
 Ship turns an approved ticket DAG into committed, reviewed code with no human in the loop until the end. All decisions were made upstream — the wayfinder map, the spec, the `/to-tickets` quiz. Ship never makes product decisions; when it hits one, it parks the ticket and reports.
@@ -20,7 +20,7 @@ The user invokes with a **spec** (issue URL/number) whose implementation tickets
 
 Read the spec in full — the kernel body plus its addressable decisions, per the tracker doc's spec-decision convention — including its Testing Decisions, **Seams under test** list, and Decision Index. (A spec with no Decision Index is the pre-index format: one body, passed whole wherever the steps below say "kernel plus cited decisions".) List its sub-issue tickets with their blocking edges, states, and the decision IDs each cites. Compute the wave structure (what's frontier now, what unblocks when) and report it.
 
-### 2. Author and launch the workflow
+### 2. Fill and launch the workflow
 
 Run the whole implementation as **one dynamic `Workflow`** (this skill is your authorization to use it). The script loops waves until no tickets remain open; per wave:
 
@@ -33,16 +33,9 @@ Run the whole implementation as **one dynamic `Workflow`** (this skill is your a
 
 A parked ticket doesn't stop the run unless it blocks everything — later waves exclude tickets whose blockers didn't land, and the run continues around them.
 
-**Inline the DAG, don't thread it.** Step 1 already read every ticket, so bake the ids, titles, blocking edges, and cited decision IDs into the script as a literal; `args` buys nothing here except a failure mode — it has been observed arriving as a JSON *string*, so `args.tickets` is `undefined` on the first line. That one dies loudly before spawning anything; the quieter version is worse — `${args.x}` interpolated into an implementer's prompt yields the literal `undefined`, nothing fails, and the agent rediscovers its ticket with Bash or builds without it. If something must go through `args` anyway, open the script by normalizing and failing loud:
+**Start from [workflow.template.js](workflow.template.js) — fill it, don't author from scratch.** Read the template and fill every `FILL` slot in its data block: the ticket DAG as a literal (ids, titles, bodies, blocking edges, cited decision IDs — step 1 already read all of it), the spec kernel, the full text of every cited decision, the tracker operations, the branch, the test command. Everything below its FIXED marker — the wave loop, schemas, prompt builders, the serial merge — is the same every run; edit it only when this run genuinely deviates, and keep the stage list above in sync when you do. An unfilled slot throws `FILL is not defined` at launch, before a single ticket is claimed.
 
-```js
-const A = typeof args === 'string' ? JSON.parse(args) : (args || {})
-const missing = ['tickets'].filter(k => !(k in A))
-if (missing.length) throw new Error('args missing: ' + missing.join(', '))
-log('args keys: ' + Object.keys(A).join(', '))
-```
-
-**Escape backticks in pasted prose.** Ticket bodies, the spec kernel, and cited decisions all go into the agents' prompts verbatim, inside template literals — and any one of them quoting a symbol, path, or shell command in a markdown code span terminates the literal and kills the launch with a parse error, before a single ticket is claimed. Escape every backtick in pasted text (`` \` ``), or build the long briefs from single-quoted concatenation.
+Two observed failure modes shaped the template; filling it correctly keeps both dead. First, `args`: it has arrived as a JSON *string*, and the quiet version of that failure is the bad one — `${args.x}` interpolated into an implementer's prompt yields the literal `undefined`, nothing fails, and the agent rediscovers its ticket with Bash or builds without it — so the template threads nothing through `args`. Second, backticks: ticket bodies, the kernel, and decisions quoting a symbol or shell command in a markdown code span terminate a template literal and kill the launch with a parse error — so fill the prose slots as JSON string literals (double-quoted, `\n`-escaped), which no code span or apostrophe can terminate.
 
 ### 3. Monitor and hand off
 
