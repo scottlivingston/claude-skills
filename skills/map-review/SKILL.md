@@ -5,7 +5,7 @@ description: Cross-read a completed wayfinder map — every resolution in full, 
 
 A map is **complete** when its frontier is empty — but complete is a mechanical fact, not a semantic one. The map's decisions were made in separate sessions, possibly weeks apart, possibly in parallel; no single context has ever held all the resolutions at once. And the next stage, `/to-spec`, is forbidden to interview: handed a contradiction, it papers over it by silently picking a side. This skill is the one session that reads **every resolution in full, together, before the spec exists** — the cross-decision view no charting session had.
 
-It is the planning-side mirror of `/review`: that skill reviews what came out of ship; this one reviews what feeds the spec.
+It is the planning-side mirror of `/tareview`: that skill reviews what came out of ship; this one reviews what feeds the spec.
 
 For tracker operations, invoke `/issue-tracker`.
 

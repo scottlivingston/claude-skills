@@ -1,5 +1,5 @@
 export const meta = {
-  name: 'two-axis-review',
+  name: 'tareview',
   description: 'Find→validate→propose→validate→auto-apply pipeline over the diff since a fixed point, along Standards and Spec axes',
   phases: [
     { title: 'Partition', detail: 'cluster a wide diff into shared subsystem groups' },

@@ -1,5 +1,5 @@
 ---
-name: review
+name: tareview
 description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs the find→validate→propose→validate→auto-apply pipeline as one dynamic workflow — both axis reviews in parallel (partitioned into shared subsystem groups when the diff is wide), every finding labeled and adversarially validated (refuted findings dropped), a fix proposed per survivor and adversarially validated, mechanical validated fixes auto-applied by a serial fix agent — then walks the rest past the user one finding at a time for a verdict — queue more fixes, publish tracker tickets, or park repo-wide patterns as standalone cleanup tickets. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
 ---
 

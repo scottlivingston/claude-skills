@@ -49,13 +49,13 @@ Each **wave** of unblocked tickets runs as one dynamic workflow: a planner per t
 
 ### 7. Close the run
 
-When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/review` remains the deliberate standalone review — two axes, you as disposition authority — for any branch, PR, or diff outside the run.)
+When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/tareview` remains the deliberate standalone review — two axes, you as disposition authority — for any branch, PR, or diff outside the run.)
 
 ## Driving it: `/next`
 
 You don't memorize the chain. Start an effort with `/wayfinder <idea>`; after that, invoke **`/next`** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — exactly one unit of work per invocation, then it stops and says `/next` again. While the map is live it also drains the AFK frontier in the background while you sit in a HITL ticket, and it folds in any results a previous session didn't.
 
-You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/review` reviews any branch or diff since a fixed point.
+You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/tareview` reviews any branch or diff since a fixed point.
 
 ## The opinions
 
