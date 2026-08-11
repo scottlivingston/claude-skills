@@ -5,7 +5,7 @@ description: Where a repo's reviewable coding standards live — CONVENTIONS.md 
 
 # Conventions
 
-Shared convention for where a repo's coding standards live and how skills find them. The reviewing skills — `/review`'s Standards axis and `/ship`'s wave review — enforce whatever the repo documents; this doc fixes *where* that documentation canonically lives, so review finds it deterministically and rules discovered during review have exactly one place to land.
+Shared convention for where a repo's coding standards live and how skills find them. The reviewing skills — `/review`'s Standards axis and `/ship`'s wave verification — enforce whatever the repo documents; this doc fixes *where* that documentation canonically lives, so review finds it deterministically and rules discovered during review have exactly one place to land.
 
 ## The file
 

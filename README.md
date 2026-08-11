@@ -1,6 +1,6 @@
 # claude-skills
 
-An opinionated, end-to-end workflow for Claude Code: take a loose idea, chart the unknowns as decision tickets on your issue tracker, resolve them with the right skill for each kind of question, cross-read the finished map for coherence, distill the decisions into a spec, break the spec into implementation tickets, ship them with parallel agents, review on two axes — and loop ship ↔ review until a round comes back clean.
+An opinionated, end-to-end workflow for Claude Code: take a loose idea, chart the unknowns as decision tickets on your issue tracker, resolve them with the right skill for each kind of question, cross-read the finished map for coherence, distill the decisions into a spec, break the spec into implementation tickets, and ship them wave by wave with parallel agents — every wave verified on two axes, only intent questions escalated to you — until a closing pass comes back clean.
 
 Packaged as a Claude Code plugin (`scott-skills`).
 
@@ -45,15 +45,11 @@ The spec is broken into **implementation tickets** — vertical tracer-bullet sl
 
 ### 6. Ship — `/ship`
 
-One dynamic workflow implements the ticket DAG: a fresh agent per frontier ticket in an isolated git worktree, worktrees merged serially with tests after each merge, and a review pass over each wave's integrated diff. Never merge on red. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap on the spec issue — the run continues around it, and the gap comes back to you. (`/implement` is the manual alternative: one frontier ticket at a time, same discipline.)
+Each **wave** of unblocked tickets runs as one dynamic workflow: a planner per ticket maps the approach against the branch as it stands, a fresh agent per ticket implements in an isolated git worktree, worktrees merge serially with tests after each merge (never merge on red), and the wave's integrated diff is verified along two axes that are never merged into one list — **Spec** (did the tickets deliver their acceptance criteria?) and **Standards** (does the code break a documented rule — canonically `CONVENTIONS.md`, with per-directory files scoping a monorepo's apps?). Findings are adversarially validated; survivors with uncontested fixes auto-apply (one revertable commit each) or become tickets riding the next wave. Only questions about *intent* reach you — the spec is silent on a case, two fixes compete, a pattern is repo-wide — phrased in domain language, and an unanswered spec question gates the next wave. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap on the spec issue; the run continues around it. (`/implement` is the manual alternative: one frontier ticket at a time, same discipline.)
 
-### 7. Review — `/review`
+### 7. Close the run
 
-The branch is reviewed along two axes that are never merged into one list: **Standards** (does the code follow the repo's documented conventions — canonically `CONVENTIONS.md`, with per-directory files scoping a monorepo's apps — plus a fixed code-smell baseline?) and **Spec** (does it do what the spec asked?). Every finding is labeled and carries a validated fix proposal. Mechanical validated fixes are auto-applied (one revertable commit each); the rest are walked past you one at a time — one finding, one verdict (**fix** / **ticket** / **later** / **skip**), next.
-
-### 8. Loop until clean
-
-`ticket` verdicts become implementation tickets that feed the next `/ship` round; `later` parks out-of-scope patterns as standalone cleanup tickets; every verdict — including skips — is recorded on the spec so no finding is ever re-litigated. Ship and review alternate until a review round comes back clean, then the PR that closes the spec issue is offered. The loop converges by construction: the set of unaddressed findings only shrinks.
+When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/review` remains the deliberate standalone review — two axes, you as disposition authority — for any branch, PR, or diff outside the run.)
 
 ## Driving it: `/next`
 
@@ -79,9 +75,9 @@ You can also enter partway: `/to-spec` with no argument specs the current conver
 
 **Implementation is vertical slices, in parallel, merged serially.** Tickets are tracer bullets — narrow but complete paths through every layer, demoable alone — not horizontal layers. (Wide mechanical refactors are the one exception, sequenced as expand–contract.) Fresh agent per ticket in an isolated worktree, one merge at a time, tests after each merge. Never merge on red.
 
-**Review runs on two axes that are never merged.** Standards and Spec are reviewed by separate sub-agents and reported side by side — code can pass one axis and fail the other, and a single ranked list lets one axis mask the other. Every verdict is recorded on the spec, so the ship ↔ review loop never re-asks a settled finding.
+**Review runs on two axes that are never merged.** Standards and Spec are reviewed by separate sub-agents and reported side by side — code can pass one axis and fail the other, and a single ranked list lets one axis mask the other. Every outcome is recorded on the spec as adjudication memory, so no finding is re-asked across waves or review rounds.
 
-**Standards live in `CONVENTIONS.md`, and the loop sharpens it.** Reviewable coding standards get one canonical home — `CONVENTIONS.md` at the repo root, with per-directory files as deltas in monorepos, nearest scope winning (the `conventions` skill holds the convention; repos without one fall back to whatever standards docs exist). `later` verdicts append their rediscovered rule there, so judgement calls the review keeps re-finding become documented standards the next round enforces — the standards doc gets sharper every lap. `CLAUDE.md` points at it, never duplicates it.
+**Standards live in `CONVENTIONS.md`, and the loop sharpens it.** Reviewable coding standards get one canonical home — `CONVENTIONS.md` at the repo root, with per-directory files as deltas in monorepos, nearest scope winning (the `conventions` skill holds the convention; repos without one fall back to whatever standards docs exist). `later` verdicts and adopted pervasive-pattern findings append their rediscovered rule there, so judgement calls review keeps re-finding become documented standards the next round enforces — the standards doc gets sharper every lap. `CLAUDE.md` points at it, never duplicates it.
 
 **Tests live at pre-agreed seams.** `/tdd` is red–green at seams agreed up front — with the user live, or inherited from the spec's Seams-under-test list (fed by design tickets) when agents run AFK — behavior over implementation details, one test → one implementation, never a bulk test suite written ahead of the code.
 
