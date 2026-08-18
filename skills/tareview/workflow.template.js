@@ -6,7 +6,7 @@ export const meta = {
     { title: 'Review', detail: 'one reviewer per axis — per group and axis when partitioned — plus the cross-cutting sweeper' },
     { title: 'Label', detail: 'normalize reports into IDed findings; dedup vs open tickets and prior rounds' },
     { title: 'Validate findings', detail: 'fresh adversarial validators — refuted findings leave the pipeline here' },
-    { title: 'Propose', detail: 'one proposer per axis over the survivors' },
+    { title: 'Propose', detail: 'one proposer per chunk over its surviving findings' },
     { title: 'Validate fixes', detail: 'fresh adversarial validators, one question per check; pair resolution' },
     { title: 'Resolve', detail: 'script routing — escalate intent, auto-resolve code: serial fix agent applies, ticket agent publishes' },
   ],
@@ -42,7 +42,7 @@ const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent op
 
 // ═══════════ FIXED BELOW THIS LINE — edit only when the run genuinely deviates ═══════════
 
-const BATCH_AT = 8 // past this many findings in an axis, one batched validator per axis instead of one per finding
+const CHUNK_SIZE = 5 // findings per chunk — an axis's findings flow through validate → propose → validate-fix in chunks, each chunk an independent pipeline chain
 
 const SMELL_BASELINE = [
   'Smell baseline (Fowler, Refactoring ch.3) — applies even when the repo documents nothing. Every hit is a labelled hypothesis ("possible Feature Envy") the adversarial validators must confirm; a documented repo standard overrides the baseline; skip anything tooling already enforces. Each smell reads what-it-is → how-to-fix:',
@@ -335,13 +335,15 @@ function proposerPrompt(axisName, survivors) {
   ])
 }
 
-function fixValidatorPrompt(axisName, items) {
+function fixValidatorPrompt(axisName, items, roster) {
   return j([
     'You are a fresh adversarial fix validator in a two-axis review — not the proposer, and not the finding validator. Your job is to try to REFUTE each fix.',
     COMMON,
     AXIS_INPUTS,
     'Proposals to validate (axis: ' + axisName + '; each with its finding and the finding-validator\'s reasoning):',
     JSON.stringify(items.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, findingReasoning: f.findingReason, proposal: f.proposal, sketch: f.sketch, size: f.size, repoWide: f.repoWide, repoWideEvidence: f.repoWideEvidence }))),
+    'Every finding in this axis, for the edge fields below — dependsOn / invalidatedBy may name IDs outside your batch:',
+    roster,
     'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself and fill instancesInDiff / instancesOutsideDiff — the flag holds only when instancesOutsideDiff > 0; a pattern whose every instance sits inside the diff is this change\'s own duplication, fixable here. Your call on the flag is final downstream.',
     'Verdict per proposal: validated, fix-rejected (with the reason), or needs-human (a genuine trade-off the user must call). The finding\'s reality is NOT on the table — that was settled upstream; record any lingering doubt about the premise inside a fix-rejected reason.',
     'Fill the edge fields instead of burying edges in prose: dependsOn = IDs whose fixes must land for this one to work (say, it reads a const another fix introduces); invalidatedBy = IDs whose accepted fix makes this proposal\'s premise or wording false.',
@@ -391,75 +393,77 @@ function ticketAgentPrompt(batch) {
 
 // ── Stage runners ────────────────────────────────────────────────────────────
 
-async function validateFindings(axisName, findings) {
-  if (!findings.length) return []
-  if (findings.length > BATCH_AT) {
-    const r = await agent(findingValidatorPrompt(axisName, findings),
-      { schema: FINDING_VERDICTS_SCHEMA, phase: 'Validate findings', label: 'validate:' + axisName })
-    return r ? r.verdicts : []
-  }
-  const rs = await parallel(findings.map(f => () =>
-    agent(findingValidatorPrompt(axisName, [f]),
-      { schema: FINDING_VERDICTS_SCHEMA, phase: 'Validate findings', label: 'validate:' + f.id })))
-  return rs.filter(Boolean).flatMap(r => r.verdicts)
-}
-
-async function validateFixes(axisName, items) {
-  if (!items.length) return []
-  if (items.length > BATCH_AT) {
-    const r = await agent(fixValidatorPrompt(axisName, items),
-      { schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + axisName })
-    return r ? r.verdicts : []
-  }
-  const rs = await parallel(items.map(f => () =>
-    agent(fixValidatorPrompt(axisName, [f]),
-      { schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + f.id })))
-  return rs.filter(Boolean).flatMap(r => r.verdicts)
+function chunk(arr, n) {
+  const out = []
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n))
+  return out
 }
 
 // One axis, labeled findings → validated, proposed, fix-validated queue.
 // Shelved findings (already-ticketed / already-adjudicated) skip everything: no proposal, no validator, no route.
+// The axis's findings run in chunks of CHUNK_SIZE, each chunk an independent
+// validate → propose → validate-fix pipeline chain — no cross-chunk barriers, so
+// wall-clock is the slowest chunk's chain, not the sum of each stage's slowest.
+// One agent per chunk per stage: validators stay fresh and adversarial, and the
+// proposer keeps cross-finding coherence within its chunk.
 async function runAxis(axisName, labeled) {
   const shelved = labeled.filter(f => f.dedup === 'already-ticketed' || f.dedup === 'already-adjudicated')
   const inQueue = labeled.filter(f => f.dedup !== 'already-ticketed' && f.dedup !== 'already-adjudicated')
 
-  const verdicts = new Map((await validateFindings(axisName, inQueue)).map(v => [v.id, v]))
-  for (const f of inQueue) {
-    const v = verdicts.get(f.id)
-    // A validator that died keeps its finding — conservatively, and visibly.
-    f.findingVerdict = v ? v.verdict : 'finding-validated'
-    f.findingReason = v ? v.reason : 'validator result missing — kept unvalidated'
-    f.specClassification = v ? v.specClassification : 'n/a'
-    if (v && v.repoWideRaised) { f.repoWide = true; f.repoWideEvidence = v.repoWideEvidence }
-  }
+  // Whole-axis roster — fix validators see it so edge fields can name IDs outside their chunk.
+  const roster = inQueue.map(f => f.id + ' — ' + f.file + ': ' + f.description).join('\n')
+
+  await pipeline(chunk(inQueue, CHUNK_SIZE),
+    async (c, _, i) => {
+      const r = await agent(findingValidatorPrompt(axisName, c),
+        { schema: FINDING_VERDICTS_SCHEMA, phase: 'Validate findings', label: 'validate:' + axisName + ':' + (i + 1) })
+      const verdicts = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
+      for (const f of c) {
+        const v = verdicts.get(f.id)
+        // A validator that died keeps its finding — conservatively, and visibly.
+        f.findingVerdict = v ? v.verdict : 'finding-validated'
+        f.findingReason = v ? v.reason : 'validator result missing — kept unvalidated'
+        f.specClassification = v ? v.specClassification : 'n/a'
+        if (v && v.repoWideRaised) { f.repoWide = true; f.repoWideEvidence = v.repoWideEvidence }
+      }
+      return c.filter(f => f.findingVerdict === 'finding-validated')
+    },
+    async (survivors, _, i) => {
+      if (!survivors.length) return survivors
+      const props = await agent(proposerPrompt(axisName, survivors),
+        { schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'propose:' + axisName + ':' + (i + 1) })
+      const byId = new Map(((props && props.proposals) || []).map(p => [p.id, p]))
+      for (const f of survivors) {
+        const p = byId.get(f.id)
+        f.proposal = p ? p.fix : 'proposal missing'
+        f.sketch = p ? p.sketch : ''
+        f.size = p ? p.size : 'needs-a-session'
+      }
+      return survivors
+    },
+    async (survivors, _, i) => {
+      if (!survivors.length) return survivors
+      const r = await agent(fixValidatorPrompt(axisName, survivors, roster),
+        { schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + axisName + ':' + (i + 1) })
+      const fvs = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
+      for (const f of survivors) {
+        const v = fvs.get(f.id)
+        f.fixVerdict = v ? v.verdict : 'needs-human'
+        f.fixReason = v ? v.reason : 'fix-validator result missing'
+        // This stage has the last word on repo-wide — the routing step reads it from here.
+        if (v) {
+          f.repoWide = v.repoWide && v.instancesOutsideDiff > 0
+          f.instancesInDiff = v.instancesInDiff
+          f.instancesOutsideDiff = v.instancesOutsideDiff
+        }
+        f.dependsOn = v ? v.dependsOn : []
+        f.invalidatedBy = v ? v.invalidatedBy : []
+      }
+      return survivors
+    })
+
   const survivors = inQueue.filter(f => f.findingVerdict === 'finding-validated')
   const refuted = inQueue.filter(f => f.findingVerdict === 'finding-refuted')
-
-  if (survivors.length) {
-    const props = await agent(proposerPrompt(axisName, survivors),
-      { schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'propose:' + axisName })
-    const byId = new Map(((props && props.proposals) || []).map(p => [p.id, p]))
-    for (const f of survivors) {
-      const p = byId.get(f.id)
-      f.proposal = p ? p.fix : 'proposal missing'
-      f.sketch = p ? p.sketch : ''
-      f.size = p ? p.size : 'needs-a-session'
-    }
-    const fvs = new Map((await validateFixes(axisName, survivors)).map(v => [v.id, v]))
-    for (const f of survivors) {
-      const v = fvs.get(f.id)
-      f.fixVerdict = v ? v.verdict : 'needs-human'
-      f.fixReason = v ? v.reason : 'fix-validator result missing'
-      // This stage has the last word on repo-wide — the routing step reads it from here.
-      if (v) {
-        f.repoWide = v.repoWide && v.instancesOutsideDiff > 0
-        f.instancesInDiff = v.instancesInDiff
-        f.instancesOutsideDiff = v.instancesOutsideDiff
-      }
-      f.dependsOn = v ? v.dependsOn : []
-      f.invalidatedBy = v ? v.invalidatedBy : []
-    }
-  }
   log(axisName + ': ' + labeled.length + ' findings — ' + survivors.length + ' validated, ' + refuted.length + ' refuted, ' + shelved.length + ' shelved by dedup')
   return { survivors, refuted, shelved }
 }
@@ -517,8 +521,9 @@ if (WIDE) {
 }
 
 // The two axes run as independent chains — a Standards finding needn't wait for
-// the Spec reviewer. Deliberate barriers live inside runAxis (the per-axis
-// proposer) and below (routing, the serial fix agent, the ticket agent).
+// the Spec reviewer — and within an axis, chunks of findings flow through
+// validate → propose → validate-fix as independent pipeline chains. The
+// deliberate barriers all live below: routing, the serial fix agent, the ticket agent.
 const axes = await parallel([() => standardsAxis(groups), () => specAxis(groups, requirements)])
 const std = axes[0] || { survivors: [], refuted: [], shelved: [] }
 const spec = axes[1] || { skipped: !SPEC, survivors: [], refuted: [], shelved: [] }
@@ -630,7 +635,7 @@ for (const d of apply.demoted) {
 const autoTicket = all.filter(f => f.route === 'auto-ticket')
 let tickets = []
 if (autoTicket.length && TICKET_MECHANICS) {
-  const t = await agent(ticketAgentPrompt(autoTicket), { schema: TICKET_SCHEMA, label: 'ticket:auto', model: 'sonnet' })
+  const t = await agent(ticketAgentPrompt(autoTicket), { schema: TICKET_SCHEMA, label: 'ticket:auto', model: 'sonnet', effort: 'low' })
   tickets = (t && t.tickets) || []
   const covered = new Set(tickets.flatMap(x => x.findingIds))
   for (const f of autoTicket) {
