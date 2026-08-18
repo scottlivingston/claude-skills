@@ -51,13 +51,30 @@ When B needs only A's **interface**, not its implementation, pull the contract (
 
 </edge-test>
 
+**Cut for the wave structure.** The DAG's shape is what `/ship` executes: wave 1 is every ticket with no blockers, wave 2 everything unblocked once wave 1 lands, and so on. Two properties make a breakdown fast, and they pull against each other — optimize both while drafting:
+
+- **Shallow** — every edge cut per the edge test flattens the DAG by one; a chain is a queue of idle agents.
+- **Disjoint territories** — same-wave tickets run as parallel agents whose branches merge serially; two of them reshaping the same files means conflict agents and re-tests on the critical path. Declare each ticket's **territory** — the files and modules it expects to touch — and cut slices so dependency-free tickets claim disjoint ones, preferring cuts that follow file boundaries. Territory is **working data** for the critic below and `/ship`'s planners, never published ticket content (paths go stale; the ticket body stays path-free per the note in step 6).
+
+File overlap is still never an edge — the fix for two same-wave tickets sharing territory is a different cut, not a fake dependency.
+
 **Route the spec's decisions.** When the source is a spec with a Decision Index, each ticket **cites the decision IDs it implements** — the routing is what lets `/ship` hand each agent only the decisions its ticket needs instead of the whole log. Route while drafting, then check **coverage**: every decision must be cited by at least one ticket. An orphaned decision is a finding for the quiz, never something to silently absorb — it means either a missing ticket or a decision that decided nothing.
 
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change — rename a column, retype a shared symbol — whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket — green is promised only there.
 
-### 4. Quiz the user
+### 4. The DAG critic
 
-Before presenting, compute the **wave structure**: wave 1 is every ticket with no blockers, wave 2 is every ticket unblocked once wave 1 lands, and so on. If most waves have width 1 — a linear chain — treat that as a finding to justify, not a default: re-test each edge against the edge test, and consider re-slicing along independent capabilities instead of one incremental storyline. (Hub-and-spoke — one skeleton ticket blocking many independent slices — is a healthy shape; a chain usually means fake edges.)
+Before any human sees the breakdown, one **adversarial critic agent** — fresh, not the author — scores the DAG against the two properties from step 3. Give it the tickets with their edges and territory claims, the edge test, and repo access; it must:
+
+- **Compute the wave structure** and challenge the depth: every edge re-tested against the edge test; a chain of width-1 waves is a finding to justify, not a default (hub-and-spoke — one skeleton ticket blocking many independent slices — is healthy; a chain usually means fake edges, or one incremental storyline that should re-slice along independent capabilities).
+- **Verify the territory claims** — grep and list the actual files behind each claim, don't take the author's word — and flag every same-wave pair whose territories collide.
+- Return a typed verdict: **pass**, or **re-cut demanded**, naming the specific edges to drop and slices to re-cut.
+
+A demanded re-cut gets exactly **one** revision, re-scored by the critic. A second failure is a real finding, not a lap to repeat: present it to the user (in the quiz, or as the gate question under `/next auto`) with the critic's diagnosis — the work may genuinely be a chain.
+
+### 5. Quiz the user
+
+**Under `/next auto`, this quiz is skipped**: a critic-passed breakdown is auto-approved and publishing proceeds. What would have been quiz findings — decisions no ticket cites, a second critic failure — post as `<!-- tickets pending-questions -->` on the spec instead, per `/finding-pipeline`'s gate (notify, end the turn; a matching `<!-- tickets summary -->` records the verdicts). Manual invocations run the quiz below as always.
 
 Present the proposed breakdown **as plain markdown text in your reply** — a numbered list, followed by the wave structure so the user can see the parallelism at a glance. For each ticket, show:
 
@@ -80,7 +97,7 @@ If you use the AskUserQuestion tool for this, the breakdown MUST already have be
 
 Iterate until the user approves the breakdown.
 
-### 5. Publish the tickets to the configured tracker
+### 6. Publish the tickets to the configured tracker
 
 Publish the approved tickets. **How** depends on the configured tracker (see `/issue-tracker`) — the tickets are the same either way, only the shape of the blocking edges changes:
 

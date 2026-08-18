@@ -1,11 +1,11 @@
 ---
 name: spec-review
-description: Read a published spec in full — kernel, every decision, seams — and ground it against the codebase before /tickets breaks it down. Hunts decisions that don't decide, stale claims about the code, seam gaps, unfalsifiable acceptance, contradictions and scope leaks; each defect arrives with a drafted repair, fixes land as edits to the spec, and a clean spec is marked spec-reviewed. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
+description: Read a published spec in full — kernel, every decision, seams — and ground it against the codebase before /tickets breaks it down. Hunts decisions that don't decide, stale claims about the code, seam gaps, unfalsifiable acceptance, contradictions and scope leaks through the finding pipeline — derivable repairs auto-applied to the spec, every escalated defect arriving with drafted repair text at a durable gate — and a clean spec is marked spec-reviewed. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
 A spec is the last artifact before code. Everything downstream trusts it absolutely: `/tickets` routes its decisions without questioning them, and a `/ship` agent handed a decision that doesn't decide will simply invent the missing half. This skill is the one session that reads the spec **whole** — kernel plus every decision, in index order — and holds it against the codebase it claims to describe.
 
-It is the spec-side mirror of `/map-review`: that skill checks whether the map's decisions compose; this one checks whether the spec they became is **implementable as written**.
+It is the spec-side mirror of `/map-review`: that skill checks whether the map's decisions compose; this one checks whether the spec they became is **implementable as written**. Both run the pipeline in `/finding-pipeline` — the invariants (adversarial validation, routing, gate markers, question mechanics) live there; what's here is what a spec defect is and what repairing one touches.
 
 For tracker operations, invoke `/issue-tracker`.
 
@@ -34,27 +34,26 @@ The spec's origin decides how much to hunt:
 
 ## Process
 
-1. **Read the spec in full**: the body plus every decision, in index order, per the tracker doc. All of them — the whole read is the point of this stage. (An older spec with no Decision Index is just its body; the defects below still apply, read against its prose.)
-2. **Ground against the codebase.** Explore the areas the spec touches, and check every claim it makes about what exists today: the named seams, the prior art, the modules, the boundaries. Check the project's domain glossary and any ADRs in the area, too — a spec that has drifted from the ubiquitous language ships code that drifts with it.
-3. **Sweep the defect list** against the spec held whole.
-4. **Triage each finding**:
-   - **Mechanical** (index drift, a stale link, a gist to re-word): fix now, silently, as spec edits. Not worth human time.
-   - **Substantive** (everything else): escalate to the human **one at a time**, and **arrive with a drafted repair** — the amended `Decided:` line, the missing seam row, the decision to strike — so the ask is a verdict on concrete text, not an open question. State what's wrong, show the proposed text, recommend. Get the verdict, apply it, then raise the next.
-5. **Apply verdicts as edits to the spec** — the spec body and its decision units, never a separate artifact. `/tickets` and `/ship` just receive a truer spec.
+1. **Read the spec in full**: the body plus every decision, in index order, per the tracker doc. All of them — the whole read is the point of this stage. (An older spec with no Decision Index is just its body; the defects still apply, read against its prose.)
+2. **Run the pipeline** per `/finding-pipeline`, as one dynamic workflow. The find stage is two readers: the **grounding read** explores the areas the spec touches and checks every claim it makes about what exists today — the named seams, the prior art, the modules, the boundaries, the project's domain glossary and any ADRs in the area — and the **defect sweep** holds the spec whole against the list above. Findings (IDs `SR-<i>`, per-run) cite the spec line, decision ID, or code they hold the claim against; dedup runs against prior `<!-- spec-review summary -->` comments. Every survivor's proposal is a **drafted repair** — the amended `Decided:` line, the missing seam row, the corrected claim, the decision to strike — validated adversarially like the finding itself.
+3. **Route.** Auto-apply is the document bar — **provably derivable only**: index drift (the decision unit's own text is the proof), a stale link, and a stale-ground-truth correction *whose claim no decision's verdict leans on* — the code is the proof of what exists, but a decision that reasoned from the stale claim may need re-deciding, and that escalates. Everything that adds, strikes, or picks among readings of a decision — underdetermined decisions, seam gaps, unfalsifiable acceptance, uncovered stories, orphans, contradictions, scope leaks — **escalates, with its drafted repair attached**, so the ask is a verdict on concrete text, not an open question.
+4. **The gate.** Escalations post as `<!-- spec-review pending-questions -->` on the spec (the workflow's final stage), notify, and end the turn per the contract. The question loop — here or in a later session — walks the defects one per turn: what's wrong, the proposed text, a recommendation. Verdicts act as:
    - **Amend** — edit the decision's text in place, and its index gist with it.
    - **Add** — a genuine gap: publish a new decision unit at the end of the index and extend the Decision Index. Existing IDs never renumber; downstream citations depend on them.
-   - **Strike** — a scope leak or dead decision: remove it, note the removal in the review summary, and leave the ID retired rather than reused.
-6. **Record and mark.** Comment a review summary on the spec — defects found, verdicts, what was amended — then mark the spec `spec-reviewed` and point at `/tickets <spec>`.
+   - **Strike** — a scope leak or dead decision: remove it, note the removal in the summary, and leave the ID retired rather than reused.
+5. **Record and mark.** Post `<!-- spec-review summary -->` on the spec — every finding ID with its terminal outcome, auto-applied edits included, per the contract — then mark the spec `spec-reviewed` and point at `/tickets <spec>`.
+
+All repairs land **as edits to the spec** — the body and its decision units, never a separate artifact. `/tickets` and `/ship` just receive a truer spec.
 
 ## When a defect isn't answerable on the spot
 
-An underdetermined decision sometimes turns out to be genuinely undecided — nobody ever made the call. That's a grilling, not a review finding: run `/grilling` on it right there, grounded in the domain model, and record the outcome as an amended or new decision. The spec is the canonical home for decisions, so the effort stays in this stage rather than routing backward.
+An underdetermined decision sometimes turns out to be genuinely undecided — nobody ever made the call. That's a grilling, not a review verdict: when its turn comes in the question loop, run `/grilling` on it right there, grounded in the domain model, and record the outcome as an amended or new decision. The spec is the canonical home for decisions, so the effort stays in this stage rather than routing backward.
 
 The exception is a spec whose *destination* is wrong — the problem statement itself is off. Stop, say so, and point at `/wayfinder`; no amount of spec editing fixes that.
 
 ## Rules
 
-- **One invocation, one review.** Marking `spec-reviewed` and running `/tickets` never share a session.
+- **One invocation, one review.** Marking `spec-reviewed` and running `/tickets` never share an invocation (`/next auto` chains invocations; the boundary it respects is the gate, not the session).
 - **Defects speak the domain language** — capabilities and concepts, never file paths; `/domain-expansion` when a question lands on unfamiliar terrain. The one place paths are welcome is a stale-ground-truth finding, which is *about* the code: anchor it per `/code-anchors`.
 - **Merits are the human's to reopen, never yours to re-litigate.** Review whether the spec is implementable, not whether its decisions were the right ones.
-- **Cheap by default.** The read and the grounding are agent work; the human is spent only on real defects, and only on drafted text. A clean spec costs one pass and a one-line report — say so, mark, and stop. Cheap-by-default is what keeps this stage run rather than skipped, which matters most for the small specs that skipped the map entirely.
+- **Cheap by default.** The read, the grounding, and validation are agent work; the human is spent only on real defects, and only on drafted text. A clean spec costs one pass, an audit digest, and a one-line report — say so, mark, and stop. Cheap-by-default is what keeps this stage run rather than skipped, which matters most for the small specs that skipped the map entirely.
