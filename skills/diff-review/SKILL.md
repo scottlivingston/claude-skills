@@ -1,5 +1,5 @@
 ---
-name: tareview
+name: diff-review
 description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards, plus the Fowler smell baseline?) and Spec (does the code match what the originating issue/PRD asked for?). Runs the find→validate→propose→validate→route pipeline as one dynamic workflow — both axis reviews in parallel (partitioned into shared subsystem groups when the diff is wide), every finding labeled and adversarially validated (refuted findings dropped), a fix proposed per survivor and adversarially validated — and validated findings resolve themselves, quick fixes auto-applied by a serial fix agent, session-sized fixes auto-ticketed for the ship loop. Only questions about intent reach the user — spec unclear, competing fixes, genuine trade-off, no working fix, pervasive pattern — walked one question per turn. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
 ---
 

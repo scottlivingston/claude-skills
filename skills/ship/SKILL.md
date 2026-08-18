@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Implement a spec's ticket DAG wave by wave — plan, implement, and merge each wave with parallel agents in isolated worktrees, then verify its merged diff against the tickets' acceptance criteria and the repo's documented standards. Validated findings resolve themselves — auto-applied or auto-ticketed onto the next wave — and only unanswerable intent questions (spec unclear, competing fixes, pervasive patterns) reach the user, phrased in domain language; a wave with none rolls straight into the next. Re-entrant across sessions — all run state lives on the spec issue, so any session can resume at a wave boundary or a pending question. Runs after /to-tickets; ends by offering the PR that closes the spec. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
+description: Implement a spec's ticket DAG wave by wave — plan, implement, and merge each wave with parallel agents in isolated worktrees, then verify its merged diff against the tickets' acceptance criteria and the repo's documented standards. Validated findings resolve themselves — auto-applied or auto-ticketed onto the next wave — and only unanswerable intent questions (spec unclear, competing fixes, pervasive patterns) reach the user, phrased in domain language; a wave with none rolls straight into the next. Re-entrant across sessions — all run state lives on the spec issue, so any session can resume at a wave boundary or a pending question. Runs after /tickets; ends by offering the PR that closes the spec. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
 Ship turns an approved ticket DAG into committed, verified code, with verification running inside the run. Each wave's merged diff is checked against two things only: **did the tickets deliver their acceptance criteria** (spec axis) and **does the code break a documented standard** (standards axis). This is a verification gate, not a taste review — no reviewer opinions, no style crop.
@@ -15,18 +15,18 @@ Ship turns an approved ticket DAG into committed, verified code, with verificati
 
 Unanswered **spec-axis** questions close a gate: the next wave does not launch until the user answers them, so wave 2 never builds on a misread of the spec. A wave with no such questions posts its ledger and rolls straight into the next — a clean run stays AFK end to end.
 
-This skill's verification pipeline was forked from `/tareview`'s and is tuned here for wave scale; `/tareview` has since adopted the same routing policy, so the two now differ in scope, not philosophy (see *Relation to /tareview* at the end). Keep the shared stages in sync when either changes.
+This skill's verification pipeline was forked from `/diff-review`'s and is tuned here for wave scale; `/diff-review` has since adopted the same routing policy, so the two now differ in scope, not philosophy (see *Relation to /diff-review* at the end). Keep the shared stages in sync when either changes.
 
 The user invokes with a **spec** (issue URL/number) whose implementation tickets already exist as its sub-issues. For the issue tracker, invoke `/issue-tracker`; for standards sources, `/conventions`.
 
 ## Guardrails
 
-- **Wrong entry point?** Redirect, don't improvise: a spec with no tickets → run `/to-tickets <spec>` (HITL) first. A wayfinder map → `/to-spec <map>` first.
+- **Wrong entry point?** Redirect, don't improvise: a spec with no tickets → run `/tickets <spec>` (HITL) first. A wayfinder map → `/specify <map>` first.
 - **Branch discipline**: if on the default branch, create `spec-<number>-<slug>` and work there. The whole run lands on one branch; one PR closes the spec at the end.
 - Never merge to shared branches, push, or open PRs unless the user asked explicitly.
 - **The manager orchestrates and asks — nothing else.** Implementation, merging, review, fixes, ticket filing, and tracker updates all happen inside workflow agents. The manager's own work is authoring workflows, reading their returns, running the question loop, and posting ledger comments.
 - **Waves are derived, never stored.** The durable truth is the ticket DAG plus the spec issue's ledger comments. The frontier — open tickets with no open blocker and no claim — is recomputed from the tracker at every wave boundary, so parked tickets drop out and mid-run review tickets join in automatically.
-- **No taste findings.** The standards axis reports breaches of written rules only. If `/conventions` finds nothing scoped to the touched files, the axis is idle and the ledger says so plainly — the axis activates when rules get written, not before. Style and design review belong to `/tareview` and `/simplify`, run deliberately, not to this gate.
+- **No taste findings.** The standards axis reports breaches of written rules only. If `/conventions` finds nothing scoped to the touched files, the axis is idle and the ledger says so plainly — the axis activates when rules get written, not before. Style and design review belong to `/diff-review` and `/simplify`, run deliberately, not to this gate.
 
 ## The ledger
 
@@ -105,7 +105,7 @@ A closing pass whose escalations are all answered and whose auto-tickets are all
 
 ## The wave pipeline
 
-The verification stages inside each wave workflow (and, with `C<k>` IDs, the closing pass). This is ship's own copy of `/tareview`'s pipeline — tuned for wave scale, maintained here.
+The verification stages inside each wave workflow (and, with `C<k>` IDs, the closing pass). This is ship's own copy of `/diff-review`'s pipeline — tuned for wave scale, maintained here.
 
 **Inputs the manager bakes into the script** — the template's `FILL` slots (the workflow has no conversation context): the wave diff command — `git diff <pre-wave-SHA>...HEAD` where `<pre-wave-SHA>` is the ship branch at launch, before this wave's first merge (the wave's commits are created *inside* the run, so agents fetch the commit log themselves — it can't be baked at fill time); the spec **kernel** plus the full text of the union of decisions the wave's tickets cite (Decision Index included, so reviewers can fetch unrouted decisions by ID); the standards sources per `/conventions` with the directory scope each binds — **and if `/conventions` finds nothing scoped to the touched files, the standards reviewer stage is omitted from the script entirely** and the ledger notes "no documented standards — standards axis idle"; the dedup inputs — open `review-finding` tickets and all prior ledger summaries, fetched pre-launch.
 
@@ -115,7 +115,7 @@ The verification stages inside each wave workflow (and, with `C<k>` IDs, the clo
 
 **Spec reviewer**: gets the diff command, commit list, and the kernel-plus-cited-decisions. Brief: "Report: (a) acceptance criteria or requirements that are missing or partial; (b) behaviour not asked for (scope creep); (c) requirements implemented wrong. Treat decision snippets — state machines, schemas, contracts — as requirements; divergence from one is a finding. Where the spec is **silent** on a case the diff had to decide, that is not a violation — report it as a spec question only when the choice is consequential, stating the case and the choice the code made. Quote the spec line, with its decision ID where it has one, per finding. Under 400 words." Reviewing the integrated wave rather than each ticket alone is deliberate: it sees how parallel tickets compose.
 
-A wave too wide for one reader per axis (soft heuristic: >~15 files or ~1,500 changed lines) partitions exactly as `/tareview` does: one cheap partition stage clusters files into subsystem groups aligned with scoped-standards boundaries and routes cited decisions to groups; both axes share the partition; one in-wave cross-cutting sweeper and a requirements-union over the chunks restore what partitioning breaks. Most waves won't need this. Findings scale with reviewer count, so don't partition a wave that doesn't need it.
+A wave too wide for one reader per axis (soft heuristic: >~15 files or ~1,500 changed lines) partitions exactly as `/diff-review` does: one cheap partition stage clusters files into subsystem groups aligned with scoped-standards boundaries and routes cited decisions to groups; both axes share the partition; one in-wave cross-cutting sweeper and a requirements-union over the chunks restore what partitioning breaks. Most waves won't need this. Findings scale with reviewer count, so don't partition a wave that doesn't need it.
 
 ### Labeling and dedup
 
@@ -188,11 +188,11 @@ Plain script logic over the schema fields — no agent decides this:
 - Give every stage a `schema` so verdicts come back as typed enum fields, never prose the manager interprets — the routing step depends on it. Run findings through validate → propose → validate-fix as **chunked `pipeline` chains** (~5 findings per chunk, one agent per chunk per stage, no cross-chunk barriers); the deliberate barriers are the routing step, the serial fix agent, and the ledger post. Chain merges onto a shared promise in implementer-completion order — serialized, never a wait-for-all barrier. Pure-mechanics Sonnet stages (claim, auto-ticket) also pass `effort: 'low'`; the fix agents don't — multi-file edits plus a suite run and reverts are not low-effort work.
 - The pending-questions comment is posted **by the workflow** (its final stage), not the manager — the queue must be durable even if the session dies the moment the workflow returns.
 
-## Relation to /tareview
+## Relation to /diff-review
 
-This skill's pipeline is a fork of `/tareview`'s, re-tuned for the wave gate — and `/tareview` has since back-adopted the fork's core: the same **escalate-intent / auto-resolve-code routing**, the same five question classes, the same auto-apply and auto-ticket agents, the same question mechanics. The remaining differences are scope, not philosophy:
+This skill's pipeline is a fork of `/diff-review`'s, re-tuned for the wave gate — and `/diff-review` has since back-adopted the fork's core: the same **escalate-intent / auto-resolve-code routing**, the same five question classes, the same auto-apply and auto-ticket agents, the same question mechanics. The remaining differences are scope, not philosophy:
 
-- **The smell baseline.** `/tareview`'s standards axis keeps the full Fowler smell baseline on top of documented rules — smells enter as hypotheses, survive adversarial validation, and then route like any other finding. This gate reviews written rules only; the closing sweeper keeps just its four composition smells, aimed at parallel-implementation drift.
-- **The run machinery.** Waves, the ledger, the spec-axis gate, and cross-session resumability belong to ship. `/tareview` is a standalone, single-session review of any diff since a fixed point — branch, PR, or work-in-progress, spec or no spec.
+- **The smell baseline.** `/diff-review`'s standards axis keeps the full Fowler smell baseline on top of documented rules — smells enter as hypotheses, survive adversarial validation, and then route like any other finding. This gate reviews written rules only; the closing sweeper keeps just its four composition smells, aimed at parallel-implementation drift.
+- **The run machinery.** Waves, the ledger, the spec-axis gate, and cross-session resumability belong to ship. `/diff-review` is a standalone, single-session review of any diff since a fixed point — branch, PR, or work-in-progress, spec or no spec.
 
-(This skill replaced an earlier `/ship` that ran no-human-until-the-end: its lightweight wave review and "confident fixes" agent became the verification pipeline, its end-of-run handoff to `/tareview` became the closing pass, and its cross-skill ship ↔ review ↔ `/next` lap became review tickets rejoining the frontier in-run.)
+(This skill replaced an earlier `/ship` that ran no-human-until-the-end: its lightweight wave review and "confident fixes" agent became the verification pipeline, its end-of-run handoff to `/diff-review` became the closing pass, and its cross-skill ship ↔ review ↔ `/next` lap became review tickets rejoining the frontier in-run.)

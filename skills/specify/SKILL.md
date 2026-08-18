@@ -1,5 +1,5 @@
 ---
-name: to-spec
+name: specify
 description: Turn the current conversation — or a completed wayfinder map — into a spec and publish it to the project issue tracker. No interview, just synthesis of what was already discussed or decided. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
@@ -18,11 +18,11 @@ For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
 In map mode, the map's resolutions — design tickets especially — settle the seams: carry them into the spec's **Seams under test** list without re-asking. Only check with the user if the map left the seams genuinely undecided (and note that as a gap in the map). In conversation mode, check with the user that these seams match their expectations — the one interview moment this skill allows, because `/tdd` downstream refuses to test at seams no human confirmed.
 
-3. Write the spec as two kinds of unit — a **kernel** every downstream agent reads in full, and **addressable decisions** (`D1`…`Dn`) that `/to-tickets` routes to the implementation tickets needing them — using the templates below. Publish the kernel as the spec's body and each decision as its own unit, in index order, per the tracker doc's spec-decision convention (on GitHub: one marked comment per decision). The split is what keeps every agent's context bounded and relevant — a `/ship` agent reads the kernel plus only its ticket's cited decisions — and it keeps every published unit far below any tracker's body-size cap, so no content is ever trimmed to fit. Apply the `spec` label — no triage label: the spec's next step is the HITL `/spec-review` read, and `/next` routes on the `spec` label plus its `spec-reviewed` marker and the state of its children, not on triage. (If the marker doesn't exist yet, run the tracker doc's bootstrap first.)
+3. Write the spec as two kinds of unit — a **kernel** every downstream agent reads in full, and **addressable decisions** (`D1`…`Dn`) that `/tickets` routes to the implementation tickets needing them — using the templates below. Publish the kernel as the spec's body and each decision as its own unit, in index order, per the tracker doc's spec-decision convention (on GitHub: one marked comment per decision). The split is what keeps every agent's context bounded and relevant — a `/ship` agent reads the kernel plus only its ticket's cited decisions — and it keeps every published unit far below any tracker's body-size cap, so no content is ever trimmed to fit. Apply the `spec` label — no triage label: the spec's next step is the HITL `/spec-review` read, and `/next` routes on the `spec` label plus its `spec-reviewed` marker and the state of its children, not on triage. (If the marker doesn't exist yet, run the tracker doc's bootstrap first.)
 
 In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map.
 
-End by pointing the user at the next step: `/spec-review <spec>` — the read that grounds the spec against the codebase before it is broken down. `/to-tickets` runs after that, and `/ship` only once its tickets exist.
+End by pointing the user at the next step: `/spec-review <spec>` — the read that grounds the spec against the codebase before it is broken down. `/tickets` runs after that, and `/ship` only once its tickets exist.
 
 <spec-template>
 
@@ -86,11 +86,11 @@ One unit per Decision Index entry, published per the tracker doc's spec-decision
 - **Decided:** the verdict, stated so an implementer can act on it without reading any debate.
 - **Because:** the rationale, one or two lines — no more.
 - **Rejected:** the alternatives that lost, one line.
-- **Origin:** link(s) to the map ticket(s) that settled it, or "this conversation". The full debate lives at the link, never here — `/tareview`'s `spec-suspect` validators follow it when a deviation needs adjudicating; no other reader should need it.
+- **Origin:** link(s) to the map ticket(s) that settled it, or "this conversation". The full debate lives at the link, never here — `/diff-review`'s `spec-suspect` validators follow it when a deviation needs adjudicating; no other reader should need it.
 
 Then the decision's substance:
 
-- **Decision-encoding snippets are first-class content**: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — is inlined here, trimmed to the decision-rich parts. These are the contracts `/tareview` validates the implementation against. What a decision avoids is *speculative* implementation code, and specific file paths or line numbers — they go stale fast.
+- **Decision-encoding snippets are first-class content**: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — is inlined here, trimmed to the decision-rich parts. These are the contracts `/diff-review` validates the implementation against. What a decision avoids is *speculative* implementation code, and specific file paths or line numbers — they go stale fast.
 - **The decision's test plan**, where it has one: the concrete cases that pin this decision at the kernel's seams. The test *philosophy* stays in the kernel's Testing Decisions; the per-decision case list lives here, beside the contract it verifies.
 
 </decision-template>

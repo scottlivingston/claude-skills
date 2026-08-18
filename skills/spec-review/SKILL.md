@@ -1,9 +1,9 @@
 ---
 name: spec-review
-description: Read a published spec in full — kernel, every decision, seams — and ground it against the codebase before /to-tickets breaks it down. Hunts decisions that don't decide, stale claims about the code, seam gaps, unfalsifiable acceptance, contradictions and scope leaks; each defect arrives with a drafted repair, fixes land as edits to the spec, and a clean spec is marked spec-reviewed. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
+description: Read a published spec in full — kernel, every decision, seams — and ground it against the codebase before /tickets breaks it down. Hunts decisions that don't decide, stale claims about the code, seam gaps, unfalsifiable acceptance, contradictions and scope leaks; each defect arrives with a drafted repair, fixes land as edits to the spec, and a clean spec is marked spec-reviewed. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
-A spec is the last artifact before code. Everything downstream trusts it absolutely: `/to-tickets` routes its decisions without questioning them, and a `/ship` agent handed a decision that doesn't decide will simply invent the missing half. This skill is the one session that reads the spec **whole** — kernel plus every decision, in index order — and holds it against the codebase it claims to describe.
+A spec is the last artifact before code. Everything downstream trusts it absolutely: `/tickets` routes its decisions without questioning them, and a `/ship` agent handed a decision that doesn't decide will simply invent the missing half. This skill is the one session that reads the spec **whole** — kernel plus every decision, in index order — and holds it against the codebase it claims to describe.
 
 It is the spec-side mirror of `/map-review`: that skill checks whether the map's decisions compose; this one checks whether the spec they became is **implementable as written**.
 
@@ -27,7 +27,7 @@ The spec's origin decides how much to hunt:
 - **Seam gap** — a decision introduces behaviour that no seam in **Seams under test** can observe, or a listed seam sits below the highest one available. `/tdd` tests at the listed seams and no others, so both stall a ship agent mid-wave.
 - **Unfalsifiable acceptance** — a user story or decision written so no test can decide pass from fail. `/ship` verifies against these; a fuzzy one makes that verification theatre.
 - **Uncovered story** — a numbered user story that no decision, and nothing in Solution, serves.
-- **Orphan decision** — a decision no story or problem statement needs. Scope creep hides exactly here. (`/to-tickets` checks decisions against *tickets*; nothing else checks them against *stories*.)
+- **Orphan decision** — a decision no story or problem statement needs. Scope creep hides exactly here. (`/tickets` checks decisions against *tickets*; nothing else checks them against *stories*.)
 - **Contradiction** — kernel against a decision, or two decisions that can't both hold.
 - **Scope leak** — a decision ruling on ground the spec's Out of Scope excludes.
 - **Index drift** — a Decision Index gist that no longer says what its decision unit decided.
@@ -40,11 +40,11 @@ The spec's origin decides how much to hunt:
 4. **Triage each finding**:
    - **Mechanical** (index drift, a stale link, a gist to re-word): fix now, silently, as spec edits. Not worth human time.
    - **Substantive** (everything else): escalate to the human **one at a time**, and **arrive with a drafted repair** — the amended `Decided:` line, the missing seam row, the decision to strike — so the ask is a verdict on concrete text, not an open question. State what's wrong, show the proposed text, recommend. Get the verdict, apply it, then raise the next.
-5. **Apply verdicts as edits to the spec** — the spec body and its decision units, never a separate artifact. `/to-tickets` and `/ship` just receive a truer spec.
+5. **Apply verdicts as edits to the spec** — the spec body and its decision units, never a separate artifact. `/tickets` and `/ship` just receive a truer spec.
    - **Amend** — edit the decision's text in place, and its index gist with it.
    - **Add** — a genuine gap: publish a new decision unit at the end of the index and extend the Decision Index. Existing IDs never renumber; downstream citations depend on them.
    - **Strike** — a scope leak or dead decision: remove it, note the removal in the review summary, and leave the ID retired rather than reused.
-6. **Record and mark.** Comment a review summary on the spec — defects found, verdicts, what was amended — then mark the spec `spec-reviewed` and point at `/to-tickets <spec>`.
+6. **Record and mark.** Comment a review summary on the spec — defects found, verdicts, what was amended — then mark the spec `spec-reviewed` and point at `/tickets <spec>`.
 
 ## When a defect isn't answerable on the spot
 
@@ -54,7 +54,7 @@ The exception is a spec whose *destination* is wrong — the problem statement i
 
 ## Rules
 
-- **One invocation, one review.** Marking `spec-reviewed` and running `/to-tickets` never share a session.
+- **One invocation, one review.** Marking `spec-reviewed` and running `/tickets` never share a session.
 - **Defects speak the domain language** — capabilities and concepts, never file paths; `/domain-expansion` when a question lands on unfamiliar terrain. The one place paths are welcome is a stale-ground-truth finding, which is *about* the code: anchor it per `/code-anchors`.
 - **Merits are the human's to reopen, never yours to re-litigate.** Review whether the spec is implementable, not whether its decisions were the right ones.
 - **Cheap by default.** The read and the grounding are agent work; the human is spent only on real defects, and only on drafted text. A clean spec costs one pass and a one-line report — say so, mark, and stop. Cheap-by-default is what keeps this stage run rather than skipped, which matters most for the small specs that skipped the map entirely.

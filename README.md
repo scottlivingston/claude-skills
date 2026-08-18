@@ -35,15 +35,15 @@ Each session resolves **one ticket**: the answer is recorded on the ticket, the 
 
 A complete map is a mechanical fact — frontier empty, fog gone — not a semantic one: its decisions were made in separate sessions, and no single context ever held all the resolutions at once. Before the spec is written, one session reads **every resolution in full, together**, hunting only what no per-ticket session could see: contradictions, early calls superseded by later context, gaps where the decisions don't compose into a clear route, undecided seams, scope leaks, and drifted index gists. Mechanical fixes are applied silently; real tensions are adjudicated with you one at a time, and fixes land as edits to the map and its tickets — never a separate artifact. A coherent map is marked `map-reviewed`; reopened decisions send the effort back to charting. It never re-litigates a settled decision's merits — cheap by default is what keeps it run rather than skipped.
 
-### 4. Distill the spec — `/to-spec`
+### 4. Distill the spec — `/specify`
 
-The completed map — its decision index and closed tickets — is synthesized into a single **spec issue**. No interview, no new decisions: to-spec only writes down what the map already settled. Design-ticket resolutions carry their interface stubs and seams into the spec, so implementation inherits agreed contracts and a Seams-under-test list.
+The completed map — its decision index and closed tickets — is synthesized into a single **spec issue**. No interview, no new decisions: `/specify` only writes down what the map already settled. Design-ticket resolutions carry their interface stubs and seams into the spec, so implementation inherits agreed contracts and a Seams-under-test list.
 
 ### 5. Review the spec — `/spec-review`
 
-The spec is the last artifact before code, and everything downstream trusts it absolutely: `/to-tickets` routes its decisions without questioning them, and a `/ship` agent handed a decision that doesn't decide will invent the missing half. One session reads the spec **whole** — kernel plus every decision — and **grounds it against the codebase it claims to describe**, which is the check no other stage performs: decisions that name a question without settling it, claims about modules and prior art that stopped being true, behaviour no listed seam can observe, acceptance criteria no test can pass or fail, stories nothing serves and decisions nothing needs, contradictions and scope leaks. Mechanical fixes land silently; every real defect arrives with a **drafted repair** — the amended line, the missing seam row — so you give a verdict on concrete text rather than answer an open question. Fixes are edits to the spec itself, never a review document, and a clean spec is marked `spec-reviewed`. It matters most for the specs that skipped the map entirely: on those, no gate has run at all.
+The spec is the last artifact before code, and everything downstream trusts it absolutely: `/tickets` routes its decisions without questioning them, and a `/ship` agent handed a decision that doesn't decide will invent the missing half. One session reads the spec **whole** — kernel plus every decision — and **grounds it against the codebase it claims to describe**, which is the check no other stage performs: decisions that name a question without settling it, claims about modules and prior art that stopped being true, behaviour no listed seam can observe, acceptance criteria no test can pass or fail, stories nothing serves and decisions nothing needs, contradictions and scope leaks. Mechanical fixes land silently; every real defect arrives with a **drafted repair** — the amended line, the missing seam row — so you give a verdict on concrete text rather than answer an open question. Fixes are edits to the spec itself, never a review document, and a clean spec is marked `spec-reviewed`. It matters most for the specs that skipped the map entirely: on those, no gate has run at all.
 
-### 6. Break it down — `/to-tickets`
+### 6. Break it down — `/tickets`
 
 The spec is broken into **implementation tickets** — vertical tracer-bullet slices, each sized to one fresh agent session, with blocking edges forming a DAG. This is an explicit approval gate: you review and approve the breakdown in a quiz before anything is built. After this gate, downstream stages make no product decisions.
 
@@ -53,13 +53,13 @@ Each **wave** of unblocked tickets runs as one dynamic workflow: a planner per t
 
 ### 8. Close the run
 
-When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/tareview` is the standalone review for any branch, PR, or diff outside the run — the same two axes and auto-resolve routing, plus the full Fowler smell baseline on its Standards axis.)
+When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/diff-review` is the standalone review for any branch, PR, or diff outside the run — the same two axes and auto-resolve routing, plus the full Fowler smell baseline on its Standards axis.)
 
 ## Driving it: `/next`
 
 You don't memorize the chain. Start an effort with `/wayfinder <idea>`; after that, invoke **`/next`** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — exactly one unit of work per invocation, then it stops and says `/next` again. While the map is live it also drains the AFK frontier in the background while you sit in a HITL ticket, and it folds in any results a previous session didn't.
 
-You can also enter partway: `/to-spec` with no argument specs the current conversation — and `/spec-review` is what catches the defects that skipping the map would otherwise leave in it. `/to-tickets` can break down any plan, and `/tareview` reviews any branch or diff since a fixed point.
+You can also enter partway: `/specify` with no argument specs the current conversation — and `/spec-review` is what catches the defects that skipping the map would otherwise leave in it. `/tickets` can break down any plan, and `/diff-review` reviews any branch or diff since a fixed point.
 
 ## The opinions
 
@@ -75,7 +75,7 @@ You can also enter partway: `/to-spec` with no argument specs the current conver
 
 **HITL questions speak the domain language.** A human engages with capabilities and concepts — the project's ubiquitous language (`CONTEXT.md`) — not with file paths; prose dense with code references pushes them out of the decision instead of into it. Reading the code is the agent's job; the human gets the digest. When a question lands on terrain they don't hold a model of, `/domain-expansion` briefs them in plain language on what the system does today, and when they ask to see the source, it arrives as verified, cmd-clickable `path:line` references — links into the editor, never pasted snippets (the `code-anchors` skill holds the citation format).
 
-**Approval gates are explicit, and downstream stages don't improvise.** The human approves the implementation breakdown in the `/to-tickets` quiz; after that, `/ship` makes no product decisions. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap rather than guessing.
+**Approval gates are explicit, and downstream stages don't improvise.** The human approves the implementation breakdown in the `/tickets` quiz; after that, `/ship` makes no product decisions. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap rather than guessing.
 
 **Implementation is vertical slices, in parallel, merged serially.** Tickets are tracer bullets — narrow but complete paths through every layer, demoable alone — not horizontal layers. (Wide mechanical refactors are the one exception, sequenced as expand–contract.) Fresh agent per ticket in an isolated worktree, one merge at a time, tests after each merge. Never merge on red.
 
@@ -91,7 +91,7 @@ What must be true of your project and working style for this workflow to fit:
 
 - **You have an issue tracker with labels, sub-issues, and blocking links.** GitHub issues by default (via `gh`); a local-markdown fallback exists for repos without a remote. The `issue-tracker` skill defines the tracker contract every skill speaks; a repo can swap in its own tracker with a `.claude/issue-tracker.md` implementing that contract — fully, or as a delta over the default ("as GitHub, except…").
 - **The effort is bigger than one context window.** That's what the map is for. If charting surfaces no fog — the whole journey fits one session — wayfinder tells you to skip the map and just do the work.
-- **A human is actually available.** Grilling, prototypes, design decisions, the to-tickets approval quiz, spec-gap resolutions, and review verdicts are all HITL by design. This workflow reduces where human attention goes; it does not remove it.
+- **A human is actually available.** Grilling, prototypes, design decisions, the `/tickets` approval quiz, spec-gap resolutions, and review verdicts are all HITL by design. This workflow reduces where human attention goes; it does not remove it.
 - **You work in a git repo with a test suite you trust.** Ship implements in isolated worktrees and gates every serial merge on green tests; without meaningful tests, "never merge on red" protects nothing.
 - **Sessions are disposable; only the tracker is durable.** Anything worth keeping must land on an issue before context clears. The flip side: any session — yours, a teammate's, a background agent's — can pick up the effort cold.
 - **Concurrency is normal.** Background drain agents and parallel sessions edit the tracker at the same time; claims (`in-progress`), a single map-writer per session, and reconcile-before-routing in `/next` are what keep them from colliding.

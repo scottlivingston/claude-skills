@@ -4,7 +4,7 @@ description: Advance an effort by exactly one unit of work. Reads the issue trac
 disable-model-invocation: true
 ---
 
-One command for the whole wayfinder → map-review → to-spec → spec-review → to-tickets → ship chain. The tracker is the memory, so the current stage is never remembered — it is **queried**: this skill reads the effort's state off the tracker, announces the stage, and runs that stage's skill. Each invocation does **one stage's unit of work**, sized to this session, then stops and says `/next` again.
+One command for the whole wayfinder → map-review → specify → spec-review → tickets → ship chain. The tracker is the memory, so the current stage is never remembered — it is **queried**: this skill reads the effort's state off the tracker, announces the stage, and runs that stage's skill. Each invocation does **one stage's unit of work**, sized to this session, then stops and says `/next` again.
 
 `/next` is a router, not a stage. Everything below routes *into* an existing skill — read that skill and follow it; never improvise a stage inline. For tracker operations, invoke `/issue-tracker` — its "Which tracker?" section resolves which implementation this repo uses.
 
@@ -16,7 +16,7 @@ The argument, if given, is a **map** or **spec** issue (URL or number). Without 
 - Several → ask the user which (by name, per wayfinder's refer-by-name rule).
 - None → `/next` has nothing to advance. Charting needs the loose idea, which lives in the human's head, not the tracker — point at `/wayfinder <idea>` and stop.
 
-A **closed map** isn't a dead end: `/to-spec` comments the spec's link on the map before closing it. Follow that link and route on the spec. Likewise a spec's stage depends on its `impl` sub-issues, fetched fresh each invocation.
+A **closed map** isn't a dead end: `/specify` comments the spec's link on the map before closing it. Follow that link and route on the spec. Likewise a spec's stage depends on its `impl` sub-issues, fetched fresh each invocation.
 
 ## Reconcile before routing
 
@@ -34,10 +34,10 @@ First state that matches, top to bottom:
 | Map open, open child tickets exist | Working the map | See [Working the map](#working-the-map) below |
 | Map open, no open children, Not-yet-specified non-empty | Still charting | A wayfinder session: graduate what's now specifiable into tickets (create-then-wire), then stop |
 | Map open, no open children, Not-yet-specified empty, no `map-reviewed` marker | Map complete, unreviewed | `/map-review <map>` — HITL; the cross-read is agent work, but tensions are adjudicated live |
-| Map open, no open children, Not-yet-specified empty, `map-reviewed` marker | Map reviewed | `/to-spec <map>` |
+| Map open, no open children, Not-yet-specified empty, `map-reviewed` marker | Map reviewed | `/specify <map>` |
 | Spec open, no `impl` sub-issues, no `spec-reviewed` marker | Spec unreviewed | `/spec-review <spec>` — HITL; the read and grounding are agent work, defects are adjudicated live |
-| Spec open, no `impl` sub-issues, `spec-reviewed` marker | Needs breakdown | `/to-tickets <spec>` — HITL; the quiz is the human's approval gate |
-| Spec open, `impl` sub-issues with spec-gap comments on parked tickets | Spec gap | Sit with the human on the gap (grill, grounded in the domain model); record the decision on the spec — as a new indexed decision cited by the ticket, when the spec has a Decision Index (per `/to-spec` and the tracker doc) — and unpark the ticket |
+| Spec open, no `impl` sub-issues, `spec-reviewed` marker | Needs breakdown | `/tickets <spec>` — HITL; the quiz is the human's approval gate |
+| Spec open, `impl` sub-issues with spec-gap comments on parked tickets | Spec gap | Sit with the human on the gap (grill, grounded in the domain model); record the decision on the spec — as a new indexed decision cited by the ticket, when the spec has a Decision Index (per `/specify` and the tracker doc) — and unpark the ticket |
 | Spec open, open `impl` sub-issues | Shipping | `/ship <spec>` (or `/implement` for one frontier ticket, if the user prefers stepping) |
 | Spec open, all `impl` sub-issues closed | Closing | `/ship <spec>` — its bootstrap finds the frontier empty and runs the closing pass over the whole branch (or, if the last closing summary is clean, offers the PR that `Closes #<spec>`) |
 | Spec closed | Done | Say so. There is no next. |
@@ -53,7 +53,7 @@ The one stage `/next` composes rather than delegates whole, because the frontier
 
 ## Rules
 
-- **One stage per invocation.** Never compress two stages into one session — finishing to-spec does not mean starting to-tickets. The sizing is the point; end by saying `/next`.
+- **One stage per invocation.** Never compress two stages into one session — finishing `/specify` does not mean starting `/tickets`. The sizing is the point; end by saying `/next`.
 - **Re-invocation in a live session is fine — make the budget call out loud.** One ticket per invocation is the unit; one ticket per *context window* is not a rule. When the human says `/next` again in the same session, don't balk and don't re-read skill files already in context — just route again. After each ticket, state the posture: a light ticket with plenty of room → invite another `/next` here; a heavy one → say so and recommend `/clear` first.
-- **Never jump a gate.** Route *into* the to-tickets quiz, never past it; never resolve a HITL ticket without the human; never auto-approve on the human's behalf.
+- **Never jump a gate.** Route *into* the `/tickets` quiz, never past it; never resolve a HITL ticket without the human; never auto-approve on the human's behalf.
 - **Announce the stage before acting** — "the map has 4 open tickets, 2 AFK; draining those and sitting with you on <ticket name>" — so the human always knows where the effort stands without reading the tracker.

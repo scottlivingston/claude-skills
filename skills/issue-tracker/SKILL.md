@@ -5,7 +5,7 @@ description: The issue-tracker contract every workflow skill speaks — vocabula
 
 # Issue tracker
 
-Shared tracker wiring for the wayfinder → drain → map-review → to-spec → spec-review → to-tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
+Shared tracker wiring for the wayfinder → drain → map-review → specify → spec-review → tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
 
 ## Which tracker?
 
@@ -28,11 +28,11 @@ Triage roles: `needs-triage` (maintainer must evaluate), `needs-info` (waiting o
 Workflow roles:
 
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
-- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the cross-read. `/next` routes a completed map without it to `/map-review`, with it to `/to-spec`. Reopening any child ticket removes it.
-- `spec` — a spec issue published by `/to-spec`.
-- `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding. `/next` routes a spec without it to `/spec-review`, with it to `/to-tickets`.
-- `impl` — an implementation ticket published by `/to-tickets` (a child of its spec).
-- `review-finding` — a ticket published from a `/tareview` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
+- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the cross-read. `/next` routes a completed map without it to `/map-review`, with it to `/specify`. Reopening any child ticket removes it.
+- `spec` — a spec issue published by `/specify`.
+- `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding. `/next` routes a spec without it to `/spec-review`, with it to `/tickets`.
+- `impl` — an implementation ticket published by `/tickets` (a child of its spec).
+- `review-finding` — a ticket published from a `/diff-review` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
 - `wayfinder:map` and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`design`/`task`) — wayfinder's map and its ticket types.
 
@@ -53,7 +53,7 @@ Workflow roles:
 
 ### Spec decisions
 
-A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed one line each in the spec body's Decision Index (see `/to-spec`). Two operations:
+A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed one line each in the spec body's Decision Index (see `/specify`). Two operations:
 
 - **Publish decision**: attach one decision (ID, title, body) to a spec, in index order.
 - **Read**: reading a spec "in full" means the body plus every decision, in index order; a single decision is fetchable by ID. Decisions are **spec content**, distinct from process comments (wave summaries, review round summaries, spec-gap notes) — an implementation must keep the two tellable apart. A spec with no Decision Index is just its body (the pre-index format).
@@ -84,10 +84,10 @@ Every vocabulary role is a GitHub **label** with the same string, on the current
 ```sh
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
 gh label create map-reviewed       --force -c "#0e8a16" -d "Map resolutions cross-read and coherent (/map-review)"
-gh label create spec               --force -c "#0e8a16" -d "Spec issue (published by /to-spec)"
+gh label create spec               --force -c "#0e8a16" -d "Spec issue (published by /specify)"
 gh label create spec-reviewed      --force -c "#0e8a16" -d "Spec read whole and grounded against the code (/spec-review)"
-gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /to-tickets)"
-gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review finding (/tareview)"
+gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /tickets)"
+gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review finding (/diff-review)"
 gh label create hitl               --force -c "#d93f0b" -d "Needs the human in the loop"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
 gh label create wayfinder:map      --force -c "#006b75" -d "Wayfinder map"
@@ -125,7 +125,7 @@ The **map** is a single issue labelled `wayfinder:map`, holding the Notes / Deci
 
 ## Local markdown implementation (fallback)
 
-Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/tareview`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
+Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/diff-review`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
 
 ### Ticket operations
 

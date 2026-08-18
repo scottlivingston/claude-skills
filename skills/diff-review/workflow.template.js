@@ -1,5 +1,5 @@
 export const meta = {
-  name: 'tareview',
+  name: 'diff-review',
   description: 'Find→validate→propose→validate→route pipeline over the diff since a fixed point, along Standards and Spec axes — escalate intent, auto-resolve code',
   phases: [
     { title: 'Partition', detail: 'cluster a wide diff into shared subsystem groups' },
@@ -12,7 +12,7 @@ export const meta = {
   ],
 }
 
-// Template for the /tareview pipeline workflow — SKILL.md steps 4–9 hold the stage
+// Template for the /diff-review pipeline workflow — SKILL.md steps 4–9 hold the stage
 // briefs this file encodes; keep the two in sync when either changes.
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
