@@ -1,6 +1,6 @@
 # claude-skills
 
-An opinionated, end-to-end workflow for Claude Code: take a loose idea, chart the unknowns as decision tickets on your issue tracker, resolve them with the right skill for each kind of question, cross-read the finished map for coherence, distill the decisions into a spec, break the spec into implementation tickets, and ship them wave by wave with parallel agents — every wave verified on two axes, only intent questions escalated to you — until a closing pass comes back clean.
+An opinionated, end-to-end workflow for Claude Code: take a loose idea, chart the unknowns as decision tickets on your issue tracker, resolve them with the right skill for each kind of question, cross-read the finished map for coherence, distill the decisions into a spec, review that spec against the code, break it into implementation tickets, and ship them wave by wave with parallel agents — every wave verified on two axes, only intent questions escalated to you — until a closing pass comes back clean.
 
 Packaged as a Claude Code plugin (`scott-skills`).
 
@@ -39,15 +39,19 @@ A complete map is a mechanical fact — frontier empty, fog gone — not a seman
 
 The completed map — its decision index and closed tickets — is synthesized into a single **spec issue**. No interview, no new decisions: to-spec only writes down what the map already settled. Design-ticket resolutions carry their interface stubs and seams into the spec, so implementation inherits agreed contracts and a Seams-under-test list.
 
-### 5. Break it down — `/to-tickets`
+### 5. Review the spec — `/spec-review`
+
+The spec is the last artifact before code, and everything downstream trusts it absolutely: `/to-tickets` routes its decisions without questioning them, and a `/ship` agent handed a decision that doesn't decide will invent the missing half. One session reads the spec **whole** — kernel plus every decision — and **grounds it against the codebase it claims to describe**, which is the check no other stage performs: decisions that name a question without settling it, claims about modules and prior art that stopped being true, behaviour no listed seam can observe, acceptance criteria no test can pass or fail, stories nothing serves and decisions nothing needs, contradictions and scope leaks. Mechanical fixes land silently; every real defect arrives with a **drafted repair** — the amended line, the missing seam row — so you give a verdict on concrete text rather than answer an open question. Fixes are edits to the spec itself, never a review document, and a clean spec is marked `spec-reviewed`. It matters most for the specs that skipped the map entirely: on those, no gate has run at all.
+
+### 6. Break it down — `/to-tickets`
 
 The spec is broken into **implementation tickets** — vertical tracer-bullet slices, each sized to one fresh agent session, with blocking edges forming a DAG. This is an explicit approval gate: you review and approve the breakdown in a quiz before anything is built. After this gate, downstream stages make no product decisions.
 
-### 6. Ship — `/ship`
+### 7. Ship — `/ship`
 
 Each **wave** of unblocked tickets runs as one dynamic workflow: a planner per ticket maps the approach against the branch as it stands, a fresh agent per ticket implements in an isolated git worktree, worktrees merge serially with tests after each merge (never merge on red), and the wave's integrated diff is verified along two axes that are never merged into one list — **Spec** (did the tickets deliver their acceptance criteria?) and **Standards** (does the code break a documented rule — canonically `CONVENTIONS.md`, with per-directory files scoping a monorepo's apps?). Findings are adversarially validated; survivors with uncontested fixes auto-apply (one revertable commit each) or become tickets riding the next wave. Only questions about *intent* reach you — the spec is silent on a case, two fixes compete, a pattern is repo-wide — phrased in domain language, and an unanswered spec question gates the next wave. When an agent hits a decision the spec doesn't hold, it parks the ticket and reports the gap on the spec issue; the run continues around it. (`/implement` is the manual alternative: one frontier ticket at a time, same discipline.)
 
-### 7. Close the run
+### 8. Close the run
 
 When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/tareview` is the standalone review for any branch, PR, or diff outside the run — the same two axes and auto-resolve routing, plus the full Fowler smell baseline on its Standards axis.)
 
@@ -55,7 +59,7 @@ When no tickets remain, a closing pass re-reads the **whole branch diff** — hu
 
 You don't memorize the chain. Start an effort with `/wayfinder <idea>`; after that, invoke **`/next`** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — exactly one unit of work per invocation, then it stops and says `/next` again. While the map is live it also drains the AFK frontier in the background while you sit in a HITL ticket, and it folds in any results a previous session didn't.
 
-You can also enter partway: `/to-spec` with no argument specs the current conversation, `/to-tickets` can break down any plan, and `/tareview` reviews any branch or diff since a fixed point.
+You can also enter partway: `/to-spec` with no argument specs the current conversation — and `/spec-review` is what catches the defects that skipping the map would otherwise leave in it. `/to-tickets` can break down any plan, and `/tareview` reviews any branch or diff since a fixed point.
 
 ## The opinions
 

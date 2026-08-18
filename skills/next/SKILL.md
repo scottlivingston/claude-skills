@@ -1,10 +1,10 @@
 ---
 name: next
-description: Advance an effort by exactly one unit of work. Reads the issue tracker to find where the effort stands — charting, working the map, map review, spec, tickets, shipping — then routes to the right stage skill. Start an effort with /wayfinder; after that, just keep invoking /next.
+description: Advance an effort by exactly one unit of work. Reads the issue tracker to find where the effort stands — charting, working the map, map review, spec, spec review, tickets, shipping — then routes to the right stage skill. Start an effort with /wayfinder; after that, just keep invoking /next.
 disable-model-invocation: true
 ---
 
-One command for the whole wayfinder → map-review → to-spec → to-tickets → ship chain. The tracker is the memory, so the current stage is never remembered — it is **queried**: this skill reads the effort's state off the tracker, announces the stage, and runs that stage's skill. Each invocation does **one stage's unit of work**, sized to this session, then stops and says `/next` again.
+One command for the whole wayfinder → map-review → to-spec → spec-review → to-tickets → ship chain. The tracker is the memory, so the current stage is never remembered — it is **queried**: this skill reads the effort's state off the tracker, announces the stage, and runs that stage's skill. Each invocation does **one stage's unit of work**, sized to this session, then stops and says `/next` again.
 
 `/next` is a router, not a stage. Everything below routes *into* an existing skill — read that skill and follow it; never improvise a stage inline. For tracker operations, invoke `/issue-tracker` — its "Which tracker?" section resolves which implementation this repo uses.
 
@@ -35,7 +35,8 @@ First state that matches, top to bottom:
 | Map open, no open children, Not-yet-specified non-empty | Still charting | A wayfinder session: graduate what's now specifiable into tickets (create-then-wire), then stop |
 | Map open, no open children, Not-yet-specified empty, no `map-reviewed` marker | Map complete, unreviewed | `/map-review <map>` — HITL; the cross-read is agent work, but tensions are adjudicated live |
 | Map open, no open children, Not-yet-specified empty, `map-reviewed` marker | Map reviewed | `/to-spec <map>` |
-| Spec open, no `impl` sub-issues | Needs breakdown | `/to-tickets <spec>` — HITL; the quiz is the human's approval gate |
+| Spec open, no `impl` sub-issues, no `spec-reviewed` marker | Spec unreviewed | `/spec-review <spec>` — HITL; the read and grounding are agent work, defects are adjudicated live |
+| Spec open, no `impl` sub-issues, `spec-reviewed` marker | Needs breakdown | `/to-tickets <spec>` — HITL; the quiz is the human's approval gate |
 | Spec open, `impl` sub-issues with spec-gap comments on parked tickets | Spec gap | Sit with the human on the gap (grill, grounded in the domain model); record the decision on the spec — as a new indexed decision cited by the ticket, when the spec has a Decision Index (per `/to-spec` and the tracker doc) — and unpark the ticket |
 | Spec open, open `impl` sub-issues | Shipping | `/ship <spec>` (or `/implement` for one frontier ticket, if the user prefers stepping) |
 | Spec open, all `impl` sub-issues closed | Closing | `/ship <spec>` — its bootstrap finds the frontier empty and runs the closing pass over the whole branch (or, if the last closing summary is clean, offers the PR that `Closes #<spec>`) |

@@ -15,6 +15,8 @@ For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
 Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments. For a spec, "full" includes its addressable decisions (`D1`…`Dn`, per the tracker doc's spec-decision convention) — the Decision Index in the body lists them.
 
+A spec should also carry the `spec-reviewed` marker — `/spec-review`'s full read and codebase grounding; if it's absent, flag that the review hasn't run and let the user choose: review first, or break down anyway.
+
 ### 2. Explore the codebase (optional)
 
 If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.

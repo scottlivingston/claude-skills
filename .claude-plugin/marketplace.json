@@ -7,7 +7,7 @@
     {
       "name": "scott-skills",
       "source": "./",
-      "description": "Scott's personal workflow skills: wayfinder → drain → map-review → to-spec → to-tickets → ship (wave workflows — plan, implement, verify on two axes — looping until a closing pass is clean), driven stage-by-stage with /next, plus tareview, design, domain-modeling, domain-expansion, grilling, prototype, research, and tdd."
+      "description": "Scott's personal workflow skills: wayfinder → drain → map-review → to-spec → spec-review → to-tickets → ship (wave workflows — plan, implement, verify on two axes — looping until a closing pass is clean), driven stage-by-stage with /next, plus tareview, design, domain-modeling, domain-expansion, grilling, prototype, research, and tdd."
     }
   ]
 }
