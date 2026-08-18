@@ -49,7 +49,7 @@ Each **wave** of unblocked tickets runs as one dynamic workflow: a planner per t
 
 ### 7. Close the run
 
-When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/tareview` remains the deliberate standalone review — two axes, you as disposition authority — for any branch, PR, or diff outside the run.)
+When no tickets remain, a closing pass re-reads the **whole branch diff** — hunting the cross-wave composition drift no single wave could see, checking every spec requirement landed somewhere — and raises everything deferred along the way. Answers and remaining findings become tickets that re-open the frontier, so shipping loops until a closing pass comes back clean; every outcome is recorded on the spec issue as adjudication memory, so no finding is ever re-litigated and the loop converges. Then the PR that closes the spec issue is offered. (`/tareview` is the standalone review for any branch, PR, or diff outside the run — the same two axes and auto-resolve routing, plus the full Fowler smell baseline on its Standards axis.)
 
 ## Driving it: `/next`
 

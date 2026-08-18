@@ -1,18 +1,18 @@
 export const meta = {
   name: 'tareview',
-  description: 'Find→validate→propose→validate→auto-apply pipeline over the diff since a fixed point, along Standards and Spec axes',
+  description: 'Find→validate→propose→validate→route pipeline over the diff since a fixed point, along Standards and Spec axes — escalate intent, auto-resolve code',
   phases: [
     { title: 'Partition', detail: 'cluster a wide diff into shared subsystem groups' },
     { title: 'Review', detail: 'one reviewer per axis — per group and axis when partitioned — plus the cross-cutting sweeper' },
     { title: 'Label', detail: 'normalize reports into IDed findings; dedup vs open tickets and prior rounds' },
     { title: 'Validate findings', detail: 'fresh adversarial validators — refuted findings leave the pipeline here' },
     { title: 'Propose', detail: 'one proposer per axis over the survivors' },
-    { title: 'Validate fixes', detail: 'fresh adversarial validators, one question per check' },
-    { title: 'Apply', detail: 'one serial fix agent in the main checkout — mechanical tier only' },
+    { title: 'Validate fixes', detail: 'fresh adversarial validators, one question per check; pair resolution' },
+    { title: 'Resolve', detail: 'script routing — escalate intent, auto-resolve code: serial fix agent applies, ticket agent publishes' },
   ],
 }
 
-// Template for the /review pipeline workflow — SKILL.md steps 4–9 hold the stage
+// Template for the /tareview pipeline workflow — SKILL.md steps 4–9 hold the stage
 // briefs this file encodes; keep the two in sync when either changes.
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
@@ -37,13 +37,15 @@ const STANDARDS_SOURCES = FILL    // [{ path: "CONVENTIONS.md", scope: "repo roo
 const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open `review-finding` tickets: [{ ref: "#12", title: "...", body: "..." }] — [] if none
 const PRIOR_ROUND_SUMMARIES = FILL// pre-fetched prior-round summary comments from the spec issue: ["..."] — [] if none
 const DEFAULT_BRANCH_OK = FILL    // false, or the user's exact words OKing commits on the default branch — travels only in the fix agent's brief
+const SPEC_ISSUE_REF = FILL       // tracker ref of the spec issue ("#42") when the spec IS a tracker issue, else null — auto-tickets parent to it
+const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent operations per /issue-tracker (exact commands), or null → auto-ticket findings come back for the manager to file in step 12
 
 // ═══════════ FIXED BELOW THIS LINE — edit only when the run genuinely deviates ═══════════
 
 const BATCH_AT = 8 // past this many findings in an axis, one batched validator per axis instead of one per finding
 
 const SMELL_BASELINE = [
-  'Smell baseline (Fowler, Refactoring ch.3) — applies even when the repo documents nothing. Every hit is a labelled judgement call ("possible Feature Envy"), never a hard violation; a documented repo standard overrides the baseline; skip anything tooling already enforces. Each smell reads what-it-is → how-to-fix:',
+  'Smell baseline (Fowler, Refactoring ch.3) — applies even when the repo documents nothing. Every hit is a labelled hypothesis ("possible Feature Envy") the adversarial validators must confirm; a documented repo standard overrides the baseline; skip anything tooling already enforces. Each smell reads what-it-is → how-to-fix:',
   '- Mysterious Name — a function, variable, or type whose name does not reveal what it does or holds. → rename it; if no honest name comes, the design is murky.',
   '- Duplicated Code — the same logic shape appears in more than one hunk or file in the change. → extract the shared shape, call it from both.',
   '- Feature Envy — a method that reaches into another object\'s data more than its own. → move the method onto the data it envies.',
@@ -84,12 +86,11 @@ const FINDING_FIELDS = {
   lineStart: { type: 'integer' },
   lineEnd: { type: 'integer' },
   description: { type: 'string', description: 'one line' },
-  hard: { type: 'boolean', description: 'Standards: documented-standard breach (baseline smells never). Spec: always false here — step-6 classification settles it.' },
   repoWide: { type: 'boolean' },
   repoWideEvidence: { type: 'string', description: 'the grep plus both counts, or ""' },
-  citedSource: { type: 'string', description: 'the standard rule (file + rule) or the spec line, with its decision ID where it has one' },
+  citedSource: { type: 'string', description: 'the standard rule (file + rule) or named smell, or the spec line — with its decision ID where it has one' },
   dedup: { enum: ['none', 'already-ticketed', 'instance-of-open', 'possibly-duplicates', 'already-adjudicated'] },
-  dedupRef: { type: 'string', description: 'ticket #N or the prior verdict; "" when dedup=none' },
+  dedupRef: { type: 'string', description: 'ticket #N or the prior outcome; "" when dedup=none' },
 }
 const FINDINGS_SCHEMA = {
   type: 'object', required: ['findings'],
@@ -135,6 +136,14 @@ const FIX_VERDICTS_SCHEMA = {
   properties: { verdicts: { type: 'array', items: { type: 'object', required: Object.keys(FIX_VERDICT_FIELDS), properties: FIX_VERDICT_FIELDS } } },
 }
 
+const PAIR_SCHEMA = {
+  type: 'object', required: ['resolution', 'reason'],
+  properties: {
+    resolution: { enum: ['agreeing', 'competing'], description: 'agreeing = both fixes can land (compatible or identical in effect); competing = they cannot both land' },
+    reason: { type: 'string' },
+  },
+}
+
 const PARTITION_SCHEMA = {
   type: 'object', required: ['groups', 'requirements'],
   properties: {
@@ -173,8 +182,35 @@ const APPLY_SCHEMA = {
   type: 'object', required: ['applied', 'demoted', 'testSummary'],
   properties: {
     applied: { type: 'array', items: { type: 'object', required: ['id', 'sha'], properties: { id: { type: 'string' }, sha: { type: 'string' } } } },
-    demoted: { type: 'array', items: { type: 'object', required: ['id', 'reason'], properties: { id: { type: 'string' }, reason: { type: 'string' } } } },
+    demoted: {
+      type: 'array',
+      items: {
+        type: 'object', required: ['id', 'reason', 'kind'],
+        properties: {
+          id: { type: 'string' },
+          reason: { type: 'string' },
+          kind: { enum: ['preconditions', 'test-failure', 'other'], description: 'preconditions → the finding auto-tickets instead; test-failure/other → it escalates as no-working-fix' },
+        },
+      },
+    },
     testSummary: { type: 'string' },
+  },
+}
+
+const TICKET_SCHEMA = {
+  type: 'object', required: ['tickets'],
+  properties: {
+    tickets: {
+      type: 'array',
+      items: {
+        type: 'object', required: ['ref', 'title', 'findingIds'],
+        properties: {
+          ref: { type: 'string', description: 'the created ticket\'s ref, e.g. #57' },
+          title: { type: 'string' },
+          findingIds: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
   },
 }
 
@@ -205,7 +241,7 @@ function standardsReviewerPrompt(g) {
         STANDARDS_SOURCES.map(s => '- ' + s.path + ' — binds ' + s.scope).join('\n')
       : 'This repo documents no coding standards — the smell baseline below is the only Standards source this round.',
     SMELL_BASELINE,
-    'Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls — documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep for it outside the diff and flag the finding repo-wide only with the grep and both counts attached — instances inside the diff, instances outside it. A pattern with zero instances outside the diff is this change\'s own duplication, not a repo pattern. Skip anything tooling enforces. Under 400 words.',
+    'Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk — a smell is a labelled hypothesis for the validators, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep for it outside the diff and flag the finding repo-wide only with the grep and both counts attached — instances inside the diff, instances outside it. A pattern with zero instances outside the diff is this change\'s own duplication, not a repo pattern. Skip anything tooling enforces. Under 400 words.',
     'Your final text IS the report.',
   ])
 }
@@ -214,7 +250,7 @@ function sweeperPrompt() {
   return j([
     'You are the cross-cutting sweeper on the Standards axis of a partitioned review. Chunk reviewers each see one group; four smells span groups by nature, and only you can see them: Duplicated Code, Repeated Switches, Shotgun Surgery, Divergent Change.',
     COMMON,
-    'Read the whole diff at low resolution — file list and hunk headers, reading closer only where something looks suspicious. Hunt ONLY those four smells. Report each hit: name the smell, quote the hunks involved. Every hit is a judgement call. Under 300 words.',
+    'Read the whole diff at low resolution — file list and hunk headers, reading closer only where something looks suspicious. Hunt ONLY those four smells. Report each hit: name the smell, quote the hunks involved. Every hit is a hypothesis for the validators. Under 300 words.',
     'Your final text IS the report.',
   ])
 }
@@ -258,17 +294,13 @@ function labelPrompt(prefix, axisName, reports) {
     'Reviewer reports:',
     reports.map((r, i) => '--- report ' + (i + 1) + ' ---\n' + r).join('\n'),
     WIDE ? 'Reports overlap (chunk reviewers plus a cross-cutting sweeper) — dedup across report boundaries: one finding per underlying defect.' : null,
-    'Each finding carries: file + lineStart/lineEnd anchoring it, a one-line description, the hard flag (' +
-      (prefix === 'STD'
-        ? 'only a documented-standard breach can be hard — baseline smells never'
-        : 'always false on this axis — the finding validator\'s classification settles hardness') +
-      '), the repo-wide flag where a reviewer raised it (carry its grep evidence), and the cited source.',
+    'Each finding carries: file + lineStart/lineEnd anchoring it, a one-line description, the repo-wide flag where a reviewer raised it (carry its grep evidence), and the cited source (the documented rule or named smell, or the spec line).',
     'Dedup against the open review-finding tickets below. Match conservatively — a standalone cleanup ticket matches at the rule/pattern level; a spec-child ticket matches only same file + same rule:',
     JSON.stringify(OPEN_REVIEW_TICKETS),
     '- Subject predates this diff (visible in context, not introduced by the change) and matches an open ticket → dedup=already-ticketed, dedupRef=#N.',
-    '- Introduced by this diff but matches a ticketed pattern → dedup=instance-of-open, dedupRef=#N (it stays in the queue — new instances of a known pattern are new debt).',
-    '- Uncertain match → dedup=possibly-duplicates, dedupRef=#N (stays in the queue). A visible duplicate is recoverable; a silent suppression is not.',
-    'Dedup against prior review rounds — every finding adjudicated in one of these summary comments (fixed, ticketed, parked as later, skipped, or refuted by a validator) is already decided → dedup=already-adjudicated, dedupRef=the prior verdict:',
+    '- Introduced by this diff but matches a ticketed pattern → dedup=instance-of-open, dedupRef=#N (it stays in the pipeline — new instances of a known pattern are new debt).',
+    '- Uncertain match → dedup=possibly-duplicates, dedupRef=#N (stays in the pipeline). A visible duplicate is recoverable; a silent suppression is not.',
+    'Dedup against prior review rounds — every finding adjudicated in one of these summary comments (auto-applied, auto-ticketed, answered by a verdict, refuted by a validator, reverted, or left as-is) is already decided → dedup=already-adjudicated, dedupRef=the prior outcome:',
     JSON.stringify(PRIOR_ROUND_SUMMARIES),
   ])
 }
@@ -279,7 +311,7 @@ function findingValidatorPrompt(axisName, findings) {
     COMMON,
     AXIS_INPUTS,
     'Findings to validate (axis: ' + axisName + '):',
-    JSON.stringify(findings.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, hard: f.hard, repoWide: f.repoWide, citedSource: f.citedSource }))),
+    JSON.stringify(findings.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, repoWide: f.repoWide, citedSource: f.citedSource }))),
     'Per finding, answer one question: is the finding real? Read the cited source and the actual hunk — does the standard rule or spec line say what the reviewer claims, does the code actually breach it, and does the claimed harm survive what the compiler and tooling already guarantee? verdict=finding-refuted (with the reason) or finding-validated.',
     axisName === 'Spec'
       ? 'Also classify each finding: code-diverges — the spec is unambiguous, the code does not match, the fix is mechanical — or spec-suspect — the divergence exposes an assumption baked into the spec that the code may contradict deliberately; the SPEC may be wrong. Before choosing, read the commit messages and any tests touching the diverging code: evidence of a deliberate deviation → spec-suspect. Any doubt → spec-suspect — a false spec-suspect costs one human glance; a false code-diverges silently rewrites behaviour.'
@@ -296,9 +328,10 @@ function proposerPrompt(axisName, survivors) {
     COMMON,
     AXIS_INPUTS,
     'Validated findings, each with its validator\'s reasoning:',
-    JSON.stringify(survivors.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, validatorReasoning: f.findingReason }))),
-    'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits — a candidate for the batched fix subagent) or needs-a-session (a fresh context window\'s worth of work). Keep each proposal under 100 words.',
+    JSON.stringify(survivors.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, validatorReasoning: f.findingReason }))),
+    'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits — a candidate for the serial fix agent) or needs-a-session (a fresh context window\'s worth of work). Keep each proposal under 100 words.',
     axisName === 'Standards' ? 'For baseline smells, the smell\'s generic how-to-fix is the starting point — your job is grounding it in the actual hunk.' : null,
+    axisName === 'Spec' ? 'A spec-suspect finding gets a fix sketch per plausible reading where that is cheap — the user\'s answer will pick one.' : null,
   ])
 }
 
@@ -315,17 +348,44 @@ function fixValidatorPrompt(axisName, items) {
   ])
 }
 
+function pairPrompt(a, b) {
+  return j([
+    'Two findings from different axes of a review anchor to the same code — usually one defect wearing two labels — and each carries a fix proposal that survived adversarial validation. Decide whether the two fixes AGREE (compatible or identical in effect — both can land, or one subsumes the other) or COMPETE (they cannot both land; they pull the code different ways).',
+    COMMON,
+    AXIS_INPUTS,
+    'The pair:',
+    JSON.stringify([a, b].map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, proposal: f.proposal, sketch: f.sketch }))),
+  ])
+}
+
 function fixAgentPrompt(batch) {
   return j([
-    'You are the serial fix agent — the final stage of a review pipeline, working alone in the MAIN checkout. Apply the batch below IN ORDER, one commit per finding ID, message format: review: <ID> — <one-liner>.',
+    'You are the serial fix agent of a review pipeline — working alone in the MAIN checkout. Apply the batch below IN ORDER, one commit per finding ID, message format: review: <ID> — <one-liner>. An agreeing cross-axis pair (pairWith set on both members) applies as ONE commit covering both IDs — review: <ID>+<ID> — <one-liner>: when you reach the first member, apply both together and skip the partner when its turn comes.',
     'FIRST ACT — re-derive both preconditions yourself; never trust values threaded through this prompt:',
-    '- git status --porcelain → if the tree is dirty, apply NOTHING: demote every finding with reason "demoted: dirty tree". Never commit around a user\'s uncommitted work.',
-    '- git rev-parse --abbrev-ref HEAD → if HEAD is the repo\'s default branch and no user OK is quoted below, apply NOTHING: demote everything with reason "demoted: on default branch without OK".',
-    '- If a precondition cannot be verified at all, demote with reason "demoted: couldn\'t verify preconditions" — the distinct wording matters; only that one is a bug to chase.',
+    '- git status --porcelain → if the tree is dirty, apply NOTHING: demote every finding, kind=preconditions, reason "demoted: dirty tree". Never commit around a user\'s uncommitted work.',
+    '- git rev-parse --abbrev-ref HEAD → if HEAD is the repo\'s default branch and no user OK is quoted below, apply NOTHING: demote everything, kind=preconditions, reason "demoted: on default branch without OK".',
+    '- If a precondition cannot be verified at all, demote with kind=preconditions, reason "demoted: couldn\'t verify preconditions" — the distinct wording matters; only that one is a bug to chase.',
     DEFAULT_BRANCH_OK ? 'User\'s default-branch OK, verbatim: ' + JSON.stringify(DEFAULT_BRANCH_OK) : 'The user gave NO default-branch OK.',
-    'Anchor each edit by the proposal\'s quoted snippet, never by line number. After the whole batch: run the full test suite once; revert any finding-commit that breaks it and demote that finding with the failure attached.',
+    'Anchor each edit by the proposal\'s quoted snippet, never by line number. A finding whose staleAfter lists earlier IDs: those fixes may have invalidated this proposal\'s premise or wording — re-ground it against the code as it now stands before applying; if it no longer holds after those fixes, demote it, kind=other, saying why.',
+    'After the whole batch: run the full test suite once; revert any finding-commit that breaks it and demote that finding, kind=test-failure, with the failure attached.',
     'Batch:',
-    JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, proposal: f.proposal, sketch: f.sketch }))),
+    JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, proposal: f.proposal, sketch: f.sketch, pairWith: f.pairWith || null, dependsOn: f.dependsOn || [], staleAfter: f.staleAfter || [] }))),
+  ])
+}
+
+function ticketAgentPrompt(batch) {
+  return j([
+    'You are the auto-ticket agent of a review pipeline — pure tracker mechanics, no code edits. Publish the validated findings below as tickets; their fixes are session-sized, so each ticket is work for a fresh agent session.',
+    'Tracker operations:',
+    TICKET_MECHANICS,
+    SPEC_ISSUE_REF
+      ? 'Make each ticket a child of spec issue ' + SPEC_ISSUE_REF + ', labels: impl + ready-for-agent + review-finding — the ship frontier picks these up with no extra wiring.'
+      : 'No tracker spec issue — publish standalone tickets, labels: ready-for-agent + review-finding.',
+    'Cluster by file: findings touching the same file(s) become ONE ticket while the combined work still fits a single fresh session; past that cap, split into independent tickets with NO blocking edges — file overlap is not a blocker.',
+    'Each ticket body: the findings, why they matter (cited source), the validated proposals, anchors by file + short quoted snippet — never bare line numbers (they go stale).',
+    'Batch:',
+    JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, proposal: f.proposal, sketch: f.sketch, demotedReason: f.demotedReason || '' }))),
+    'Return every ticket you created with the finding IDs it covers.',
   ])
 }
 
@@ -358,7 +418,7 @@ async function validateFixes(axisName, items) {
 }
 
 // One axis, labeled findings → validated, proposed, fix-validated queue.
-// Shelved findings (already-ticketed / already-adjudicated) skip everything: no proposal, no validator, no triage turn.
+// Shelved findings (already-ticketed / already-adjudicated) skip everything: no proposal, no validator, no route.
 async function runAxis(axisName, labeled) {
   const shelved = labeled.filter(f => f.dedup === 'already-ticketed' || f.dedup === 'already-adjudicated')
   const inQueue = labeled.filter(f => f.dedup !== 'already-ticketed' && f.dedup !== 'already-adjudicated')
@@ -370,7 +430,6 @@ async function runAxis(axisName, labeled) {
     f.findingVerdict = v ? v.verdict : 'finding-validated'
     f.findingReason = v ? v.reason : 'validator result missing — kept unvalidated'
     f.specClassification = v ? v.specClassification : 'n/a'
-    if (axisName === 'Spec') f.hard = f.specClassification === 'code-diverges'
     if (v && v.repoWideRaised) { f.repoWide = true; f.repoWideEvidence = v.repoWideEvidence }
   }
   const survivors = inQueue.filter(f => f.findingVerdict === 'finding-validated')
@@ -391,7 +450,7 @@ async function runAxis(axisName, labeled) {
       const v = fvs.get(f.id)
       f.fixVerdict = v ? v.verdict : 'needs-human'
       f.fixReason = v ? v.reason : 'fix-validator result missing'
-      // This stage has the last word on repo-wide — the auto-apply gate and triage read it from here.
+      // This stage has the last word on repo-wide — the routing step reads it from here.
       if (v) {
         f.repoWide = v.repoWide && v.instancesOutsideDiff > 0
         f.instancesInDiff = v.instancesInDiff
@@ -459,51 +518,161 @@ if (WIDE) {
 
 // The two axes run as independent chains — a Standards finding needn't wait for
 // the Spec reviewer. Deliberate barriers live inside runAxis (the per-axis
-// proposer) and below (the single serial fix agent).
+// proposer) and below (routing, the serial fix agent, the ticket agent).
 const axes = await parallel([() => standardsAxis(groups), () => specAxis(groups, requirements)])
 const std = axes[0] || { survivors: [], refuted: [], shelved: [] }
 const spec = axes[1] || { skipped: !SPEC, survivors: [], refuted: [], shelved: [] }
 
 // Cross-axis pairs: same file, overlapping lines — usually one defect wearing two
-// labels, and their fixes can compete. Pairing bars both from auto-apply; triage
-// renders them together.
+// labels, and their fixes can compete. A pair routes as a unit.
+const pairList = []
 for (const s of std.survivors) {
   for (const p of spec.survivors) {
     if (s.file === p.file && s.lineStart <= p.lineEnd && p.lineStart <= s.lineEnd) {
       s.crossAxisPair = p.id
       p.crossAxisPair = s.id
+      pairList.push([s, p])
     }
   }
 }
 
-const all = std.survivors.concat(spec.survivors)
-const auto = all.filter(f =>
-  f.hard &&
-  f.fixVerdict === 'validated' &&
-  f.size === 'quick-fix' &&
-  !f.repoWide &&
-  f.specClassification !== 'spec-suspect' &&
-  !f.crossAxisPair &&
-  !(f.dependsOn || []).length &&
-  !(f.invalidatedBy || []).length)
-
-phase('Apply')
-let apply = { applied: [], demoted: [], testSummary: 'no auto-apply candidates' }
-if (auto.length) {
-  apply = (await agent(fixAgentPrompt(auto), { schema: APPLY_SCHEMA, label: 'fix:auto-apply' })) ||
-    { applied: [], demoted: auto.map(f => ({ id: f.id, reason: 'demoted: fix agent died' })), testSummary: '' }
+// Settle each pair: do the two validated fixes agree or compete?
+if (pairList.length) {
+  const settled = await parallel(pairList.map(([a, b]) => () =>
+    agent(pairPrompt(a, b), { schema: PAIR_SCHEMA, phase: 'Validate fixes', label: 'pair:' + a.id + '+' + b.id })))
+  pairList.forEach(([a, b], i) => {
+    const r = settled[i]
+    // A dead pair agent escalates the pair — conservative, and visible.
+    a.pairResolution = b.pairResolution = r ? r.resolution : 'competing'
+    a.pairReason = b.pairReason = r ? r.reason : 'pair-resolution agent died'
+  })
 }
-const byId = new Map(all.map(f => [f.id, f]))
-for (const a of apply.applied) { const f = byId.get(a.id); if (f) { f.status = 'applied'; f.sha = a.sha } }
-for (const d of apply.demoted) { const f = byId.get(d.id); if (f) { f.status = 'needs-your-call'; f.demotedReason = d.reason } }
-for (const f of all) if (!f.status) f.status = 'needs-your-call'
 
-// The full labeled queue — all the manager ever sees of this pipeline.
+// ── Route every survivor — plain script logic, no agent decides this ─────────
+
+const all = std.survivors.concat(spec.survivors)
+const byId = new Map(all.map(f => [f.id, f]))
+
+for (const f of all) {
+  if (f.specClassification === 'spec-suspect') { f.route = 'escalate'; f.questionClass = 'spec-unclear' }
+  else if (f.crossAxisPair && f.pairResolution === 'competing') { f.route = 'escalate'; f.questionClass = 'competing-fixes' }
+  else if (f.repoWide) { f.route = 'escalate'; f.questionClass = 'pervasive-pattern' }
+  else if (f.fixVerdict === 'needs-human') { f.route = 'escalate'; f.questionClass = 'genuine-trade-off' }
+  else if (f.fixVerdict === 'fix-rejected') { f.route = 'escalate'; f.questionClass = 'no-working-fix' }
+  else if (f.size === 'quick-fix') { f.route = 'auto-apply' }
+  else { f.route = 'auto-ticket' }
+}
+
+// Edges and pairs route together — escalation dominates, then ticket, then apply.
+// dependsOn and pair partners drag a finding up to the partner's tier; a proposal
+// invalidatedBy an escalated finding escalates with it, while one invalidatedBy an
+// auto-applying fix just gets re-grounded by the fix agent (staleAfter).
+const RANK = { 'auto-apply': 0, 'auto-ticket': 1, 'escalate': 2 }
+let routesSettled = false
+while (!routesSettled) {
+  routesSettled = true
+  for (const f of all) {
+    const partners = (f.dependsOn || []).concat(f.crossAxisPair ? [f.crossAxisPair] : [])
+    for (const id of partners) {
+      const t = byId.get(id)
+      if (t && RANK[t.route] > RANK[f.route]) {
+        f.route = t.route
+        if (t.route === 'escalate') { f.questionClass = 'joined'; f.joinedTo = t.id }
+        if (t.route === 'auto-ticket') f.ticketWith = t.id
+        routesSettled = false
+      }
+    }
+    for (const id of (f.invalidatedBy || [])) {
+      const t = byId.get(id)
+      if (!t) continue
+      if (t.route === 'escalate' && f.route !== 'escalate') { f.route = 'escalate'; f.questionClass = 'joined'; f.joinedTo = t.id; routesSettled = false }
+      if (t.route === 'auto-apply') f.staleAfter = (f.staleAfter || []).concat(t.id)
+    }
+  }
+}
+
+// Agreeing pairs that both auto-apply land as one commit covering both IDs.
+for (const [a, b] of pairList) {
+  if (a.pairResolution === 'agreeing' && a.route === 'auto-apply' && b.route === 'auto-apply') {
+    a.pairWith = b.id
+    b.pairWith = a.id
+  }
+}
+
+phase('Resolve')
+
+// Order the auto-apply batch by dependsOn edges — dependencies first; edges never block.
+const autoApply = all.filter(f => f.route === 'auto-apply')
+const applyIds = new Set(autoApply.map(f => f.id))
+const ordered = []
+const pending = autoApply.slice()
+while (pending.length) {
+  let i = pending.findIndex(f => (f.dependsOn || []).every(d => !applyIds.has(d) || ordered.some(o => o.id === d)))
+  if (i < 0) i = 0 // dependency cycle — apply in given order; edges order the batch, never block it
+  ordered.push(pending.splice(i, 1)[0])
+}
+
+let apply = { applied: [], demoted: [], testSummary: 'no auto-apply candidates' }
+if (ordered.length) {
+  apply = (await agent(fixAgentPrompt(ordered), { schema: APPLY_SCHEMA, label: 'fix:auto-apply', model: 'sonnet' })) ||
+    { applied: [], demoted: ordered.map(f => ({ id: f.id, reason: 'demoted: fix agent died', kind: 'preconditions' })), testSummary: '' }
+}
+for (const a of apply.applied) { const f = byId.get(a.id); if (f) { f.status = 'auto-applied'; f.sha = a.sha } }
+for (const d of apply.demoted) {
+  const f = byId.get(d.id)
+  if (!f) continue
+  f.demotedReason = d.reason
+  if (d.kind === 'preconditions') { f.route = 'auto-ticket' }
+  else { f.route = 'escalate'; f.questionClass = 'no-working-fix'; f.fixReason = d.reason }
+}
+
+// Auto-ticket — after the fix agent, so precondition demotions land in this batch.
+const autoTicket = all.filter(f => f.route === 'auto-ticket')
+let tickets = []
+if (autoTicket.length && TICKET_MECHANICS) {
+  const t = await agent(ticketAgentPrompt(autoTicket), { schema: TICKET_SCHEMA, label: 'ticket:auto', model: 'sonnet' })
+  tickets = (t && t.tickets) || []
+  const covered = new Set(tickets.flatMap(x => x.findingIds))
+  for (const f of autoTicket) {
+    if (covered.has(f.id)) {
+      f.status = 'auto-ticketed'
+      f.ticketRef = (tickets.find(x => x.findingIds.includes(f.id)) || {}).ref
+    } else {
+      // Not published — hand it back to the manager rather than lose it.
+      f.status = 'ticket-pending-manager'
+    }
+  }
+} else if (autoTicket.length) {
+  // No tracker mechanics were provided — the manager files these in step 12.
+  for (const f of autoTicket) f.status = 'ticket-pending-manager'
+}
+
+const escalations = all.filter(f => f.route === 'escalate')
+for (const f of escalations) f.status = 'escalated'
+
+log('Routing: ' + apply.applied.length + ' auto-applied, ' +
+  all.filter(f => f.status === 'auto-ticketed').length + ' auto-ticketed (' + tickets.length + ' tickets), ' +
+  escalations.length + ' escalated' +
+  (all.some(f => f.status === 'ticket-pending-manager') ? ', ' + all.filter(f => f.status === 'ticket-pending-manager').length + ' tickets pending the manager' : ''))
+
+// The full routed queue — all the manager ever sees of this pipeline.
 return {
   standards: { queue: std.survivors, refuted: std.refuted, shelved: std.shelved },
   spec: { skipped: !!spec.skipped, queue: spec.survivors, refuted: spec.refuted, shelved: spec.shelved },
   autoApplied: apply.applied,
-  demoted: apply.demoted,
+  autoTicketed: tickets,
+  ticketPendingManager: all.filter(f => f.status === 'ticket-pending-manager').map(f => f.id),
+  escalations: escalations.map(f => ({
+    id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd,
+    description: f.description, citedSource: f.citedSource,
+    questionClass: f.questionClass, joinedTo: f.joinedTo || null,
+    crossAxisPair: f.crossAxisPair || null, pairResolution: f.pairResolution || null, pairReason: f.pairReason || null,
+    specClassification: f.specClassification, proposal: f.proposal, sketch: f.sketch, size: f.size,
+    fixVerdict: f.fixVerdict, fixReason: f.fixReason,
+    repoWide: !!f.repoWide, repoWideEvidence: f.repoWideEvidence || '',
+    instancesInDiff: f.instancesInDiff || 0, instancesOutsideDiff: f.instancesOutsideDiff || 0,
+    demotedReason: f.demotedReason || null,
+  })),
   testSummary: apply.testSummary,
   partitioned: WIDE ? groups.map(g => g.name) : null,
 }

@@ -123,7 +123,7 @@ The **map** is a single issue labelled `wayfinder:map`, holding the Notes / Deci
 
 ## Local markdown implementation (fallback)
 
-Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/tareview`'s `later` cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
+Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/tareview`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
 
 ### Ticket operations
 

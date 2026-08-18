@@ -15,7 +15,7 @@ Ship turns an approved ticket DAG into committed, verified code, with verificati
 
 Unanswered **spec-axis** questions close a gate: the next wave does not launch until the user answers them, so wave 2 never builds on a misread of the spec. A wave with no such questions posts its ledger and rolls straight into the next — a clean run stays AFK end to end.
 
-This skill's verification pipeline was forked from `/tareview`'s and is tuned here for wave scale — the two docs may diverge, and `/tareview` stays unchanged and authoritative as the deliberate, standalone review (see *Relation to /tareview* at the end).
+This skill's verification pipeline was forked from `/tareview`'s and is tuned here for wave scale; `/tareview` has since adopted the same routing policy, so the two now differ in scope, not philosophy (see *Relation to /tareview* at the end). Keep the shared stages in sync when either changes.
 
 The user invokes with a **spec** (issue URL/number) whose implementation tickets already exist as its sub-issues. For the issue tracker, invoke `/issue-tracker`; for standards sources, `/conventions`.
 
@@ -191,8 +191,9 @@ Plain script logic over the schema fields — no agent decides this:
 
 ## Relation to /tareview
 
-This skill's pipeline is a fork of `/tareview`'s, re-tuned for the wave gate. Relative to that fork it deletes: the **Fowler smell baseline** on the per-wave standards axis (written rules only; the closing sweeper keeps its four composition smells, aimed at parallel-implementation drift); the **hard vs judgement flag** (with the baseline gone, every standards finding cites a written rule and every spec finding is classified `code-diverges`/`spec-suspect` — the routing needs nothing else); and the **disposition triage** — `fix`/`ticket`/`later`/`skip` verdicts on every surviving finding presumed a user who could hold the code in their head. Routing owns disposition here; the user owns intent.
+This skill's pipeline is a fork of `/tareview`'s, re-tuned for the wave gate — and `/tareview` has since back-adopted the fork's core: the same **escalate-intent / auto-resolve-code routing**, the same five question classes, the same auto-apply and auto-ticket agents, the same question mechanics. The remaining differences are scope, not philosophy:
+
+- **The smell baseline.** `/tareview`'s standards axis keeps the full Fowler smell baseline on top of documented rules — smells enter as hypotheses, survive adversarial validation, and then route like any other finding. This gate reviews written rules only; the closing sweeper keeps just its four composition smells, aimed at parallel-implementation drift.
+- **The run machinery.** Waves, the ledger, the spec-axis gate, and cross-session resumability belong to ship. `/tareview` is a standalone, single-session review of any diff since a fixed point — branch, PR, or work-in-progress, spec or no spec.
 
 (This skill replaced an earlier `/ship` that ran no-human-until-the-end: its lightweight wave review and "confident fixes" agent became the verification pipeline, its end-of-run handoff to `/tareview` became the closing pass, and its cross-skill ship ↔ review ↔ `/next` lap became review tickets rejoining the frontier in-run.)
-
-`/tareview` itself is unchanged — the deliberate, full-depth review with the human as disposition authority, still available standalone on any branch, PR, or diff.

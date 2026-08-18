@@ -42,7 +42,7 @@ A reviewer facing a diff that spans scopes collects the governing set per file a
 
 ## Where rules come from
 
-Written by hand any time — and grown by the review loop: `/tareview`'s `later` verdict parks a repo-wide pattern as a cleanup ticket whose task list includes **appending the rule to the governing `CONVENTIONS.md`** — the scope nearest the pattern, root when it's repo-wide. That is the loop's self-improvement path: a judgement call the review keeps rediscovering becomes a documented standard the next round enforces as a hard violation. `CONVENTIONS.md` is the only file review ever appends rules to.
+Written by hand any time — and grown by the review loop: when `/tareview` or `/ship` escalates a **pervasive pattern** and the user answers *adopt as rule*, the pattern parks as a standalone cleanup ticket whose task list includes **appending the rule to the governing `CONVENTIONS.md`** — the scope nearest the pattern, root when it's repo-wide. That is the loop's self-improvement path: a judgement call the review keeps rediscovering becomes a documented standard the next round enforces mechanically. `CONVENTIONS.md` is the only file review ever appends rules to.
 
 ## CLAUDE.md points, never duplicates
 
