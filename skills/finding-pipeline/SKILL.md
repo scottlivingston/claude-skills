@@ -11,7 +11,7 @@ Every review gate in the chain — code gates (`/ship`'s wave verification, `/di
 
 Stage order is enforced by script, never discipline: run the pipeline as one dynamic `Workflow` (the gate skill invoking this contract is your authorization), so a proposer can never see a finding its validator refuted.
 
-1. **Find.** Axis reviewers report findings. Each finding carries a per-run, axis-prefixed ID, a location anchor, a one-line description, and the **cited source** — the rule, spec line, decision, or resolution it holds the material against. A claim with no citable source is not a finding. Axes are never merged or reranked against each other.
+1. **Find.** Axis reviewers report findings. Each finding carries a per-run, axis-prefixed ID, a location anchor, a one-line description, and the **cited source** — the rule, spec line, decision, or resolution it holds the material against, carried as quoted text with its ID, never the ID alone (the cold-reader assembler at the end of the pipeline has only these fields to write from). A claim with no citable source is not a finding. Axes are never merged or reranked against each other.
 2. **Dedup — against the adjudication memory.** Match conservatively against every prior summary comment (see *The gate*) and any open finding tickets: already adjudicated → out, one line in the summary; a new instance of a known pattern → stays in; uncertain → stays in, marked. A visible duplicate is recoverable; a silent suppression isn't. The memory is what makes repeated gates converge — no finding is ever re-litigated.
 3. **Validate the finding — adversarially, before any fix exists.** Validation by the finding's author is theater, and validating a finding only *through* its fix conflates two questions. Fresh validators that did not author the findings are prompted to **refute the finding itself** — one validator per chunk of ~5 findings, chunks in parallel, each chunk riding its own validate → propose → validate-fix chain with no cross-chunk barrier. Verdict: `finding-refuted` (with reason — leaves the pipeline, recorded so dedup remembers) or `finding-validated`.
 4. **Propose a repair per survivor.** One proposer per chunk — chunk-mates share context, so overlapping repairs get drafted coherently. The smallest concrete repair, anchored by a short quoted snippet of what changes (never a bare line number — lines drift), sized `quick-fix` or `needs-a-session`. Where the finding admits more than one reading, a sketch per plausible reading — the user's answer picks one.
@@ -35,15 +35,23 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 
 **Open with the orientation summary** — the audit digest first, stated as *done*, not proposed: found → refuted → auto-applied (IDs + SHAs or edits) → auto-ticketed (#s). The user overrides any of it by free text (`revert W2-STD-7`) and the manager reverts that commit, edit, or ticket. Then the escalation count by question class — never the question blocks themselves.
 
+**Every block is written for a cold reader.** The user has not read the spec, the map, or the diff — every artifact in this chain is agent-written, and the question loop is often their first contact with the material. The test: someone who joined the project today must be able to pick an option from the block alone. Concretely:
+
+- **No bare internal IDs.** A decision ID, story number, or section name appears only *after* a clause saying what it is: "the decision that every dialog returns keyboard focus to its opener on close (D6)". The ID is for the record; the clause is for the reader. Same for locations — "the five admin-side dialogs" beats a crate path.
+- **Situation before question.** Open with one or two sentences: what part of the product this concerns and what the change wants there. Only then the question.
+- **No pipeline residue.** Validator notes, drafting history, and chunk mechanics never reach the block — a caveat a validator raised becomes part of an option's consequence or the recommendation, in the reader's terms.
+- **Options are outcomes.** Each option states what choosing it means for the product ("ship with the admin dialogs uncovered" / "add manual checklist items for them"), never pipeline actions alone.
+
 **One question per turn**, in the order later work most likely builds on. Per escalation, print its block — **domain language throughout: behaviors, cases, and consequences, never functions and line numbers** (anchors and excerpts arrive on request, via `explain`):
 
 ```
 ### <ID> — <question class> — <i> of <n>
+- **The situation:** <1–2 sentences of orientation, assuming nothing>
 - **The question:** <one line, in the domain's terms>
-- **What the source says:** <quoted line + its ID, or "the source is silent here">
+- **What the source says:** <what the cited line governs, then the quote — never a bare ID; or "the source is silent here">
 - **What the material does today:** <one line>
 - **Why it needs you:** <the gate skill's question class>
-- **Options:** <each option as a behavior choice, with its consequence and what it triggers>
+- **Options:** <each as an outcome, with its consequence and what it triggers>
 ```
 
 — then ask with `AskUserQuestion`, options phrased as the behavior choices, each description naming what the answer triggers. `explain` gets its answer, then the same ID is re-asked. Two escape hatches, honoured immediately: several verdicts batched as free text are taken as given; "stop" records every untouched ID as `unanswered` and goes to the wrap-up.
@@ -55,5 +63,5 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 - Every stage gets a `schema` — verdicts, classifications, flags, and edges come back as typed fields, never prose the manager interprets; the routing step depends on it.
 - **Fill, don't thread.** Nothing goes through `args` — it has arrived as a JSON *string*, turning interpolations into the literal `undefined` without failing loudly. Bake inputs into the script at fill time, prose as JSON string literals (double-quoted, `\n`-escaped), which no code span or apostrophe can terminate.
 - Chunks ride independent `pipeline` chains; the only deliberate barriers are the routing step, the serial fix agent, and the ledger post.
-- The pending-questions post is the workflow's final stage (durability before any answer, per *The gate*).
+- The pending-questions post is the workflow's final stage (durability before any answer, per *The gate*), authored by a **fresh assembler agent** handed only the findings' structured fields — never the spec, map, or diff. An agent that doesn't hold the context can't lean on it: anything it can't explain to a cold reader it must expand from the cited source text the finding carries. This is what enforces the cold-reader invariant structurally — which in turn means find and validate schemas must carry the source *text*, not just its ID.
 - **The fill may be delegated.** A gate's fill inputs are all tracker-sourced, so a fresh **fill agent** can read them, write the filled script to a file, and return the path plus a one-line manifest — the manager launches with `Workflow({scriptPath})` and its context never holds the fill. Under `/next auto` this is the rule, not an option.
