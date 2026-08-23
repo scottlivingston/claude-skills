@@ -93,7 +93,7 @@ Only after the full breakdown is on screen as message text, ask the user:
 - Is the decision routing right — each ticket citing the decisions it genuinely needs, and what should happen to any orphaned decision?
 - Should any tickets be merged or split further?
 
-If you use the AskUserQuestion tool for this, the breakdown MUST already have been printed as ordinary text in the same reply, before the tool call — the question dialog cannot display the breakdown, and the user cannot answer questions about a list they haven't seen. Never put the breakdown itself (or a summary standing in for it) inside the tool's question or option text.
+Asking follows `/hitl-questions`' AskUserQuestion mechanics — here that means the breakdown MUST already have been printed as ordinary text in the same reply, before any tool call; never inside the tool's question or option text.
 
 Iterate until the user approves the breakdown.
 

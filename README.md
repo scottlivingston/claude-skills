@@ -115,6 +115,7 @@ Used by the chain, and useful on their own:
 - **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
 - **diff-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
+- **hitl-questions** — the presentation contract for every question put to the human: facts vs decisions, cold-reader blocks, domain language, recommendations, escape hatches
 
 ## Install
 

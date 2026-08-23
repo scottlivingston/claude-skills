@@ -35,14 +35,9 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 
 **Open with the orientation summary** — the audit digest first, stated as *done*, not proposed: found → refuted → auto-applied (IDs + SHAs or edits) → auto-ticketed (#s). The user overrides any of it by free text (`revert W2-STD-7`) and the manager reverts that commit, edit, or ticket. Then the escalation count by question class — never the question blocks themselves.
 
-**Every block is written for a cold reader.** The user has not read the spec, the map, or the diff — every artifact in this chain is agent-written, and the question loop is often their first contact with the material. The test: someone who joined the project today must be able to pick an option from the block alone. Concretely:
+**Every block obeys the presentation contract in `/hitl-questions`** — the cold-reader rules, the domain language, the recommendation, the `AskUserQuestion` mechanics, the escape hatches. Every artifact in this chain is agent-written and the question loop is often the user's first contact with the material, so the contract's cold-reader test bites hardest here: someone who joined the project today must be able to pick an option from the block alone.
 
-- **No bare internal IDs.** A decision ID, story number, or section name appears only *after* a clause saying what it is: "the decision that every dialog returns keyboard focus to its opener on close (D6)". The ID is for the record; the clause is for the reader. Same for locations — "the five admin-side dialogs" beats a crate path.
-- **Situation before question.** Open with one or two sentences: what part of the product this concerns and what the change wants there. Only then the question.
-- **No pipeline residue.** Validator notes, drafting history, and chunk mechanics never reach the block — a caveat a validator raised becomes part of an option's consequence or the recommendation, in the reader's terms.
-- **Options are outcomes.** Each option states what choosing it means for the product ("ship with the admin dialogs uncovered" / "add manual checklist items for them"), never pipeline actions alone.
-
-**One question per turn**, in the order later work most likely builds on. Per escalation, print its block — **domain language throughout: behaviors, cases, and consequences, never functions and line numbers** (anchors and excerpts arrive on request, via `explain`):
+**One question per turn**, in the order later work most likely builds on. Per escalation, print its block (anchors and excerpts arrive on request, via `explain`):
 
 ```
 ### <ID> — <question class> — <i> of <n>
@@ -52,9 +47,10 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 - **What the material does today:** <one line>
 - **Why it needs you:** <the gate skill's question class>
 - **Options:** <each as an outcome, with its consequence and what it triggers>
+- **Recommendation:** <the option you'd pick and the one-line why>
 ```
 
-— then ask with `AskUserQuestion`, options phrased as the behavior choices, each description naming what the answer triggers. `explain` gets its answer, then the same ID is re-asked. Two escape hatches, honoured immediately: several verdicts batched as free text are taken as given; "stop" records every untouched ID as `unanswered` and goes to the wrap-up.
+— then ask with `AskUserQuestion` per the contract. The contract's escape hatches bind here as: `explain` gets its answer, then the same ID is re-asked; batched verdicts are taken as given; "stop" records every untouched ID as `unanswered` and goes to the wrap-up.
 
 **Act on the collected answers after the loop, none mid-loop**: post the source amendments the verdicts chose, run one serial fix agent for repairs the answers unlocked (re-grounding each proposal against the current state by its quoted snippet), file the tickets called for, revert what the audit overrode. Then post the summary comment.
 

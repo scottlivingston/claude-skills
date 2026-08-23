@@ -54,6 +54,6 @@ The exception is a spec whose *destination* is wrong — the problem statement i
 ## Rules
 
 - **One invocation, one review.** Marking `spec-reviewed` and running `/tickets` never share an invocation (`/next auto` chains invocations; the boundary it respects is the gate, not the session).
-- **Defects speak the domain language** — capabilities and concepts, never file paths; `/domain-expansion` when a question lands on unfamiliar terrain. The one place paths are welcome is a stale-ground-truth finding, which is *about* the code: anchor it per `/code-anchors`.
+- **Defects speak per `/hitl-questions`** — the domain language, cold-reader blocks, recommendations included. The one place paths are welcome is a stale-ground-truth finding, which is *about* the code: anchor it per `/code-anchors`.
 - **Merits are the human's to reopen, never yours to re-litigate.** Review whether the spec is implementable, not whether its decisions were the right ones.
 - **Cheap by default.** The read, the grounding, and validation are agent work; the human is spent only on real defects, and only on drafted text. A clean spec costs one pass, an audit digest, and a one-line report — say so, mark, and stop. Cheap-by-default is what keeps this stage run rather than skipped, which matters most for the small specs that skipped the map entirely.

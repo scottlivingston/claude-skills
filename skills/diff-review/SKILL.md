@@ -199,7 +199,7 @@ Dumping every question block here defeats the loop below. Keep it to a handful o
 
 Walk the escalation queue **one question per turn**. A wall of blocks is what makes review feedback expensive; this loop is the skill's main ergonomic promise, so never collapse it into a batch dump on your own initiative.
 
-Order the queue: Spec questions before Standards questions; within each, the ones later work most likely builds on first. Findings that auto-resolved, were refuted, or were shelved by dedup are not in the queue at all. Per escalation, print its block — **domain language throughout; name behaviors, cases, and consequences, not functions and line numbers** (anchors and code excerpts arrive on request, via `explain`):
+Order the queue: Spec questions before Standards questions; within each, the ones later work most likely builds on first. Findings that auto-resolved, were refuted, or were shelved by dedup are not in the queue at all. Per escalation, print its block per `/hitl-questions` (anchors and code excerpts arrive on request, via `explain`):
 
 ```
 ### SPEC-4 — spec question — 2 of 3
@@ -208,9 +208,10 @@ Order the queue: Spec questions before Standards questions; within each, the one
 - **What the code does today:** <one line, behavior not implementation>
 - **Why it needs you:** spec unclear | competing fixes | genuine trade-off | no working fix | pervasive pattern
 - **Options:** <each option as a behavior choice, with its consequence and what it triggers — fix now, ticket, spec comment>
+- **Recommendation:** <the option you'd pick and the one-line why>
 ```
 
-— then ask with `AskUserQuestion`, options phrased as the *behavior* choices, each description naming what the answer triggers. Class-specific shapes:
+— then ask with `AskUserQuestion` per `/hitl-questions`. Class-specific shapes:
 
 - **Spec unclear** (`spec-suspect`) — the options are the plausible readings, plus "the code is right as written". The block carries a **draft spec comment** for the chosen reading — posted to the spec issue only on the user's verdict, so the spec accretes the answer and no later round re-asks it.
 - **Competing fixes** — one question for the pair: which behavior wins. The verdict settles both IDs; the losing fix is recorded rejected.
@@ -218,7 +219,7 @@ Order the queue: Spec questions before Standards questions; within each, the one
 - **No working fix** — options: ticket it for a fresh attempt with the failure attached, or leave it (recorded, with the reason).
 - **Pervasive pattern** — options: **adopt as rule** (a standalone ticket — never a spec child — labeled `review-finding` + `needs-triage`, carrying the pattern, the grep evidence, and a task to append the rule to the governing `CONVENTIONS.md` per `/conventions`, so future reviews enforce it as a documented standard instead of rediscovering it; a parking lot nothing works until the user picks it up — at which point it seeds a fresh effort, its own spec or map, never an appendix to this one), **fix everywhere** (a ticket covering all instances — a spec child when the spec is a tracker issue), or **leave as-is**.
 
-A finding routed **joined** — its fix waits on another escalation's answer — rides its target's block as one line of context, never its own turn; the target's verdict settles it too. `explain` arrives as free text: answer — with file/line anchors and code excerpts now that they're asked for — then re-ask the same ID before advancing. Never carry an unresolved ID past its turn. Two escape hatches, both honoured immediately: if the user answers several IDs at once, take the remaining verdicts as text; if they say stop, record every untouched ID as `unanswered` and go to the wrap-up.
+A finding routed **joined** — its fix waits on another escalation's answer — rides its target's block as one line of context, never its own turn; the target's verdict settles it too. Never carry an unresolved ID past its turn. `/hitl-questions`' escape hatches bind here as: `explain` answered then the same ID re-asked; batched verdicts taken as given; "stop" recording every untouched ID as `unanswered` before the wrap-up.
 
 ### 12. Act on the collected answers
 

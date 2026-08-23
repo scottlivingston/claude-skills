@@ -158,7 +158,7 @@ Plain script logic over the schema fields — no agent decides this:
 
 **Open with the orientation summary** — the audit digest first: findings raised → refuted → auto-applied (IDs + SHAs) → auto-ticketed (ticket #s), stated as *done*, not proposed; the user can override any of it by free text (`revert W2-STD-7`) and the manager `git revert`s that finding's commit or closes the ticket. Then the escalation count by question class, and — when the standards axis was idle — one line saying so: *"No documented standards; the standards axis checked nothing this wave. It activates when rules are written."* Never dump the question blocks here.
 
-**One question per turn.** Order: spec questions before standards questions; within each, the ones later work most likely builds on first. Per escalation, print its block — **domain language throughout; name behaviors, cases, and consequences, not functions and line numbers** (anchors and code excerpts arrive on request, via `explain`):
+**One question per turn.** Order: spec questions before standards questions; within each, the ones later work most likely builds on first. Per escalation, print its block per `/hitl-questions` (anchors and code excerpts arrive on request, via `explain`):
 
 ```
 ### W2-SPEC-9 — spec question — 2 of 3
@@ -167,9 +167,10 @@ Plain script logic over the schema fields — no agent decides this:
 - **What the code does today:** <one line, behavior not implementation>
 - **Why it needs you:** spec unclear | competing fixes | genuine trade-off | no working fix | pervasive pattern
 - **Options:** <each option as a behavior choice, with its consequence and what it triggers — fix now, ticket, spec comment>
+- **Recommendation:** <the option you'd pick and the one-line why>
 ```
 
-— then ask with `AskUserQuestion`, options phrased as the *behavior* choices, each description naming what the answer triggers. Class-specific shapes:
+— then ask with `AskUserQuestion` per `/hitl-questions`. Class-specific shapes:
 
 - **Spec unclear** (`spec-suspect`) — the options are the plausible readings, plus "the code is right as written". The block carries a **draft spec comment** for the chosen reading — posted to the spec issue only on the user's verdict, so the spec accretes the answer and no later wave re-asks it.
 - **Competing fixes** — one question for the pair: which behavior wins. The verdict settles both IDs; the losing fix is recorded rejected.
@@ -177,7 +178,7 @@ Plain script logic over the schema fields — no agent decides this:
 - **No working fix** — options: ticket it for a fresh attempt with the failure attached, or leave it (recorded, with the reason).
 - **Pervasive pattern** — options: **adopt as rule** (a standalone ticket — not a spec child — labeled `review-finding` + `needs-triage`, carrying the pattern, the grep evidence, and a task to append the rule to the governing `CONVENTIONS.md`; a parking lot nothing works until the user picks it up), **fix everywhere** (spec-child ticket covering all instances), or **leave as-is**.
 
-`explain` arrives as free text: answer — with file/line anchors and code excerpts now that they're asked for — then re-ask the same ID. If the user batches several answers or says stop, honour it immediately (unanswered IDs → recorded `unanswered`, re-raised at the closing pass).
+`/hitl-questions`' escape hatches bind here as: `explain` answered then the same ID re-asked; batched answers taken as given; "stop" recording untouched IDs as `unanswered`, re-raised at the closing pass.
 
 **Act on the collected answers** — none of them mid-loop: post the chosen spec comments; run one serial fix agent (Sonnet, same discipline as auto-apply: re-ground each proposal against current `HEAD` by quoted snippet, one commit per ID, full suite at the end, breakers reverted and re-escalated) for fixes the answers unlocked; file the tickets the answers called for; `git revert` anything the audit overrode. Post the wave summary recording every outcome — completeness there is what makes the run converge.
 
