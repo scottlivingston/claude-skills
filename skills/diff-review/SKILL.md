@@ -10,7 +10,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
 **The policy — shared with `/ship`: escalate questions about intent, auto-resolve questions about code.** The user is the intent authority, not a code reviewer — the review must never require them to hold the code in their head. Every validated finding with an uncontested fix resolves itself: applied and committed by the serial fix agent, or published as a ticket the rest of the workflow (`/ship`, `/next`) picks up. What reaches the user is exactly the set of questions the pipeline *cannot* answer, because they are questions about what was meant:
 
-- **Spec unclear** (`spec-suspect`) — the spec is silent or ambiguous on a case the code had to decide, or the spec itself may be wrong.
+- **Spec unclear** (`spec-suspect`) — the spec is ambiguous, self-contradicting, or possibly wrong on a case the code had to decide, and the user's answer would change what gets built. (Silence alone is not a question: silence plus one defensible choice resolves itself.)
 - **Competing fixes** — both axes found the same defect and their validated fixes are incompatible.
 - **Genuine trade-off** — a fix validator concluded the choice is a judgement only the owner can make (`needs-human`).
 - **No working fix** — the finding is real but every proposed fix was rejected or broke the suite (`fix-rejected`).
@@ -82,7 +82,7 @@ Hand the stages everything they need — the workflow has no conversation contex
 - the diff command and the commit list with full messages,
 - the spec contents (or "no spec"),
 - the standards sources with the directory scope each binds (the smell baseline itself is embedded in the template — step 3's text and the template's `SMELL_BASELINE` const are the same words, kept in sync),
-- the dedup inputs for step 5 — fetch the open `review-finding` tickets and the spec issue's prior-round summary comments **before** launching,
+- the dedup inputs for step 5 — fetch the open `review-finding` tickets and the spec issue's prior-round summary comments **before** launching (the summaries also feed the validators as the binding answer record),
 - the auto-ticket agent's tracker inputs — the spec issue's ref when the spec is a tracker issue, and the tracker's create/label/parent operations per `/issue-tracker`,
 - the user's default-branch OK from step 1, when given (the fix agent re-derives the tree and branch state itself — step 9).
 
@@ -106,7 +106,7 @@ Partitioning silently breaks two whole-diff properties; the script restores each
 
 - The diff command (path-scoped, when partitioned) and commit list.
 - The list of standards-source files you found in step 3 — with the directory scope each one binds, and the instruction that a scoped `CONVENTIONS.md` governs only files under its directory, nearest scope winning — **plus the smell baseline from step 3** pasted in full; the reviewer has no other access to the baseline.
-- The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk — a smell is a labelled hypothesis for the validators, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep for it outside the diff and flag the finding `repo-wide` only with the grep and both counts attached — instances inside the diff, instances outside it. A pattern with zero instances outside the diff is this change's own duplication, not a repo pattern. Skip anything tooling enforces. Under 400 words."
+- The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk — a smell is a labelled hypothesis for the validators, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep for it outside the diff and flag the finding `repo-wide` only with the grep and both counts attached — instances inside the diff, instances outside it, counting only instances the rule actually governs (apply the rule's own scope and any grandfather clause). A pattern with zero governed instances outside the diff is this change's own duplication, not a repo pattern. Skip anything tooling enforces. Under 400 words."
 
 **Spec reviewer prompt** — include:
 
@@ -130,7 +130,7 @@ Each finding carries: its ID, a `file:line` location, a one-line description, th
 - A finding this diff **introduces** that matches a ticketed pattern → mark **instance of open #N** and keep it in — new instances of a known pattern are new debt, and fixing your own new instances doesn't reduce repo consistency.
 - An uncertain match → mark **possibly duplicates #N** and keep it in. A visible duplicate is recoverable; a silent suppression isn't.
 
-**Dedup against prior rounds.** Also match against the spec issue's review **summary comments**, likewise fetched pre-launch (step 12 posts one per round): every finding adjudicated in an earlier round — auto-applied, auto-ticketed, answered by a verdict, refuted by a validator, reverted, or left as-is — is already decided. A finding matching one → mark **already adjudicated (<outcome>)**: no proposal, no validator, one line in the wrap-up. This memory is what makes the ship ↔ review loop converge — no finding is ever re-litigated.
+**Dedup against prior rounds.** Also match against the spec issue's review **summary comments**, likewise fetched pre-launch (step 12 posts one per round): every finding adjudicated in an earlier round — auto-applied, auto-ticketed, answered by a verdict, refuted by a validator, reverted, or left as-is — is already decided. A finding matching one → mark **already adjudicated (<outcome>)**: no proposal, no validator, one line in the wrap-up. This memory is what makes the ship ↔ review loop converge — no finding is ever re-litigated. The memory cuts a second way: an answered verdict in a prior summary, and any spec comment a verdict posted, is **binding spec text** — a new finding one directly governs stays in but classifies as divergence from the answer (step 6), never as a new question.
 
 ### 6. Validate each finding — adversarially, before any fix exists
 
@@ -140,7 +140,7 @@ Each validator gets the finding, the diff command, the commit list **with full m
 
 Two more calls belong to this pass, because they are properties of the finding, not of any fix:
 
-- **Spec classification** (Spec findings only): label the finding **`code-diverges`** — the spec is unambiguous, the code doesn't match, the fix is mechanical — or **`spec-suspect`** — the divergence exposes an assumption baked into the spec that the code may contradict deliberately; the *spec* may be wrong. Before choosing, read the commit messages and any tests touching the diverging code: evidence of a deliberate deviation → `spec-suspect`. **Any doubt → `spec-suspect`** — a false spec-suspect costs one human glance; a false code-diverges silently rewrites behaviour.
+- **Spec classification** (Spec findings only): label the finding **`code-diverges`** or **`spec-suspect`**, decided by one test: **would the user's answer change the fix?** `spec-suspect` only when two or more defensible readings call for different behaviour, the record shows a deliberate deviation (read the commit messages and any tests touching the diverging code), or the spec's own statements collide. Spec silence alone is not doubt: a defect with one defensible minimal fix — a visible bug, a wrong comment, dead code the diff itself added — is `code-diverges` even where the spec never speaks. Answered verdicts from prior rounds and the spec comments they posted are binding spec text: a finding one directly governs is `code-diverges` from that answer, never a re-ask. Where real behavioural doubt survives the test → `spec-suspect` — a false spec-suspect costs one human glance; a false code-diverges silently rewrites behaviour.
 - A validator may raise the **`repo-wide`** flag on a Standards finding the reviewer missed — carrying the same grep-and-counts evidence the reviewer owes (step 4).
 
 Verdict per finding:
@@ -152,7 +152,7 @@ Verdict per finding:
 
 **One proposer agent per chunk** — its chunk's **surviving** findings share context, so fixes that overlap get drafted coherently, and per-chunk keeps agent count sane without collapsing a busy axis into one long generation. Give each proposer its survivors — with the validators' reasoning attached — the diff command, and this brief:
 
-"For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Also size each fix: `quick-fix` (a few edits — a candidate for the serial fix agent) or `needs-a-session` (a fresh context window's worth of work). Keep each proposal under 100 words."
+"For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Also size each fix: `quick-fix` (a few edits — a candidate for the serial fix agent) or `needs-a-session` (a fresh context window's worth of work), and mark `doc-only` where the entire fix lives in comments, docs, or headers — no executable code. Keep each proposal under 100 words."
 
 For baseline smells, the smell's generic "→ how to fix" is the starting point — the proposer's job is grounding it in the actual hunk. A `spec-suspect` finding gets a fix sketch *per plausible reading* where that's cheap — the user's answer picks one.
 
@@ -165,7 +165,8 @@ Each validator gets its chunk's findings (with their step 6 validation reasoning
 1. **Does the fix actually resolve the finding?**
 2. **Is it proportionate?** The minimal change that clears the finding — no speculative rewrites.
 3. **Cross-axis check:** a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for.
-4. **Re-settle `repo-wide`:** confirm or clear the flag, carrying the counts as schema fields (`instancesInDiff`, `instancesOutsideDiff`). The flag holds only when `instancesOutsideDiff > 0` — a "pattern" whose every instance sits inside the diff is this change's own duplication, fixable here. This stage has the last word: the routing step reads the flag from here, not from the reviewer.
+4. **Re-settle `repo-wide`:** confirm or clear the flag, carrying the counts as schema fields (`instancesInDiff`, `instancesOutsideDiff`) — counting **only instances the cited rule actually governs**: apply the rule's own scope and any grandfather clause, so a rule binding only new-and-edited files never counts untouched ones. The flag holds only when governed `instancesOutsideDiff > 0` — a "pattern" whose every governed instance sits inside the diff is this change's own duplication, fixable here. This stage has the last word: the routing step reads the flag from here, not from the reviewer.
+5. **Confirm or clear `doc-only`** — final word: true only when the fix touches no executable code. A validated `doc-only` quick-fix on a `spec-suspect` finding auto-applies instead of escalating (step 9), so confirm it only when the code's current behaviour is right and only the record about it is wrong.
 
 Verdict per proposal: **`validated`**, **`fix-rejected`** (with the reason), or **`needs-human`** (a genuine trade-off the user must call). The finding's reality is not on the table here — step 6 settled it. A fix validator that still doubts the premise records that doubt inside its `fix-rejected` reason; the finding keeps its validated status and escalates, where the user makes the call.
 
@@ -177,7 +178,7 @@ The proposal schema also carries two edge fields the validator fills instead of 
 
 Plain script logic over the schema fields — no agent decides this:
 
-1. **Escalate** — route to the user — when **any** hold: `spec-suspect`; `needs-human`; `fix-rejected`; member of a **competing** cross-axis pair; `repo-wide` (`instancesOutsideDiff > 0`). Each escalation gets a question class from the policy list and joins the queue.
+1. **Escalate** — route to the user — when **any** hold: `spec-suspect` — *unless* its fix came back `validated` + `quick-fix` + `doc-only`, which auto-applies instead (behaviour already deemed right; only the record was wrong); `needs-human`; `fix-rejected`; member of a **competing** cross-axis pair; `repo-wide` (governed `instancesOutsideDiff > 0`). Each escalation gets a question class from the policy list and joins the queue.
 2. Otherwise **auto-apply** when: `validated` and `quick-fix`. Agreeing cross-axis pairs auto-apply as a unit — one commit covering both IDs. `dependsOn` edges among auto-applying findings order the batch; they never block it.
 3. Otherwise **auto-ticket**: `validated` and `needs-a-session`.
 4. **Edges and pairs route together**: a finding whose `dependsOn` target auto-tickets joins that ticket; whose target escalated, joins the escalation as context (its fix waits on the answer). A proposal `invalidatedBy` a finding that auto-applied gets its stale premise re-grounded by the fix agent before applying; `invalidatedBy` an escalated finding → escalate together. A pair routes at its most conservative member: either escalates → both do; either tickets → one shared ticket.

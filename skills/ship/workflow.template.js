@@ -39,6 +39,7 @@ const TRACKER_READ_OP = FILL      // one-liner: how an agent fetches a spec deci
 const STANDARDS_SOURCES = FILL    // [{ path: "CONVENTIONS.md", scope: "repo root" }, ...] — [] omits the standards axis entirely ("standards axis idle")
 const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open review-finding tickets: [{ ref, title, body }] — [] if none
 const PRIOR_LEDGER_SUMMARIES = FILL // pre-fetched prior wave/closing summary comments (adjudication memory): ["..."] — [] if none
+const PRIOR_ANSWERS = FILL        // pre-fetched answer record — prior w<n>-answer comments and verdict-posted spec comments, verbatim: ["..."] — [] if none; binding spec text for classification
 const TRACKER_MECHANICS = FILL    // prose: the tracker's claim/unclaim/close/comment/create/label/parent operations per /issue-tracker (exact commands)
 const WIDE = FILL                 // true past ~15 files / ~1,500 changed lines expected → partitioned review
 const TEST_NOTES = FILL           // how to run the suite / typecheck / affected tests, or "" to let agents discover
@@ -66,6 +67,9 @@ const SPEC_CONTEXT = j([
     ? 'Full text of the decisions this wave\'s tickets cite:\n' + Object.keys(DECISIONS).map(d => '### ' + d + '\n' + DECISIONS[d]).join('\n\n')
     : null,
   TRACKER_READ_OP ? 'To fetch an uncited decision by ID: ' + TRACKER_READ_OP : null,
+  PRIOR_ANSWERS.length
+    ? 'Owner answers from earlier waves — BINDING spec text, same authority as a decision; a finding one of these directly governs diverges from the answer, it does not raise a new question:\n' + PRIOR_ANSWERS.join('\n---\n')
+    : null,
 ])
 
 const AXIS_INPUTS = j([
@@ -157,6 +161,7 @@ const PROPOSAL_FIELDS = {
   fix: { type: 'string', description: 'what to change, where — anchored by file + a short quoted snippet, never a bare line number' },
   sketch: { type: 'string', description: 'a sketch of the changed code — not a full patch' },
   size: { enum: ['quick-fix', 'needs-a-session'] },
+  docOnly: { type: 'boolean', description: 'true only when the entire fix lives in comments, docs, or headers — no executable code changes' },
 }
 const PROPOSALS_SCHEMA = {
   type: 'object', required: ['proposals'],
@@ -167,6 +172,7 @@ const FIX_VERDICT_FIELDS = {
   id: { type: 'string' },
   verdict: { enum: ['validated', 'fix-rejected', 'needs-human'] },
   reason: { type: 'string' },
+  docOnly: { type: 'boolean', description: 'confirm or clear the proposal\'s claim — final word; true only when the fix touches no executable code' },
   repoWide: { type: 'boolean' },
   instancesInDiff: { type: 'integer' },
   instancesOutsideDiff: { type: 'integer' },
@@ -380,7 +386,7 @@ function specReviewerPrompt(g) {
     specSliceContext(g),
     'The wave\'s tickets:',
     JSON.stringify(TICKETS.map(t => ({ ref: t.ref, title: t.title, body: t.body }))),
-    'Report: (a) acceptance criteria or requirements that are missing or partial; (b) behaviour not asked for (scope creep); (c) requirements implemented wrong. Treat decision snippets — state machines, schemas, contracts — as requirements; divergence from one is a finding. Where the spec is SILENT on a case the diff had to decide, that is not a violation — report it as a spec question only when the choice is consequential, stating the case and the choice the code made. Quote the spec line, with its decision ID where it has one, per finding. Under 400 words.',
+    'Report: (a) acceptance criteria or requirements that are missing or partial; (b) behaviour not asked for (scope creep); (c) requirements implemented wrong. Treat decision snippets — state machines, schemas, contracts — as requirements; divergence from one is a finding. Where the spec is SILENT on a case the diff had to decide, that is not a violation — report it as a spec question only when a different owner could defensibly want a different behaviour; silence plus one defensible choice is not a question. State the case and the choice the code made. Quote the spec line, with its decision ID where it has one, per finding. Under 400 words.',
     'Also fill requirementsTouched: the spec requirements your slice\'s files touch (whether or not you found problems with them).',
   ])
 }
@@ -441,7 +447,7 @@ function findingValidatorPrompt(axisName, findings) {
     JSON.stringify(findings.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, repoWide: f.repoWide, citedSource: f.citedSource }))),
     'Per finding, answer one question: is the finding real? Read the cited source and the actual hunk — does the rule or spec line say what the reviewer claims, does the code actually breach it, and does the claimed harm survive what the compiler and tooling already guarantee? verdict=finding-refuted (with the reason) or finding-validated.',
     axisName === 'Spec'
-      ? 'Also classify each finding: code-diverges — the spec is unambiguous, the code does not match, the fix is mechanical — or spec-suspect — the SPEC may be silent, ambiguous, or wrong. Before choosing, read the commit messages and any tests touching the diverging code: evidence of a deliberate deviation → spec-suspect. Any doubt → spec-suspect — a false spec-suspect costs one human glance; a false code-diverges silently rewrites behaviour.'
+      ? 'Also classify each finding: code-diverges or spec-suspect, decided by ONE test — would the owner\'s answer change the fix? spec-suspect ONLY when: (a) two or more defensible readings call for different behaviour, (b) commit messages or tests show a deliberate deviation, or (c) the spec\'s own statements collide. Spec silence alone is NOT doubt: a defect with one defensible minimal fix — a visible bug, a wrong comment, dead code the diff itself added — is code-diverges even where the spec never speaks. Owner answers from earlier waves (in the spec context above) are BINDING spec text: a finding one directly governs is code-diverges from that answer, never a re-ask. Where real behavioural doubt survives the test → spec-suspect — a false spec-suspect costs one human glance; a false code-diverges silently rewrites behaviour.'
       : 'specClassification is n/a on this axis.',
     axisName === 'Standards'
       ? 'You may set repoWideRaised on a finding whose pattern the reviewer missed — only with the grep and both counts (inside and outside the diff) in repoWideEvidence.'
@@ -456,7 +462,7 @@ function proposerPrompt(axisName, survivors) {
     AXIS_INPUTS,
     'Validated findings, each with its validator\'s reasoning:',
     JSON.stringify(survivors.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, validatorReasoning: f.findingReason }))),
-    'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits) or needs-a-session (a fresh context window\'s worth of work). Keep each proposal under 100 words.',
+    'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits) or needs-a-session (a fresh context window\'s worth of work). Set docOnly=true only where the ENTIRE fix lives in comments, docs, or headers — no executable code changes. Keep each proposal under 100 words.',
     axisName === 'Spec' ? 'A spec-suspect finding gets a fix sketch per plausible reading where that is cheap — the user\'s answer will pick one.' : null,
   ])
 }
@@ -470,7 +476,7 @@ function fixValidatorPrompt(axisName, items, roster) {
     JSON.stringify(items.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, findingReasoning: f.findingReason, proposal: f.proposal, sketch: f.sketch, size: f.size, repoWide: f.repoWide, repoWideEvidence: f.repoWideEvidence }))),
     'Every finding in this axis, for the edge fields below — dependsOn / invalidatedBy may name IDs outside your batch:',
     roster,
-    'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself and fill instancesInDiff / instancesOutsideDiff — the flag holds only when instancesOutsideDiff > 0. Your call on the flag is final downstream.',
+    'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself, then drop every instance the cited rule does not actually govern — apply the rule\'s own scope and any grandfather clause (a rule binding only new-and-edited files never counts untouched files) — and fill instancesInDiff / instancesOutsideDiff with the GOVERNED counts only; the flag holds only when instancesOutsideDiff > 0. Your call on the flag is final downstream. (5) confirm or clear docOnly — final word: true only when the fix touches no executable code. A validated docOnly quick-fix on a spec-suspect finding auto-applies instead of escalating, so confirm it only when the code\'s current behaviour is right and only the record about it is wrong.',
     'Verdict per proposal: validated, fix-rejected (with the reason), or needs-human (a genuine trade-off the user must call). The finding\'s reality is NOT on the table — that was settled upstream; record any lingering doubt inside a fix-rejected reason.',
     'Fill the edge fields instead of burying edges in prose: dependsOn = IDs whose fixes must land for this one to work; invalidatedBy = IDs whose accepted fix makes this proposal\'s premise or wording false.',
   ])
@@ -645,6 +651,7 @@ async function runAxis(axisName, labeled) {
         f.proposal = p ? p.fix : 'proposal missing'
         f.sketch = p ? p.sketch : ''
         f.size = p ? p.size : 'needs-a-session'
+        f.docOnly = p ? !!p.docOnly : false
       }
       return survivors
     },
@@ -657,8 +664,9 @@ async function runAxis(axisName, labeled) {
         const v = fvs.get(f.id)
         f.fixVerdict = v ? v.verdict : 'needs-human'
         f.fixReason = v ? v.reason : 'fix-validator result missing'
-        // This stage has the last word on repo-wide — the routing step reads it from here.
+        // This stage has the last word on repo-wide and docOnly — the routing step reads both from here.
         if (v) {
+          f.docOnly = !!v.docOnly
           f.repoWide = v.repoWide && v.instancesOutsideDiff > 0
           f.instancesInDiff = v.instancesInDiff
           f.instancesOutsideDiff = v.instancesOutsideDiff
@@ -772,7 +780,10 @@ const all = std.survivors.concat(spec.survivors)
 const byId = new Map(all.map(f => [f.id, f]))
 
 for (const f of all) {
-  if (f.specClassification === 'spec-suspect') { f.route = 'escalate'; f.questionClass = 'spec-unclear' }
+  // A validated doc-only quick-fix on a spec-suspect finding auto-applies: the code's
+  // behaviour was deemed right, only the record was wrong — no intent question remains.
+  const docOnlyResolved = f.fixVerdict === 'validated' && f.size === 'quick-fix' && f.docOnly
+  if (f.specClassification === 'spec-suspect' && !docOnlyResolved) { f.route = 'escalate'; f.questionClass = 'spec-unclear' }
   else if (f.crossAxisPair && f.pairResolution === 'competing') { f.route = 'escalate'; f.questionClass = 'competing-fixes' }
   else if (f.repoWide) { f.route = 'escalate'; f.questionClass = 'pervasive-pattern' }
   else if (f.fixVerdict === 'needs-human') { f.route = 'escalate'; f.questionClass = 'genuine-trade-off' }
