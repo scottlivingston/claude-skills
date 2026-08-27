@@ -117,6 +117,12 @@ Used by the chain, and useful on their own:
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
 - **hitl-questions** — the presentation contract for every question put to the human: facts vs decisions, cold-reader blocks, domain language, recommendations, escape hatches
 
+## Output styles
+
+The plugin ships one output style, selectable with `/output-style`:
+
+- **Simple** — short plain prose a cold reader can follow: lead with the answer, no bullet walls, no headers, no preamble
+
 ## Install
 
 ```
