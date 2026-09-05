@@ -35,5 +35,5 @@ When the choices are enumerable, ask with `AskUserQuestion` — recommended opti
 Three, honoured immediately in every asking skill:
 
 - **`explain`** — brief per `/domain-expansion`, code anchors and excerpts now welcome, then re-put the same question.
-- **Batched answers** — several answers arriving as one free-text message are taken as given; never re-ask them one by one.
+- **Batched answers** — several answers arriving as one free-text message, or a brief of how the human wants the thing to work, are taken as given: reflect back what the message settled and what it left open, then ask on from the open part; never re-ask them one by one.
 - **`stop`** — end the questioning now: record what's untouched in the asking skill's terms (an `unanswered` outcome, an unsettled branch) and go to its wrap-up.
