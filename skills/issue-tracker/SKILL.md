@@ -138,16 +138,16 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 ### Structure operations
 
-- **Parent/child**: the directory is the parent — children live in its `issues/` subdirectory.
+- **Parent/child**: the directory is the parent — a spec's children live in its `issues/` subdirectory, a map's in `map/`.
 - **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `closed`.
 - **Spec decisions**: inline in `spec.md` — a `## Decisions` section after the kernel, one `### D<n>: <title>` heading per decision in index order. No size cap locally; the headings alone provide the addressability.
 
 ### Workflow operations
 
 - **Claim**: set `Status: in-progress` and save before any work; unclaim by reverting it. **Claim check**: read the `Status:` lines.
-- **Frontier query**: scan the effort's `issues/` directory for files that are open, unblocked, and unclaimed; first by number wins.
+- **Frontier query**: scan the parent's child directory — `map/` for a map, `issues/` for a spec — for files that are open, unblocked, and unclaimed; first by number wins.
 - **Resolve**: append the answer under an `## Answer` heading, then Close (`Status: closed`), then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
 
 ### Wayfinding specifics
 
-The **map** is `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Fog body. Each **child ticket** is `.scratch/<effort>/issues/NN-<slug>.md` with the question in the body, a `Type:` line (`research`/`prototype`/`grilling`/`design`/`task`), a `Mode:` line (`hitl`/`afk`), and a `Status:` line.
+The **map** is `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Fog body. Each **child ticket** is `.scratch/<effort>/map/NN-<slug>.md` — its own directory, so wayfinder tickets never mix with the spec's `issues/` — with the question in the body, a `Type:` line (`research`/`prototype`/`grilling`/`design`/`task`), a `Mode:` line (`hitl`/`afk`), and a `Status:` line.

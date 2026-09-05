@@ -19,7 +19,7 @@ This is planning, not building: the output is **decisions**, recorded on the tic
 
 4. **Capture decisions as contracts.** Where a snippet states the decision more precisely than prose — a type shape, an interface stub, a function signature, a state shape — write the snippet, trimmed to the decision-rich parts. These are the decision-encoding snippets `/specify` inlines and review later validates against.
 
-5. **Record the resolution**: the decisions, their contract snippets, and the **seams under test** they imply — this is where the spec's Seams-under-test list comes from. On a wayfinder ticket, resolve per the wayfinder skill. Offer an ADR (per `/domain-modeling`) only when its three-part test passes — hard to reverse, surprising without context, a real trade-off.
+5. **Record the resolution**: the decisions, their contract snippets, and the **seams under test** they imply — this is where the spec's Seams-under-test list comes from. On a wayfinder ticket, resolve per the wayfinder skill. Offer an ADR only when `/domain-modeling`'s three-part test passes.
 
 ## Rules
 

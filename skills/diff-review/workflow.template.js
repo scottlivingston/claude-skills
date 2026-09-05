@@ -8,12 +8,13 @@ export const meta = {
     { title: 'Validate findings', detail: 'fresh adversarial validators — refuted findings leave the pipeline here' },
     { title: 'Propose', detail: 'one proposer per chunk over its surviving findings' },
     { title: 'Validate fixes', detail: 'fresh adversarial validators, one question per check; pair resolution' },
-    { title: 'Resolve', detail: 'script routing — escalate intent, auto-resolve code: serial fix agent applies, ticket agent publishes' },
+    { title: 'Resolve', detail: 'script routing — escalate intent, auto-resolve code: serial fix agent applies, ticket agent publishes, ledger stage posts pending questions' },
   ],
 }
 
-// Template for the /diff-review pipeline workflow — SKILL.md steps 4–9 hold the stage
-// briefs this file encodes; keep the two in sync when either changes.
+// Template for the /diff-review pipeline workflow — SKILL.md steps 4–5 hold the
+// reviewer briefs this file encodes, and /finding-pipeline (code gates included)
+// holds the invariants; keep them in sync when any changes.
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
 // `script`. An unfilled slot throws "FILL is not defined" at launch — loud,
@@ -38,7 +39,7 @@ const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open `review-finding` tickets: 
 const PRIOR_ROUND_SUMMARIES = FILL// pre-fetched prior-round summary comments from the spec issue: ["..."] — [] if none
 const DEFAULT_BRANCH_OK = FILL    // false, or the user's exact words OKing commits on the default branch — travels only in the fix agent's brief
 const SPEC_ISSUE_REF = FILL       // tracker ref of the spec issue ("#42") when the spec IS a tracker issue, else null — auto-tickets parent to it
-const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent operations per /issue-tracker (exact commands), or null → auto-ticket findings come back for the manager to file in step 12
+const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent/comment operations per /issue-tracker (exact commands), or null → auto-ticket findings and the pending-questions post come back for the manager (step 7)
 
 // ═══════════ FIXED BELOW THIS LINE — edit only when the run genuinely deviates ═══════════
 
@@ -228,6 +229,14 @@ const TICKET_SCHEMA = {
   },
 }
 
+const LEDGER_SCHEMA = {
+  type: 'object', required: ['posted', 'marker'],
+  properties: {
+    posted: { type: 'boolean' },
+    marker: { type: 'string', description: 'the comment marker used, or the failure reason when posted=false' },
+  },
+}
+
 // ── Prompt builders ──────────────────────────────────────────────────────────
 
 function partitionPrompt() {
@@ -402,6 +411,29 @@ function ticketAgentPrompt(batch) {
     'Batch:',
     JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, proposal: f.proposal, sketch: f.sketch, demotedReason: f.demotedReason || '' }))),
     'Return every ticket you created with the finding IDs it covers.',
+  ])
+}
+
+function ledgerPrompt(escalations, digest) {
+  const marker = '<!-- diff-review pending-questions -->'
+  return j([
+    'You are the final stage of a diff review, and a fresh assembler: you hold nothing but the structured findings below. Post ONE comment on spec issue ' + SPEC_ISSUE_REF + ' opening with the marker ' + marker + ' — durable gate state a later session resumes the question loop from, so completeness beats brevity.',
+    'Tracker operations:',
+    TICKET_MECHANICS,
+    'The comment body, in order:',
+    '1. The audit digest of this round\'s auto-actions, stated as done: ' + JSON.stringify(digest),
+    '2. One question block per escalation below, written for a COLD READER — someone who joined the project today and has not read the spec, the diff, or this review must be able to pick an option from the block alone. Speak the domain: behaviors, cases, consequences — not functions, paths, or line numbers. Name every cited decision, rule, or smell by what it decided or requires (from its title, gist, and quote), never by its ID alone; the finding ID appears once, trailing in parentheses in the header. Anything you cannot explain from the fields you hold, expand from the cited source text the finding carries. Format each:',
+    '### <short plain title of the tension> — <spec|standards> question — <i> of <n> (<ID>)',
+    '- **The situation:** <1–2 sentences of orientation: what part of the product this concerns and what the change wants there, assuming nothing>',
+    '- **The question:** <one line, in the domain\'s terms>',
+    '- **What the source says:** <the decision or rule named by what it requires, then its quoted sentence; or "the spec is silent here">',
+    '- **What the code does today:** <one line, behavior not implementation>',
+    '- **Why it needs you:** spec unclear | competing fixes | genuine trade-off | no working fix | pervasive pattern',
+    '- **Options:** <each option as an outcome for the product — what holds, what changes — with its consequence and what it triggers — fix now, ticket, spec comment>',
+    '- **Recommendation:** <the option to pick and the one-line why>',
+    'A spec-unclear block also carries a DRAFT spec comment per plausible reading — posted only on the user\'s verdict. A joined finding rides its target\'s block as one line of context, never its own block.',
+    'The escalations:',
+    JSON.stringify(escalations),
   ])
 }
 
@@ -667,12 +699,39 @@ if (autoTicket.length && TICKET_MECHANICS) {
     }
   }
 } else if (autoTicket.length) {
-  // No tracker mechanics were provided — the manager files these in step 12.
+  // No tracker mechanics were provided — the manager files these in step 7.
   for (const f of autoTicket) f.status = 'ticket-pending-manager'
 }
 
-const escalations = all.filter(f => f.route === 'escalate')
-for (const f of escalations) f.status = 'escalated'
+const escalated = all.filter(f => f.route === 'escalate')
+for (const f of escalated) f.status = 'escalated'
+const escalations = escalated.map(f => ({
+  id: f.id, axis: f.id.startsWith('STD-') ? 'standards' : 'spec',
+  file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd,
+  description: f.description, citedSource: f.citedSource,
+  questionClass: f.questionClass, joinedTo: f.joinedTo || null,
+  crossAxisPair: f.crossAxisPair || null, pairResolution: f.pairResolution || null, pairReason: f.pairReason || null,
+  specClassification: f.specClassification, proposal: f.proposal, sketch: f.sketch, size: f.size,
+  fixVerdict: f.fixVerdict, fixReason: f.fixReason,
+  repoWide: !!f.repoWide, repoWideEvidence: f.repoWideEvidence || '',
+  instancesInDiff: f.instancesInDiff || 0, instancesOutsideDiff: f.instancesOutsideDiff || 0,
+  demotedReason: f.demotedReason || null,
+}))
+
+// Pending-questions post — by the workflow, not the manager, so the gate is durable
+// even if the session dies the moment the workflow returns. Only when the spec is a
+// tracker issue and the tracker mechanics were passed: otherwise there is nowhere to
+// post, and the manager runs the loop from this return value in-session.
+const digest = {
+  refuted: std.refuted.concat(spec.refuted).map(f => ({ id: f.id, reason: f.findingReason })),
+  autoApplied: apply.applied, autoTicketed: tickets,
+  ticketPendingManager: all.filter(f => f.status === 'ticket-pending-manager').map(f => f.id),
+}
+let ledger = { posted: false, marker: escalations.length ? 'no tracker spec issue — run the question loop from this return, in-session' : 'no escalations — no pending-questions comment needed' }
+if (escalations.length && SPEC_ISSUE_REF && TICKET_MECHANICS) {
+  ledger = (await agent(ledgerPrompt(escalations, digest), { schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
+    { posted: false, marker: 'ledger agent died — POST THE PENDING-QUESTIONS COMMENT FROM THE MANAGER before anything else' }
+}
 
 log('Routing: ' + apply.applied.length + ' auto-applied, ' +
   all.filter(f => f.status === 'auto-ticketed').length + ' auto-ticketed (' + tickets.length + ' tickets), ' +
@@ -686,17 +745,8 @@ return {
   autoApplied: apply.applied,
   autoTicketed: tickets,
   ticketPendingManager: all.filter(f => f.status === 'ticket-pending-manager').map(f => f.id),
-  escalations: escalations.map(f => ({
-    id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd,
-    description: f.description, citedSource: f.citedSource,
-    questionClass: f.questionClass, joinedTo: f.joinedTo || null,
-    crossAxisPair: f.crossAxisPair || null, pairResolution: f.pairResolution || null, pairReason: f.pairReason || null,
-    specClassification: f.specClassification, proposal: f.proposal, sketch: f.sketch, size: f.size,
-    fixVerdict: f.fixVerdict, fixReason: f.fixReason,
-    repoWide: !!f.repoWide, repoWideEvidence: f.repoWideEvidence || '',
-    instancesInDiff: f.instancesInDiff || 0, instancesOutsideDiff: f.instancesOutsideDiff || 0,
-    demotedReason: f.demotedReason || null,
-  })),
+  escalations: escalations,
+  ledger: ledger,
   testSummary: apply.testSummary,
   partitioned: WIDE ? groups.map(g => g.name) : null,
 }

@@ -14,9 +14,10 @@ export const meta = {
   ],
 }
 
-// Template for the /ship wave workflow — SKILL.md's "The wave workflow" and "The
-// wave pipeline" hold the stage briefs this file encodes; keep the two in sync
-// when either changes. The same file runs the closing pass (set CLOSING).
+// Template for the /ship wave workflow — SKILL.md's "The wave workflow" and "What
+// is local to this gate" hold the stage briefs this file encodes, and
+// /finding-pipeline (code gates included) holds the invariants; keep them in
+// sync when any changes. The same file runs the closing pass (set CLOSING).
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
 // `script`. An unfilled slot throws "FILL is not defined" at launch — loud,
@@ -134,7 +135,16 @@ const FINDING_FIELDS = {
   description: { type: 'string', description: 'one line' },
   repoWide: { type: 'boolean' },
   repoWideEvidence: { type: 'string', description: 'the grep plus both counts, or ""' },
-  citedSource: { type: 'string', description: 'the standard rule (file + rule) or the spec line — with its decision ID where it has one' },
+  citedSource: {
+    type: 'object', required: ['title', 'gist', 'quote', 'id'],
+    description: 'the standard rule or spec decision the finding holds the code against — prose fields the cold-reader assembler writes from; the id is a record handle, never the only thing carried',
+    properties: {
+      title: { type: 'string', description: 'the rule or decision title' },
+      gist: { type: 'string', description: 'one line: what it requires, in the domain\'s terms' },
+      quote: { type: 'string', description: 'the quoted rule or spec sentence the finding turns on' },
+      id: { type: 'string', description: 'decision ID or CONVENTIONS.md path' },
+    },
+  },
   dedup: { enum: ['none', 'already-ticketed', 'instance-of-open', 'possibly-duplicates', 'already-adjudicated'] },
   dedupRef: { type: 'string', description: 'ticket #N or the prior outcome; "" when dedup=none' },
 }
@@ -427,7 +437,7 @@ function labelPrompt(axisPrefix, axisName, reports) {
     'Reviewer reports:',
     reports.map((r, i) => '--- report ' + (i + 1) + ' ---\n' + r).join('\n'),
     reports.length > 1 ? 'Reports overlap — dedup across report boundaries: one finding per underlying defect.' : null,
-    'Each finding carries: file + lineStart/lineEnd anchoring it, a one-line description, the repo-wide flag where a reviewer raised it (carry its grep evidence), and the cited source.',
+    'Each finding carries: file + lineStart/lineEnd anchoring it, a one-line description, the repo-wide flag where a reviewer raised it (carry its grep evidence), and the cited source as three prose fields — its title, a one-line gist of what it requires, and the quoted sentence the finding turns on — plus its ID as a handle.',
     'Dedup against the open review-finding tickets below. Match conservatively — a standalone cleanup ticket matches at the rule/pattern level; a spec-child ticket matches only same file + same rule:',
     JSON.stringify(OPEN_REVIEW_TICKETS),
     '- Subject predates this diff (visible in context, not introduced by the change) and matches an open ticket → dedup=already-ticketed, dedupRef=#N.',
@@ -524,20 +534,21 @@ function ticketAgentPrompt(batch) {
 function ledgerPrompt(escalations, digest) {
   const marker = CLOSING ? '<!-- ship closing-' + WAVE + ' pending-questions -->' : '<!-- ship wave-' + WAVE + ' pending-questions -->'
   return j([
-    'You are the ledger stage of a ship wave — the final stage. Post ONE comment on spec issue ' + SPEC_ISSUE_REF + ' opening with the marker ' + marker + ' — durable run state a future session resumes from, so completeness beats brevity.',
+    'You are the ledger stage of a ship wave — the final stage, and a fresh assembler: you hold nothing but the structured findings below. Post ONE comment on spec issue ' + SPEC_ISSUE_REF + ' opening with the marker ' + marker + ' — durable run state a future session resumes from, so completeness beats brevity.',
     'Tracker operations:',
     TRACKER_MECHANICS,
     'The comment body, in order:',
     '1. The audit digest of the wave\'s auto-actions, stated as done: ' + JSON.stringify(digest),
-    '2. One question block per escalation below, in DOMAIN LANGUAGE — name behaviors, cases, and consequences, not functions and line numbers. Format each:',
-    '### <ID> — <spec|standards> question',
+    '2. One question block per escalation below, written for a COLD READER — someone who joined the project today and has not read the spec, the diff, or this run must be able to pick an option from the block alone. Speak the domain: behaviors, cases, consequences — not functions, paths, or line numbers. Name every cited decision or rule by what it decided or requires (from its title, gist, and quote), never by its ID alone; the finding ID appears once, trailing in parentheses in the header. Anything you cannot explain from the fields you hold, expand from the cited source text the finding carries. Format each:',
+    '### <short plain title of the tension> — <spec|standards> question — <i> of <n> (<ID>)',
+    '- **The situation:** <1–2 sentences of orientation: what part of the product this concerns and what the wave changed there, assuming nothing>',
     '- **The question:** <one line, in the domain\'s terms>',
-    '- **What the spec says:** <quoted line + decision ID, or "the spec is silent here"> (or the standard\'s rule)',
+    '- **What the source says:** <the decision or rule named by what it requires, then its quoted sentence; or "the spec is silent here">',
     '- **What the code does today:** <one line, behavior not implementation>',
     '- **Why it needs you:** spec unclear | competing fixes | genuine trade-off | no working fix | pervasive pattern',
-    '- **Options:** <each option as a behavior choice, with its consequence and what it triggers — fix now, ticket, spec comment>',
-    'A spec-unclear block also carries a DRAFT spec comment per plausible reading — posted only on the user\'s verdict.',
-    SPEC_CONTEXT,
+    '- **Options:** <each option as an outcome for the product — what holds, what changes — with its consequence and what it triggers — fix now, ticket, spec comment>',
+    '- **Recommendation:** <the option to pick and the one-line why>',
+    'A spec-unclear block also carries a DRAFT spec comment per plausible reading — posted only on the user\'s verdict. A joined finding rides its target\'s block as one line of context, never its own block.',
     'The escalations:',
     JSON.stringify(escalations),
   ])

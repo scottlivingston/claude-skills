@@ -116,6 +116,9 @@ Used by the chain, and useful on their own:
 - **diff-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
 - **hitl-questions** — the presentation contract for every question put to the human: facts vs decisions, cold-reader blocks, domain language, recommendations, escape hatches
+- **issue-tracker** — the tracker contract every workflow skill speaks, with GitHub and local-markdown implementations and a per-repo override
+- **conventions** — where a repo's reviewable coding standards live (`CONVENTIONS.md`, per-directory deltas, nearest scope wins) and how reviewers find them
+- **code-anchors** — the citation format for showing the human code: verified, clickable `path:line` references, never pasted snippets
 
 ## Output styles
 

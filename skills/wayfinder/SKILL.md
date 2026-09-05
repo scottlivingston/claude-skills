@@ -111,7 +111,7 @@ The map is **complete** when the frontier is empty, no tickets remain open, and 
 3. `/spec-review <spec>` — read the spec whole and ground it against the codebase; defects arrive with a drafted repair, and a clean spec is marked `spec-reviewed`.
 4. `/tickets <spec>` — HITL: break the spec into sub-issue tickets; the quiz is where the human approves the breakdown.
 5. `/ship <spec>` — implement the ticket DAG in parallel, fresh agent per ticket.
-6. `/diff-review` the branch against the spec, then merge via a PR that closes the spec issue.
+6. Ship's closing pass re-reads the whole branch and, once it comes back clean, offers the PR that closes the spec issue.
 
 While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets.
 

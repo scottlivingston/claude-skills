@@ -20,6 +20,6 @@ Use /tdd where possible, at pre-agreed seams.
 
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
-Once done, use /diff-review to review the work.
+Outside a `/ship` run, review the work with /diff-review once done; inside one, the wave verification reviews the merged diff — don't review your own worktree.
 
 Commit your work to the current branch.

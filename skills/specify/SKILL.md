@@ -18,7 +18,7 @@ For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
 In map mode, the map's resolutions — design tickets especially — settle the seams: carry them into the spec's **Seams under test** list without re-asking. Only check with the user if the map left the seams genuinely undecided (and note that as a gap in the map). In conversation mode, check with the user that these seams match their expectations — the one interview moment this skill allows, because `/tdd` downstream refuses to test at seams no human confirmed.
 
-3. Write the spec as two kinds of unit — a **kernel** every downstream agent reads in full, and **addressable decisions** (`D1`…`Dn`) that `/tickets` routes to the implementation tickets needing them — using the templates below. Publish the kernel as the spec's body and each decision as its own unit, in index order, per the tracker doc's spec-decision convention (on GitHub: one marked comment per decision). The split is what keeps every agent's context bounded and relevant — a `/ship` agent reads the kernel plus only its ticket's cited decisions — and it keeps every published unit far below any tracker's body-size cap, so no content is ever trimmed to fit. Apply the `spec` label — no triage label: the spec's next step is the HITL `/spec-review` read, and `/next` routes on the `spec` label plus its `spec-reviewed` marker and the state of its children, not on triage. (If the marker doesn't exist yet, run the tracker doc's bootstrap first.)
+3. Write the spec as two kinds of unit — a **kernel** every downstream agent reads in full, and **addressable decisions** (`D1`…`Dn`) that `/tickets` routes to the implementation tickets needing them — using the templates below. Publish the kernel as the spec's body and each decision as its own unit, in index order, per the tracker doc's spec-decision convention (on GitHub: one marked comment per decision). The split is what keeps every agent's context bounded and relevant — a `/ship` agent reads the kernel plus only its ticket's cited decisions — and it keeps every published unit far below any tracker's body-size cap, so no content is ever trimmed to fit. Apply the `spec` label — no triage label: the spec's next step is the gated `/spec-review` read, and `/next` routes on the `spec` label plus its `spec-reviewed` marker and the state of its children, not on triage. (If the marker doesn't exist yet, run the tracker doc's bootstrap first.)
 
 In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map.
 
@@ -38,7 +38,7 @@ The solution to the problem, from the user's perspective.
 
 ## User Stories
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
+A numbered list of user stories — every story a decision or the Solution serves, and no others (`/spec-review` flags a story nothing serves as a defect). Each in the format of:
 
 1. As an <actor>, I want a <feature>, so that <benefit>
 
@@ -46,7 +46,7 @@ A LONG, numbered list of user stories. Each user story should be in the format o
 1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
 </user-story-example>
 
-This list of user stories should be extremely extensive and cover all aspects of the feature.
+Cover every aspect of the feature the spec actually decides; a story is complete when a test could tell whether it holds.
 
 ## Decision Index
 
