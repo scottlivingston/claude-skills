@@ -203,9 +203,9 @@ Walk the escalation queue **one question per turn**. A wall of blocks is what ma
 Order the queue: Spec questions before Standards questions; within each, the ones later work most likely builds on first. Findings that auto-resolved, were refuted, or were shelved by dedup are not in the queue at all. Per escalation, print its block per `/hitl-questions` (anchors and code excerpts arrive on request, via `explain`):
 
 ```
-### SPEC-4 — spec question — 2 of 3
+### <short plain title of the finding> — spec question — 2 of 3 (SPEC-4)
 - **The question:** <one line, in the domain's terms>
-- **What the source says:** <quoted spec line + decision ID, or the standard's rule, or "the spec is silent here">
+- **What the source says:** <the decision or rule named by what it requires, then its quoted line; or "the spec is silent here">
 - **What the code does today:** <one line, behavior not implementation>
 - **Why it needs you:** spec unclear | competing fixes | genuine trade-off | no working fix | pervasive pattern
 - **Options:** <each option as a behavior choice, with its consequence and what it triggers — fix now, ticket, spec comment>

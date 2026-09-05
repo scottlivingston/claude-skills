@@ -91,7 +91,16 @@ const FINDING_FIELDS = {
   description: { type: 'string', description: 'one line' },
   repoWide: { type: 'boolean' },
   repoWideEvidence: { type: 'string', description: 'the grep plus both counts, or ""' },
-  citedSource: { type: 'string', description: 'the standard rule (file + rule) or named smell, or the spec line — with its decision ID where it has one' },
+  citedSource: {
+    type: 'object', required: ['title', 'gist', 'quote', 'id'],
+    description: 'the standard rule, named smell, or spec decision the finding holds the code against — prose fields the cold-reader assembler writes from; the id is a record handle, never the only thing carried',
+    properties: {
+      title: { type: 'string', description: 'the rule or decision title, or the smell name' },
+      gist: { type: 'string', description: 'one line: what it requires, in the domain\'s terms' },
+      quote: { type: 'string', description: 'the quoted rule or spec sentence the finding turns on' },
+      id: { type: 'string', description: 'decision ID or CONVENTIONS.md path; "" for a smell' },
+    },
+  },
   dedup: { enum: ['none', 'already-ticketed', 'instance-of-open', 'possibly-duplicates', 'already-adjudicated'] },
   dedupRef: { type: 'string', description: 'ticket #N or the prior outcome; "" when dedup=none' },
 }

@@ -11,7 +11,7 @@ Every review gate in the chain — code gates (`/ship`'s wave verification, `/di
 
 Stage order is enforced by script, never discipline: run the pipeline as one dynamic `Workflow` (the gate skill invoking this contract is your authorization), so a proposer can never see a finding its validator refuted.
 
-1. **Find.** Axis reviewers report findings. Each finding carries a per-run, axis-prefixed ID, a location anchor, a one-line description, and the **cited source** — the rule, spec line, decision, or resolution it holds the material against, carried as quoted text with its ID, never the ID alone (the cold-reader assembler at the end of the pipeline has only these fields to write from). A claim with no citable source is not a finding. Axes are never merged or reranked against each other.
+1. **Find.** Axis reviewers report findings. Each finding carries a per-run, axis-prefixed ID, a location anchor, a one-line description, and the **cited source** — the rule, spec line, decision, or resolution it holds the material against. Each cited unit is three schema fields: its **title**, its **one-line gist** (what it decided or requires), and the **quoted sentence** the finding turns on; the unit's ID is a fourth field, a lookup key for the record. The cold-reader assembler at the end of the pipeline writes from the three prose fields and prints the ID only as a trailing handle — a finding that arrives with the ID alone gives it nothing to write. A claim with no citable source is not a finding. Axes are never merged or reranked against each other.
 2. **Dedup — against the adjudication memory.** Match conservatively against every prior summary comment (see *The gate*) and any open finding tickets: already adjudicated → out, one line in the summary; a new instance of a known pattern → stays in; uncertain → stays in, marked. A visible duplicate is recoverable; a silent suppression isn't. The memory is what makes repeated gates converge — no finding is ever re-litigated. The memory cuts a second way: **an answer the user gave at an earlier gate — a recorded verdict, the amendment it posted — is binding source text**, carried into the pipeline as classification input; a new finding that answer directly governs is not a new question — it classifies as divergence from the answer (cite it) and resolves like any code finding. Re-asking an answered question is the failure this stage exists to prevent.
 3. **Validate the finding — adversarially, before any fix exists.** Validation by the finding's author is theater, and validating a finding only *through* its fix conflates two questions. Fresh validators that did not author the findings are prompted to **refute the finding itself** — one validator per chunk of ~5 findings, chunks in parallel, each chunk riding its own validate → propose → validate-fix chain with no cross-chunk barrier. Verdict: `finding-refuted` (with reason — leaves the pipeline, recorded so dedup remembers) or `finding-validated`.
 4. **Propose a repair per survivor.** One proposer per chunk — chunk-mates share context, so overlapping repairs get drafted coherently. The smallest concrete repair, anchored by a short quoted snippet of what changes (never a bare line number — lines drift), sized `quick-fix` or `needs-a-session`. Where the finding admits more than one reading, a sketch per plausible reading — the user's answer picks one.
@@ -33,20 +33,20 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 
 ## Question mechanics
 
-**Open with the orientation summary** — the audit digest first, stated as *done*, not proposed: found → refuted → auto-applied (IDs + SHAs or edits) → auto-ticketed (#s). The user overrides any of it by free text (`revert W2-STD-7`) and the manager reverts that commit, edit, or ticket. Then the escalation count by question class — never the question blocks themselves.
+**Open with the orientation summary** — the audit digest first, stated as *done*, not proposed: the counts found and refuted, then one sentence per auto-applied or auto-ticketed action saying what changed in the project's terms — the behaviour, decision, or document line it touched — with the finding ID and the SHA or ticket link trailing in parentheses as the revert handle. The user overrides any of it by free text (`revert W2-STD-7`) and the manager reverts that commit, edit, or ticket. Then the escalation count by question class — never the question blocks themselves.
 
 **Every block obeys the presentation contract in `/hitl-questions`** — the cold-reader rules, the domain language, the recommendation, the `AskUserQuestion` mechanics, the escape hatches. Every artifact in this chain is agent-written and the question loop is often the user's first contact with the material, so the contract's cold-reader test bites hardest here: someone who joined the project today must be able to pick an option from the block alone.
 
 **One question per turn**, in the order later work most likely builds on. Per escalation, print its block (anchors and excerpts arrive on request, via `explain`):
 
 ```
-### <ID> — <question class> — <i> of <n>
+### <short plain title of the tension> — <question class> — <i> of <n> (<ID>)
 - **The situation:** <1–2 sentences of orientation, assuming nothing>
 - **The question:** <one line, in the domain's terms>
-- **What the source says:** <what the cited line governs, then the quote — never a bare ID; or "the source is silent here">
+- **What the source says:** <each cited unit named by what it decided or requires, then its quoted sentence; or "the source is silent here">
 - **What the material does today:** <one line>
 - **Why it needs you:** <the gate skill's question class>
-- **Options:** <each as an outcome, with its consequence and what it triggers>
+- **Options:** <each as an outcome for the product — what holds, what changes — with its consequence and what it triggers>
 - **Recommendation:** <the option you'd pick and the one-line why>
 ```
 
