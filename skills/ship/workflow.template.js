@@ -55,8 +55,14 @@ const LOG_CMD = 'git log ' + PRE_WAVE_SHA + '..HEAD'
 
 const j = lines => lines.filter(s => s !== null && s !== undefined && s !== '').join('\n')
 
+// The contract's scope rule, stated once here and folded into the block every review-side
+// stage shares, so reviewers, labelers, and validators read the same words. Canonical
+// wording: /finding-pipeline, "The diff is the material" — edit there first, then here.
+const SCOPE_RULE = 'SCOPE — the diff is the material. A finding must name something the diff DID: a line it added, changed, or removed. Code the diff never touched is out of scope however wrong it is, and whether or not a ticket already covers it. You will legitimately see far more code than you may report on — diff context lines, the repo grep behind a repo-wide flag, the files you open to check a rule — and none of it is reportable on its own. Two cases are in scope and only look like exceptions: a requirement this change was meant to deliver and did not (an absence has no anchor), and the repo-wide counts, which are evidence about a pattern the diff instantiates, never findings about the untouched instances.'
+
 // Commits are created inside this run — agents fetch the log themselves.
 const COMMON = j([
+  SCOPE_RULE,
   'Ship branch: ' + SHIP_BRANCH + '. Diff under review (run it yourself): ' + DIFF_CMD,
   'Commits under review: run ' + LOG_CMD + ' yourself — full messages, they carry deviation notes.',
 ])
@@ -129,9 +135,10 @@ const MERGE_SCHEMA = {
 
 const FINDING_FIELDS = {
   id: { type: 'string' },
-  file: { type: 'string' },
-  lineStart: { type: 'integer' },
-  lineEnd: { type: 'integer' },
+  kind: { enum: ['in-diff', 'absence'], description: 'absence = something the change was meant to deliver and did not; it has no code to point at, so file is "" and lineStart/lineEnd are 0. Everything else is in-diff.' },
+  file: { type: 'string', description: '"" when kind=absence — never invent an anchor for something that is not there' },
+  lineStart: { type: 'integer', description: '0 when kind=absence' },
+  lineEnd: { type: 'integer', description: '0 when kind=absence' },
   description: { type: 'string', description: 'one line' },
   repoWide: { type: 'boolean' },
   repoWideEvidence: { type: 'string', description: 'the grep plus both counts, or ""' },
@@ -157,6 +164,7 @@ const FINDING_VERDICT_FIELDS = {
   id: { type: 'string' },
   verdict: { enum: ['finding-validated', 'finding-refuted'] },
   reason: { type: 'string' },
+  scope: { enum: ['introduced-by-diff', 'missing-requirement', 'pre-existing'], description: 'settled BEFORE the merits: pre-existing = the subject is code the diff never touched, and the script refutes it whatever its merits' },
   specClassification: { enum: ['code-diverges', 'spec-suspect', 'n/a'] },
   repoWideRaised: { type: 'boolean' },
   repoWideEvidence: { type: 'string' },
@@ -396,7 +404,7 @@ function specReviewerPrompt(g) {
     specSliceContext(g),
     'The wave\'s tickets:',
     JSON.stringify(TICKETS.map(t => ({ ref: t.ref, title: t.title, body: t.body }))),
-    'Report: (a) acceptance criteria or requirements that are missing or partial; (b) behaviour not asked for (scope creep); (c) requirements implemented wrong. Treat decision snippets — state machines, schemas, contracts — as requirements; divergence from one is a finding. Where the spec is SILENT on a case the diff had to decide, that is not a violation — report it as a spec question only when a different owner could defensibly want a different behaviour; silence plus one defensible choice is not a question. State the case and the choice the code made. Quote the spec line, with its decision ID where it has one, per finding. Under 400 words.',
+    'Report: (a) acceptance criteria of THIS WAVE\'S TICKETS (listed above) that are missing or partial — a requirement no ticket in this wave carries is a later wave\'s work, not a finding; (b) behaviour not asked for (scope creep); (c) requirements implemented wrong. Treat decision snippets — state machines, schemas, contracts — as requirements; divergence from one is a finding. Where the spec is SILENT on a case the diff had to decide, that is not a violation — report it as a spec question only when a different owner could defensibly want a different behaviour; silence plus one defensible choice is not a question. State the case and the choice the code made. Quote the spec line, with its decision ID where it has one, per finding. Under 400 words.',
     'Also fill requirementsTouched: the spec requirements your slice\'s files touch (whether or not you found problems with them).',
   ])
 }
@@ -433,14 +441,16 @@ function checkerPrompt(q) {
 function labelPrompt(axisPrefix, axisName, reports) {
   return j([
     'You are the labeling stage of a ship wave verification — normalize raw reviewer reports into a list of discrete findings (light cleaning, no re-reviewing).',
+    SCOPE_RULE,
     'Axis: ' + axisName + '. Assign IDs ' + PREFIX + '-' + axisPrefix + '-1, ' + PREFIX + '-' + axisPrefix + '-2, ... in report order.',
     'Reviewer reports:',
     reports.map((r, i) => '--- report ' + (i + 1) + ' ---\n' + r).join('\n'),
     reports.length > 1 ? 'Reports overlap — dedup across report boundaries: one finding per underlying defect.' : null,
+    'Set kind on each finding: absence for anything a coverage or requirements check reported as implemented nowhere (file "", lineStart 0, lineEnd 0 — do NOT invent an anchor for code that does not exist), in-diff for everything else.',
     'Each finding carries: file + lineStart/lineEnd anchoring it, a one-line description, the repo-wide flag where a reviewer raised it (carry its grep evidence), and the cited source as three prose fields — its title, a one-line gist of what it requires, and the quoted sentence the finding turns on — plus its ID as a handle.',
     'Dedup against the open review-finding tickets below. Match conservatively — a standalone cleanup ticket matches at the rule/pattern level; a spec-child ticket matches only same file + same rule:',
     JSON.stringify(OPEN_REVIEW_TICKETS),
-    '- Subject predates this diff (visible in context, not introduced by the change) and matches an open ticket → dedup=already-ticketed, dedupRef=#N.',
+    '- Subject predates this diff (visible in context, not introduced by the change) and matches an open ticket → dedup=already-ticketed, dedupRef=#N. An unticketed pre-existing subject is not yours to shelve — carry it; the finding validator refutes it on scope.',
     '- Introduced by this diff but matches a ticketed pattern → dedup=instance-of-open, dedupRef=#N (stays in — new instances of a known pattern are new debt).',
     '- Uncertain match → dedup=possibly-duplicates, dedupRef=#N (stays in). A visible duplicate is recoverable; a silent suppression is not.',
     'Dedup against the run\'s adjudication memory — every finding adjudicated in one of these ledger summaries (auto-applied, auto-ticketed, answered, deferred, refuted, reverted, or left as-is) is already decided → dedup=already-adjudicated, dedupRef=the prior outcome:',
@@ -454,8 +464,10 @@ function findingValidatorPrompt(axisName, findings) {
     COMMON,
     AXIS_INPUTS,
     'Findings to validate (axis: ' + axisName + '):',
-    JSON.stringify(findings.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, repoWide: f.repoWide, citedSource: f.citedSource }))),
+    JSON.stringify(findings.map(f => ({ id: f.id, kind: f.kind, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, repoWide: f.repoWide, citedSource: f.citedSource }))),
     'Per finding, answer one question: is the finding real? Read the cited source and the actual hunk — does the rule or spec line say what the reviewer claims, does the code actually breach it, and does the claimed harm survive what the compiler and tooling already guarantee? verdict=finding-refuted (with the reason) or finding-validated.',
+    'Settle SCOPE first, before the merits, and return it as the scope field: introduced-by-diff (the hunk it anchors to is a line this diff added, changed, or removed), missing-requirement (an absence — something this change was meant to deliver and did not), or pre-existing (the subject is code this diff never touched, however wrong it is). A pre-existing finding is refuted on scope no matter how real it is — check the anchor against the diff yourself rather than trusting the reviewer.',
+    'A finding with kind=absence has no anchor by construction: its scope is missing-requirement if the thing really is implemented nowhere, and finding-refuted if you find it implemented — never pre-existing.',
     axisName === 'Spec'
       ? 'Also classify each finding: code-diverges or spec-suspect, decided by ONE test — would the owner\'s answer change the fix? spec-suspect ONLY when: (a) two or more defensible readings call for different behaviour, (b) commit messages or tests show a deliberate deviation, or (c) the spec\'s own statements collide. Spec silence alone is NOT doubt: a defect with one defensible minimal fix — a visible bug, a wrong comment, dead code the diff itself added — is code-diverges even where the spec never speaks. Owner answers from earlier waves (in the spec context above) are BINDING spec text: a finding one directly governs is code-diverges from that answer, never a re-ask. Where real behavioural doubt survives the test → spec-suspect — a false spec-suspect costs one human glance; a false code-diverges silently rewrites behaviour.'
       : 'specClassification is n/a on this axis.',
@@ -471,7 +483,7 @@ function proposerPrompt(axisName, survivors) {
     COMMON,
     AXIS_INPUTS,
     'Validated findings, each with its validator\'s reasoning:',
-    JSON.stringify(survivors.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, validatorReasoning: f.findingReason }))),
+    JSON.stringify(survivors.map(f => ({ id: f.id, kind: f.kind, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, validatorReasoning: f.findingReason }))),
     'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits) or needs-a-session (a fresh context window\'s worth of work). Set docOnly=true only where the ENTIRE fix lives in comments, docs, or headers — no executable code changes. Keep each proposal under 100 words.',
     axisName === 'Spec' ? 'A spec-suspect finding gets a fix sketch per plausible reading where that is cheap — the user\'s answer will pick one.' : null,
   ])
@@ -644,10 +656,20 @@ async function runAxis(axisName, labeled) {
       const verdicts = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
       for (const f of c) {
         const v = verdicts.get(f.id)
-        // A validator that died keeps its finding — conservatively, and visibly.
+        // A validator that died keeps its finding — but the keeping is only half the
+        // conservatism: unvalidated is carried as a flag so routing can refuse to
+        // auto-apply it. Failing toward MORE action is the thing to avoid here.
+        f.unvalidated = !v
         f.findingVerdict = v ? v.verdict : 'finding-validated'
         f.findingReason = v ? v.reason : 'validator result missing — kept unvalidated'
         f.specClassification = v ? v.specClassification : 'n/a'
+        // Scope is settled before merits, by the script and not the prompt: a finding
+        // anchored to code the diff never touched leaves here, however real it is.
+        f.scope = v && v.scope ? v.scope : 'introduced-by-diff'
+        if (f.scope === 'pre-existing') {
+          f.findingVerdict = 'finding-refuted'
+          f.findingReason = 'out of scope — anchored to code this diff never touched' + (v && v.reason ? ': ' + v.reason : '')
+        }
         if (v && v.repoWideRaised) { f.repoWide = true; f.repoWideEvidence = v.repoWideEvidence }
       }
       return c.filter(f => f.findingVerdict === 'finding-validated')
@@ -803,6 +825,16 @@ for (const f of all) {
   else { f.route = 'auto-ticket' }
 }
 
+// A stage agent that dies must fail toward LESS action, never more — the pair agent
+// escalates and the fix validator returns needs-human on death. A finding whose own
+// validator never returned is kept, but it is never committed unasked.
+for (const f of all) {
+  if (f.unvalidated && f.route === 'auto-apply') {
+    f.route = 'auto-ticket'
+    f.demotedReason = 'finding never validated — its validator agent returned nothing'
+  }
+}
+
 // Edges and pairs route together — escalation dominates, then ticket, then apply.
 const RANK = { 'auto-apply': 0, 'auto-ticket': 1, 'escalate': 2 }
 let routesSettled = false
@@ -880,7 +912,7 @@ if (autoTicket.length) {
 }
 
 const escalations = all.filter(f => f.route === 'escalate').map(f => ({
-  id: f.id, axis: f.id.includes('-STD-') ? 'standards' : 'spec',
+  id: f.id, kind: f.kind, axis: f.id.includes('-STD-') ? 'standards' : 'spec',
   file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd,
   description: f.description, citedSource: f.citedSource,
   questionClass: f.questionClass, joinedTo: f.joinedTo || null,

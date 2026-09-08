@@ -74,7 +74,7 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 The slots — the workflow has no conversation context:
 
 - the diff command and the commit list with full messages, plus the `WIDE` flag judged from step 1's `--stat`,
-- the spec contents (or "no spec"),
+- the spec contents (or "no spec"), and `SPEC_SCOPE` — one line naming which part of the spec this diff was meant to deliver, or null when it was meant to deliver all of it. **Fill it whenever the diff is partial** — a work-in-progress branch, one ticket of a DAG, the first half of a migration. Unbounded, the Spec reviewer reads every requirement the diff hasn't reached yet as a missing one, and the review comes back mostly noise about work that isn't due,
 - the standards sources with the directory scope each binds (the smell baseline itself is embedded in the template — step 3's text and the template's `SMELL_BASELINE` const are the same words, kept in sync),
 - the dedup inputs — the open `review-finding` tickets and the spec issue's prior `<!-- diff-review summary -->` comments, fetched **before** launching (the summaries also feed the validators as the binding answer record),
 - the tracker inputs — the spec issue's ref when the spec is a tracker issue, and the tracker's create/label/parent/comment operations per `/issue-tracker` (null → auto-ticket findings and the pending-questions post come back for the manager, step 7),
@@ -97,13 +97,16 @@ Partitioning silently breaks two whole-diff properties; the script restores each
 **Standards reviewer prompt** — include:
 
 - The diff command (path-scoped, when partitioned) and commit list.
+- The contract's scope rule (*The diff is the material*), which the template carries once in its `SCOPE_RULE` const and folds into the block every review-side prompt shares — don't restate it per brief.
 - The list of standards-source files you found in step 3 — with the directory scope each one binds, and the instruction that a scoped `CONVENTIONS.md` governs only files under its directory, nearest scope winning — **plus the smell baseline from step 3** pasted in full; the reviewer has no other access to the baseline.
 - The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk — a smell is a labelled hypothesis for the validators, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep for it outside the diff and flag the finding `repo-wide` only with the grep and both counts attached — instances inside the diff, instances outside it, counting only instances the rule actually governs (apply the rule's own scope and any grandfather clause). A pattern with zero governed instances outside the diff is this change's own duplication, not a repo pattern. Skip anything tooling enforces. Under 400 words."
 
 **Spec reviewer prompt** — include:
 
 - The diff command (path-scoped, when partitioned) and commit list.
+- The contract's scope rule (*The diff is the material*), which the template carries once in its `SCOPE_RULE` const and folds into the block every review-side prompt shares — don't restate it per brief.
 - The path or fetched contents of the spec.
+- `SPEC_SCOPE`, which bounds clause (a) to the part of the spec this diff was meant to deliver — clauses (b) and (c) stay unbounded, since they judge what the diff did rather than what it left out.
 - The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Treat the spec's decision snippets (state machines, schemas, type shapes, contracts — inline or in its addressable decisions) as requirements — divergence from one is a finding like any other. Quote the spec line, with its decision ID where it has one, for each finding. Under 400 words."
 
 If the spec is missing, the script skips the Spec reviewer stage; note this in the final report.

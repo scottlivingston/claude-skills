@@ -31,6 +31,7 @@ const DIFF_STAT = FILL            // `git diff <fixed-point>...HEAD --stat` outp
 const WIDE = FILL                 // true past ~15 files / ~1,500 changed lines (judge from DIFF_STAT) → partition stage runs
 const SPEC = FILL                 // full spec contents reassembled per the tracker doc (kernel + decisions in index order), or null → Spec axis skips
 const SPEC_SOURCE = FILL          // where the spec came from, one line ("issue #42", "docs/prd.md") — "" when SPEC is null
+const SPEC_SCOPE = FILL           // one line: which part of the spec this diff was meant to deliver ("the ticket-DAG walk, not the tracker adapters") — null when the diff is meant to deliver the whole spec
 const SPEC_KERNEL = FILL          // WIDE + Decision Index only: kernel body incl. the index; else null → reviewers get full SPEC
 const SPEC_DECISIONS = FILL       // WIDE + Decision Index only: { "D-3": "full decision text", ... }; else null
 const TRACKER_READ_OP = FILL      // one-liner: how an agent fetches a spec decision by ID (the tracker doc's read), or ""
@@ -63,7 +64,13 @@ const SMELL_BASELINE = [
 
 const j = lines => lines.filter(s => s !== null && s !== undefined && s !== '').join('\n')
 
+// The contract's scope rule, stated once here and folded into the block every review-side
+// stage shares, so reviewers, labelers, and validators read the same words. Canonical
+// wording: /finding-pipeline, "The diff is the material" — edit there first, then here.
+const SCOPE_RULE = 'SCOPE — the diff is the material. A finding must name something the diff DID: a line it added, changed, or removed. Code the diff never touched is out of scope however wrong it is, and whether or not a ticket already covers it. You will legitimately see far more code than you may report on — diff context lines, the repo grep behind a repo-wide flag, the files you open to check a rule — and none of it is reportable on its own. Two cases are in scope and only look like exceptions: a requirement this change was meant to deliver and did not (an absence has no anchor), and the repo-wide counts, which are evidence about a pattern the diff instantiates, never findings about the untouched instances.'
+
 const COMMON = j([
+  SCOPE_RULE,
   'Diff command (run it yourself): ' + DIFF_CMD,
   'Commits under review (full messages):',
   COMMIT_LOG,
@@ -86,9 +93,10 @@ const AXIS_INPUTS = j([
 
 const FINDING_FIELDS = {
   id: { type: 'string' },
-  file: { type: 'string' },
-  lineStart: { type: 'integer' },
-  lineEnd: { type: 'integer' },
+  kind: { enum: ['in-diff', 'absence'], description: 'absence = something the change was meant to deliver and did not; it has no code to point at, so file is "" and lineStart/lineEnd are 0. Everything else is in-diff.' },
+  file: { type: 'string', description: '"" when kind=absence — never invent an anchor for something that is not there' },
+  lineStart: { type: 'integer', description: '0 when kind=absence' },
+  lineEnd: { type: 'integer', description: '0 when kind=absence' },
   description: { type: 'string', description: 'one line' },
   repoWide: { type: 'boolean' },
   repoWideEvidence: { type: 'string', description: 'the grep plus both counts, or ""' },
@@ -114,6 +122,7 @@ const FINDING_VERDICT_FIELDS = {
   id: { type: 'string' },
   verdict: { enum: ['finding-validated', 'finding-refuted'] },
   reason: { type: 'string' },
+  scope: { enum: ['introduced-by-diff', 'missing-requirement', 'pre-existing'], description: 'settled BEFORE the merits: pre-existing = the subject is code the diff never touched, and the script refutes it whatever its merits' },
   specClassification: { enum: ['code-diverges', 'spec-suspect', 'n/a'] },
   repoWideRaised: { type: 'boolean' },
   repoWideEvidence: { type: 'string' },
@@ -264,7 +273,7 @@ function standardsReviewerPrompt(g) {
         STANDARDS_SOURCES.map(s => '- ' + s.path + ' — binds ' + s.scope).join('\n')
       : 'This repo documents no coding standards — the smell baseline below is the only Standards source this round.',
     SMELL_BASELINE,
-    'Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk — a smell is a labelled hypothesis for the validators, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep for it outside the diff and flag the finding repo-wide only with the grep and both counts attached — instances inside the diff, instances outside it. A pattern with zero instances outside the diff is this change\'s own duplication, not a repo pattern. Skip anything tooling enforces. Under 400 words.',
+    'Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk — a smell is a labelled hypothesis for the validators, and a documented repo standard overrides the baseline. (c) When a finding looks like an instance of a pattern rather than a one-off, and the pattern has a statable grep signature (a banned element or API, a naming rule), grep for it outside the diff and flag the finding repo-wide only with the grep and both counts attached — instances inside the diff, instances outside it, counting only instances the rule actually governs (apply the rule\'s own scope and any grandfather clause). A pattern with zero GOVERNED instances outside the diff is this change\'s own duplication, not a repo pattern. Skip anything tooling enforces. Under 400 words.',
     'Your final text IS the report.',
   ])
 }
@@ -297,6 +306,9 @@ function specReviewerPrompt(g) {
     COMMON,
     g.paths ? 'Your slice: ' + g.name + '. Path-scoped diff command: ' + g.diffCmd : null,
     specSliceContext(g),
+    SPEC_SCOPE
+      ? 'What this diff was meant to deliver: ' + SPEC_SCOPE + '. Clause (a) is bounded to THAT — a requirement outside it is work still to come, not a finding. Clauses (b) and (c) are not bounded: they judge what the diff actually did.'
+      : 'This diff was meant to deliver the whole spec, so clause (a) covers all of it.',
     'Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that was not asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Treat the spec\'s decision snippets (state machines, schemas, type shapes, contracts — inline or in its addressable decisions) as requirements — divergence from one is a finding like any other. Where the spec is SILENT on a case the diff had to decide, report it as a spec question only when a different owner could defensibly want a different behaviour; silence plus one defensible choice is not a question. Quote the spec line, with its decision ID where it has one, for each finding. Under 400 words.',
     'Also fill requirementsTouched: the spec requirements your slice\'s files touch (whether or not you found problems with them).',
   ])
@@ -313,14 +325,16 @@ function checkerPrompt(q) {
 function labelPrompt(prefix, axisName, reports) {
   return j([
     'You are the labeling stage of a two-axis review — normalize raw reviewer reports into a list of discrete findings (light cleaning, no re-reviewing).',
+    SCOPE_RULE,
     'Axis: ' + axisName + '. Assign IDs ' + prefix + '-1, ' + prefix + '-2, ... in report order.',
     'Reviewer reports:',
     reports.map((r, i) => '--- report ' + (i + 1) + ' ---\n' + r).join('\n'),
     WIDE ? 'Reports overlap (chunk reviewers plus a cross-cutting sweeper) — dedup across report boundaries: one finding per underlying defect.' : null,
+    'Set kind on each finding: absence for anything a coverage or requirements check reported as implemented nowhere (file "", lineStart 0, lineEnd 0 — do NOT invent an anchor for code that does not exist), in-diff for everything else.',
     'Each finding carries: file + lineStart/lineEnd anchoring it, a one-line description, the repo-wide flag where a reviewer raised it (carry its grep evidence), and the cited source (the documented rule or named smell, or the spec line).',
     'Dedup against the open review-finding tickets below. Match conservatively — a standalone cleanup ticket matches at the rule/pattern level; a spec-child ticket matches only same file + same rule:',
     JSON.stringify(OPEN_REVIEW_TICKETS),
-    '- Subject predates this diff (visible in context, not introduced by the change) and matches an open ticket → dedup=already-ticketed, dedupRef=#N.',
+    '- Subject predates this diff (visible in context, not introduced by the change) and matches an open ticket → dedup=already-ticketed, dedupRef=#N. An unticketed pre-existing subject is not yours to shelve — carry it; the finding validator refutes it on scope.',
     '- Introduced by this diff but matches a ticketed pattern → dedup=instance-of-open, dedupRef=#N (it stays in the pipeline — new instances of a known pattern are new debt).',
     '- Uncertain match → dedup=possibly-duplicates, dedupRef=#N (stays in the pipeline). A visible duplicate is recoverable; a silent suppression is not.',
     'Dedup against prior review rounds — every finding adjudicated in one of these summary comments (auto-applied, auto-ticketed, answered by a verdict, refuted by a validator, reverted, or left as-is) is already decided → dedup=already-adjudicated, dedupRef=the prior outcome:',
@@ -334,8 +348,10 @@ function findingValidatorPrompt(axisName, findings) {
     COMMON,
     AXIS_INPUTS,
     'Findings to validate (axis: ' + axisName + '):',
-    JSON.stringify(findings.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, repoWide: f.repoWide, citedSource: f.citedSource }))),
+    JSON.stringify(findings.map(f => ({ id: f.id, kind: f.kind, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, repoWide: f.repoWide, citedSource: f.citedSource }))),
     'Per finding, answer one question: is the finding real? Read the cited source and the actual hunk — does the standard rule or spec line say what the reviewer claims, does the code actually breach it, and does the claimed harm survive what the compiler and tooling already guarantee? verdict=finding-refuted (with the reason) or finding-validated.',
+    'Settle SCOPE first, before the merits, and return it as the scope field: introduced-by-diff (the hunk it anchors to is a line this diff added, changed, or removed), missing-requirement (an absence — something this change was meant to deliver and did not), or pre-existing (the subject is code this diff never touched, however wrong it is). A pre-existing finding is refuted on scope no matter how real it is — check the anchor against the diff yourself rather than trusting the reviewer.',
+    'A finding with kind=absence has no anchor by construction: its scope is missing-requirement if the thing really is implemented nowhere, and finding-refuted if you find it implemented — never pre-existing.',
     axisName === 'Spec'
       ? 'Also classify each finding: code-diverges or spec-suspect, decided by ONE test — would the user\'s answer change the fix? spec-suspect ONLY when: (a) two or more defensible readings call for different behaviour, (b) commit messages or tests show a deliberate deviation, or (c) the spec\'s own statements collide. Spec silence alone is NOT doubt: a defect with one defensible minimal fix — a visible bug, a wrong comment, dead code the diff itself added — is code-diverges even where the spec never speaks. Answered verdicts in the prior-round summaries above, and any spec comments they posted, are BINDING spec text: a finding one directly governs is code-diverges from that answer, never a re-ask. Where real behavioural doubt survives the test → spec-suspect — a false spec-suspect costs one human glance; a false code-diverges silently rewrites behaviour.'
       : 'specClassification is n/a on this axis.',
@@ -351,7 +367,7 @@ function proposerPrompt(axisName, survivors) {
     COMMON,
     AXIS_INPUTS,
     'Validated findings, each with its validator\'s reasoning:',
-    JSON.stringify(survivors.map(f => ({ id: f.id, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, validatorReasoning: f.findingReason }))),
+    JSON.stringify(survivors.map(f => ({ id: f.id, kind: f.kind, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, validatorReasoning: f.findingReason }))),
     'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits — a candidate for the serial fix agent) or needs-a-session (a fresh context window\'s worth of work). Set docOnly=true only where the ENTIRE fix lives in comments, docs, or headers — no executable code changes. Keep each proposal under 100 words.',
     axisName === 'Standards' ? 'For baseline smells, the smell\'s generic how-to-fix is the starting point — your job is grounding it in the actual hunk.' : null,
     axisName === 'Spec' ? 'A spec-suspect finding gets a fix sketch per plausible reading where that is cheap — the user\'s answer will pick one.' : null,
@@ -466,10 +482,20 @@ async function runAxis(axisName, labeled) {
       const verdicts = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
       for (const f of c) {
         const v = verdicts.get(f.id)
-        // A validator that died keeps its finding — conservatively, and visibly.
+        // A validator that died keeps its finding — but the keeping is only half the
+        // conservatism: unvalidated is carried as a flag so routing can refuse to
+        // auto-apply it. Failing toward MORE action is the thing to avoid here.
+        f.unvalidated = !v
         f.findingVerdict = v ? v.verdict : 'finding-validated'
         f.findingReason = v ? v.reason : 'validator result missing — kept unvalidated'
         f.specClassification = v ? v.specClassification : 'n/a'
+        // Scope is settled before merits, by the script and not the prompt: a finding
+        // anchored to code the diff never touched leaves here, however real it is.
+        f.scope = v && v.scope ? v.scope : 'introduced-by-diff'
+        if (f.scope === 'pre-existing') {
+          f.findingVerdict = 'finding-refuted'
+          f.findingReason = 'out of scope — anchored to code this diff never touched' + (v && v.reason ? ': ' + v.reason : '')
+        }
         if (v && v.repoWideRaised) { f.repoWide = true; f.repoWideEvidence = v.repoWideEvidence }
       }
       return c.filter(f => f.findingVerdict === 'finding-validated')
@@ -619,6 +645,16 @@ for (const f of all) {
   else { f.route = 'auto-ticket' }
 }
 
+// A stage agent that dies must fail toward LESS action, never more — the pair agent
+// escalates and the fix validator returns needs-human on death. A finding whose own
+// validator never returned is kept, but it is never committed unasked.
+for (const f of all) {
+  if (f.unvalidated && f.route === 'auto-apply') {
+    f.route = 'auto-ticket'
+    f.demotedReason = 'finding never validated — its validator agent returned nothing'
+  }
+}
+
 // Edges and pairs route together — escalation dominates, then ticket, then apply.
 // dependsOn and pair partners drag a finding up to the partner's tier; a proposal
 // invalidatedBy an escalated finding escalates with it, while one invalidatedBy an
@@ -706,7 +742,7 @@ if (autoTicket.length && TICKET_MECHANICS) {
 const escalated = all.filter(f => f.route === 'escalate')
 for (const f of escalated) f.status = 'escalated'
 const escalations = escalated.map(f => ({
-  id: f.id, axis: f.id.startsWith('STD-') ? 'standards' : 'spec',
+  id: f.id, kind: f.kind, axis: f.id.startsWith('STD-') ? 'standards' : 'spec',
   file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd,
   description: f.description, citedSource: f.citedSource,
   questionClass: f.questionClass, joinedTo: f.joinedTo || null,
