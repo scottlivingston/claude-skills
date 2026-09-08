@@ -3,10 +3,13 @@ name: specify
 description: Turn the current conversation — or a completed wayfinder map — into a spec and publish it to the project issue tracker. No interview, just synthesis of what was already discussed or decided. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
-This skill produces a spec (you may know this document as a PRD) from one of two inputs. Do NOT interview the user — just synthesize what is already known.
+This skill produces a spec (you may know this document as a PRD) from one of three inputs. Do NOT interview the user — just synthesize what is already known.
 
 - **Conversation mode** (no argument): synthesize the current conversation context and codebase understanding.
-- **Map mode** (argument is a `wayfinder:map` issue URL or number): load the map, then **zoom every entry in Decisions so far** — fetch each closed ticket's body and resolution comment; the one-line gists on the map are an index, not the decisions themselves. The spec synthesizes those resolutions. Anything still open on the map (open tickets, non-empty Not-yet-specified) means the map isn't complete — stop and say so rather than spec around a hole. A complete map should also carry the `map-reviewed` marker — `/map-review`'s cross-read of the resolutions; if it's absent, flag that the review hasn't run and let the user choose: review first, or spec anyway.
+- **Slice mode** (argument is a `wayfinder:slice` issue URL or number) — **the normal path off a map**: load the slice's parent map for its Destination and Notes, then **zoom every ticket the slice claims plus every entry under Map-wide decisions** — fetch each closed ticket's body and resolution comments. The spec synthesizes exactly those resolutions and no others; the decisions belonging to other slices are deliberately out of this spec's scope, and that bounded scope is the whole point of slicing. The slice must be **sealed** (closed) — an open slice means the human hasn't agreed no remaining fog lands in it, so stop and say so. A sealed slice should also carry `slice-reviewed`; if it's absent, flag that the review hasn't run and let the user choose: review first, or spec anyway.
+- **Map mode** (argument is a `wayfinder:map` issue URL or number): for a map that was never sliced. Load the map, then **zoom every entry in Decisions so far** — fetch each closed ticket's body and resolution comment; the one-line gists on the map are an index, not the decisions themselves. The spec synthesizes those resolutions. Anything still open on the map (open tickets, non-empty Not-yet-specified) means the map isn't complete — stop and say so rather than spec around a hole. A complete map should also carry the `map-reviewed` marker — `/map-review`'s cross-read of the resolutions; if it's absent, flag that the review hasn't run and let the user choose: review first, or spec anyway. If the map *does* have slices, spec them one at a time in slice mode instead.
+
+In the two map-derived modes, "map mode" below means both unless a line says otherwise.
 
 For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
@@ -20,9 +23,11 @@ In map mode, the map's resolutions — design tickets especially — settle the 
 
 3. Write the spec as two kinds of unit — a **kernel** every downstream agent reads in full, and **addressable decisions** (`D1`…`Dn`) that `/tickets` routes to the implementation tickets needing them — using the templates below. Publish the kernel as the spec's body and each decision as its own unit, in index order, per the tracker doc's spec-decision convention (on GitHub: one marked comment per decision). The split is what keeps every agent's context bounded and relevant — a `/ship` agent reads the kernel plus only its ticket's cited decisions — and it keeps every published unit far below any tracker's body-size cap, so no content is ever trimmed to fit. Apply the `spec` label — no triage label: the spec's next step is the gated `/spec-review` read, and `/next` routes on the `spec` label plus its `spec-reviewed` marker and the state of its children, not on triage. (If the marker doesn't exist yet, run the tracker doc's bootstrap first.)
 
-In map mode, also comment on the map linking the published spec — the map's destination is reached — and close the map.
+In **slice mode**, comment the published spec's link on the slice, and add it to the slice's line in the map's Slices section. Do **not** close the map unless this was the **last unspecced slice** of a complete map — the map stays open while any slice still lacks a spec, and only when the last one lands is its destination reached. Slices later than this one may still be foggy, and that is expected — a later slice's spec is written *after* this one ships, against a codebase that has moved.
 
-End by pointing the user at the next step: `/spec-review <spec>` — the read that grounds the spec against the codebase before it is broken down. `/tickets` runs after that, and `/ship` only once its tickets exist.
+In **map mode** (an unsliced map), comment on the map linking the published spec — the map's destination is reached — and close the map.
+
+The **kernel inherits the map-wide decisions** in slice mode: a resolution filed map-wide binds every slice, so it belongs in the kernel (Solution, Testing Decisions, Further Notes) rather than as an indexed decision — the Decision Index is for what *this* slice settled. End by pointing the user at the next step: `/spec-review <spec>` — the read that grounds the spec against the codebase before it is broken down. `/tickets` runs after that, and `/ship` only once its tickets exist.
 
 <spec-template>
 

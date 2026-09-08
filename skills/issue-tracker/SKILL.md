@@ -5,7 +5,7 @@ description: The issue-tracker contract every workflow skill speaks — vocabula
 
 # Issue tracker
 
-Shared tracker wiring for the wayfinder → drain → map-review → specify → spec-review → tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
+Shared tracker wiring for the wayfinder → drain → slice → map-review → specify → spec-review → tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
 
 ## Which tracker?
 
@@ -28,13 +28,14 @@ Triage roles: `needs-triage` (maintainer must evaluate), `needs-info` (waiting o
 Workflow roles:
 
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
-- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the cross-read. `/next` routes a completed map without it to `/map-review`, with it to `/specify`. Reopening any child ticket removes it.
+- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the whole-map cross-read. `/next` routes a completed map without it to `/map-review`, with it to `/specify`. Reopening any child ticket removes it.
+- `slice-reviewed` — the same marker one altitude down: applied to a **sealed slice** by `/map-review` when that slice's decisions survive their cross-read. `/next` routes a sealed slice without it to `/map-review`, with it to `/specify`. Reopening the slice removes it.
 - `spec` — a spec issue published by `/specify`.
 - `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding. `/next` routes a spec without it to `/spec-review`, with it to `/tickets`.
 - `impl` — an implementation ticket published by `/tickets` (a child of its spec).
 - `review-finding` — a ticket published from a `/diff-review` finding: carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
-- `wayfinder:map` and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`design`/`task`) — wayfinder's map and its ticket types.
+- `wayfinder:map`, `wayfinder:slice`, and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`design`/`task`) — wayfinder's map, its delivery slices, and its ticket types. A map's children are its tickets *and* its slices; only the type-labelled ones are tickets.
 
 ### Ticket operations
 
@@ -48,7 +49,7 @@ Workflow roles:
 
 ### Structure operations
 
-- **Parent/child**: link a ticket as a child of a parent — implementation tickets under their spec, wayfinder tickets under their map.
+- **Parent/child**: link a ticket as a child of a parent — implementation tickets under their spec, wayfinder tickets and slices under their map.
 - **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Prefer the tracker's native dependency relationship — it renders the frontier visually in the tracker's own UI — and fall back to a body convention only where none exists.
 
 ### Spec decisions
@@ -61,7 +62,7 @@ A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed
 ### Workflow operations
 
 - **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed — a verifiable checkpoint (e.g. `/ship` refuses to spawn agents until every frontier ticket passes it).
-- **Frontier query**: a parent's open children, minus any with an open blocker, minus any claimed; first in parent order wins.
+- **Frontier query**: a parent's open **ticket** children, minus any with an open blocker, minus any claimed; first in parent order wins. On a map, ticket children are the `wayfinder:<type>`-labelled ones — slices are children too and are never on the frontier.
 - **Resolve** (wayfinding): comment the answer on the ticket, close it, remove the claim, then append a context pointer (gist + link) to the map's Decisions-so-far.
 
 ## GitHub implementation (default)
@@ -90,7 +91,9 @@ gh label create impl               --force -c "#1d76db" -d "Implementation ticke
 gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review finding (/diff-review)"
 gh label create hitl               --force -c "#d93f0b" -d "Needs the human in the loop"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
+gh label create slice-reviewed     --force -c "#0e8a16" -d "Sealed slice cross-read and coherent (/map-review)"
 gh label create wayfinder:map      --force -c "#006b75" -d "Wayfinder map"
+gh label create wayfinder:slice    --force -c "#006b75" -d "Wayfinder delivery slice (one spec's worth of decisions)"
 gh label create wayfinder:research --force -c "#c5def5" -d "Wayfinder ticket: research"
 gh label create wayfinder:prototype --force -c "#c5def5" -d "Wayfinder ticket: prototype"
 gh label create wayfinder:grilling --force -c "#c5def5" -d "Wayfinder ticket: grilling"
@@ -116,12 +119,14 @@ One **issue comment per decision** on the spec issue, posted in index order imme
 ### Workflow operations
 
 - **Claim** / **unclaim**: `gh issue edit <n> --add-label in-progress` / `--remove-label in-progress`. **Claim check**: `gh issue list --label in-progress`.
-- **Frontier query**: list the parent's open children (`gh issue list --state open`, scoped to the parent's sub-issues / task list), drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or the `in-progress` label; first in parent order wins.
+- **Frontier query**: list the parent's open children (`gh issue list --state open`, scoped to the parent's sub-issues / task list); on a map, keep only the `wayfinder:<type>`-labelled ones, so slices never appear. Drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or the `in-progress` label; first in parent order wins.
 - **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>` and remove the `in-progress` label, then append a context pointer (gist + link) to the map's Decisions-so-far.
 
 ### Wayfinding specifics
 
-The **map** is a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Fog body. Each **child ticket** is a sub-issue of the map, labelled `wayfinder:<type>` plus its mode, `hitl` or `afk`.
+The **map** is a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Slices / Map-wide / Fog body. Each **child ticket** is a sub-issue of the map, labelled `wayfinder:<type>` plus its mode, `hitl` or `afk`.
+
+Each **slice** is also a sub-issue of the map, labelled `wayfinder:slice` and carrying no type or mode label — that absence is what keeps it off the frontier. Ship order between slices uses the same native dependency edges as ticket blocking. A slice is **sealed** by closing it (`gh issue close`), and `slice-reviewed` is applied after it closes; a breach reopens it (`gh issue reopen`), which removes the marker.
 
 ## Local markdown implementation (fallback)
 
@@ -138,16 +143,18 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 ### Structure operations
 
-- **Parent/child**: the directory is the parent — a spec's children live in its `issues/` subdirectory, a map's in `map/`.
+- **Parent/child**: the directory is the parent — a spec's children live in its `issues/` subdirectory, a map's tickets in `map/`, a map's slices in `slices/`.
 - **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `closed`.
 - **Spec decisions**: inline in `spec.md` — a `## Decisions` section after the kernel, one `### D<n>: <title>` heading per decision in index order. No size cap locally; the headings alone provide the addressability.
 
 ### Workflow operations
 
 - **Claim**: set `Status: in-progress` and save before any work; unclaim by reverting it. **Claim check**: read the `Status:` lines.
-- **Frontier query**: scan the parent's child directory — `map/` for a map, `issues/` for a spec — for files that are open, unblocked, and unclaimed; first by number wins.
+- **Frontier query**: scan the parent's ticket directory — `map/` for a map, `issues/` for a spec — for files that are open, unblocked, and unclaimed; first by number wins. `slices/` is never scanned, which is what keeps slices off the frontier.
 - **Resolve**: append the answer under an `## Answer` heading, then Close (`Status: closed`), then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
 
 ### Wayfinding specifics
 
-The **map** is `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Fog body. Each **child ticket** is `.scratch/<effort>/map/NN-<slug>.md` — its own directory, so wayfinder tickets never mix with the spec's `issues/` — with the question in the body, a `Type:` line (`research`/`prototype`/`grilling`/`design`/`task`), a `Mode:` line (`hitl`/`afk`), and a `Status:` line.
+The **map** is `.scratch/<effort>/map.md` — the Notes / Decisions-so-far / Slices / Map-wide / Fog body. Each **child ticket** is `.scratch/<effort>/map/NN-<slug>.md` — its own directory, so wayfinder tickets never mix with the spec's `issues/` — with the question in the body, a `Type:` line (`research`/`prototype`/`grilling`/`design`/`task`), a `Mode:` line (`hitl`/`afk`), and a `Status:` line.
+
+Each **slice** is `.scratch/<effort>/slices/NN-<slug>.md`, numbered in ship order, with the Ships / Decisions body, `Labels: wayfinder:slice`, a `Blocked by: NN, NN` line naming the slices it ships after, and a `Status:` line. Sealing sets `Status: closed`; `slice-reviewed` goes on the `Labels:` line. A slice's spec is `.scratch/<effort>/<slice-slug>/spec.md` — one feature directory per slice, so each slice's tickets stay separate.
