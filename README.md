@@ -18,7 +18,7 @@ Every ticket carries a type and a mode — **HITL** (worked live with the human)
 
 | Ticket type | Mode | Powered by | Resolves |
 | --- | --- | --- | --- |
-| **Grilling** | HITL | `/grilling` + `/domain-modeling` | The default: a round-by-round interview over the design tree that turns "what should it do?" into recorded decisions |
+| **Grilling** | HITL | `/grilling` + `/domain-modeling` | The default: you say how you picture it, then one decision at a time gets argued out until "what should it do?" is recorded decisions |
 | **Design** | HITL | `/design` | The shape of code before it's built — module boundaries, interfaces, data shapes, the seams tests will live at |
 | **Prototype** | HITL | `/prototype` | "How should it look / behave?" — cheap throwaway code or artifacts to react to |
 | **Research** | AFK | `/research` | Questions answerable from documentation and primary sources; lands as a cited markdown file |
@@ -112,7 +112,7 @@ What must be true of your project and working style for this workflow to fit:
 
 Used by the chain, and useful on their own:
 
-- **grilling** — relentless round-by-round interview over the design tree to stress-test a plan; facts get looked up, decisions get asked
+- **grilling** — you lay out your picture first, then it holds a position on one decision at a time until the design holds; facts get looked up, never asked
 - **wait-what** — stop and re-pitch the last message in plain language, using the project's ubiquitous vocabulary
 - **domain-expansion** — a plain-language briefing on the system behaviour behind the current question, in the project's ubiquitous language; for when a question lands on unfamiliar terrain
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
@@ -125,7 +125,7 @@ Used by the chain, and useful on their own:
 - **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
 - **diff-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
-- **hitl-questions** — the presentation contract for every question put to the human: facts vs decisions, cold-reader blocks, domain language, recommendations, escape hatches
+- **hitl-questions** — the presentation contract for every question put to the human: the opening where the human states their design before the agent proposes anything, facts vs decisions, cold-reader blocks, one topic per block, domain language, recommendations, escape hatches
 - **issue-tracker** — the tracker contract every workflow skill speaks, with GitHub and local-markdown implementations and a per-repo override
 - **conventions** — where a repo's reviewable coding standards live (`CONVENTIONS.md`, per-directory deltas, nearest scope wins) and how reviewers find them
 - **code-anchors** — the citation format for showing the human code: verified, clickable `path:line` references, never pasted snippets
