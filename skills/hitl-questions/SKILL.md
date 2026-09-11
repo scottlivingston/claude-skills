@@ -1,9 +1,19 @@
 ---
 name: hitl-questions
-description: The presentation contract for every question put to the human — facts vs decisions, cold-reader blocks, domain language, recommendations, AskUserQuestion mechanics, escape hatches. Consult when putting any question to the human from a workflow skill, or when authoring a skill that asks.
+description: The presentation contract for every question put to the human — the opening, facts vs decisions, cold-reader blocks, domain language, recommendations, prose over dialogs, escape hatches. Consult when putting any question to the human from a workflow skill, or when authoring a skill that asks.
 ---
 
-Every skill in this plugin that puts a question to the human speaks this contract. The asking skill defines only its **cadence** — grilling's whole-frontier rounds, the finding pipeline's one-question-per-turn gate loop, tickets' quiz — and what each answer triggers. How a question *reads* lives here, once. When an asking skill and this contract disagree, this contract wins — fix the skill.
+Every skill in this plugin that puts a question to the human speaks this contract. The asking skill defines only its **cadence** — grilling's one decision at a time, the finding pipeline's one-question-per-turn gate loop, tickets' quiz — and what each answer triggers. How a question *reads* lives here, once. When an asking skill and this contract disagree, this contract wins — fix the skill.
+
+## The opening
+
+A skill that opens a **design conversation** — grilling, design, a wayfinder resolution — does not open with a question. It opens by **setting context**: what it looked up, what is already true in the code and the tracker, and what it takes the decision space to be. Only then does it ask the human for **their picture** of how the thing should work, in their own words, at whatever length they have.
+
+The human designs; the agent pushes. Someone who opens one of these sessions almost always already holds a shape of the answer, and the opening exists so they state it once, whole, instead of having it extracted from them one choice at a time. Withhold your own proposal here — a recommendation offered before you have heard their picture anchors them to your design and turns the rest of the session into them reacting to it.
+
+**Reflect the picture back** before anything else — what it settled, stated as decisions in the human's own terms, and what it left open, including anything it assumed silently or contradicted itself on. The human corrects that split, and the corrected split, not your reading of it, is what the rest of the session works from. A human with no picture yet, or who says `just ask`, goes straight to the questions.
+
+A gate escalating a single question mid-pipeline has no opening — it asks its question.
 
 ## Facts vs decisions
 
@@ -24,16 +34,16 @@ Questions speak the project's **domain language** — capabilities, behaviors, c
 
 ## The recommendation
 
-Every question carries your recommended answer and the one-line reason. The human decides; the recommendation is the proof you did the thinking first — a question with no recommendation is usually a fact-lookup you skipped.
+Every question carries your recommended answer and the one-line reason. The human decides; the recommendation is the proof you did the thinking first — a question with no recommendation is usually a fact-lookup you skipped. The one exception is the opening above, where you have not yet heard the human's picture and a recommendation would anchor rather than serve.
 
-## AskUserQuestion mechanics
+## Prose, not dialogs
 
-When the choices are enumerable, ask with `AskUserQuestion` — recommended option first, options phrased as the outcome choices, each description naming what the answer triggers. Everything the human must read to answer is printed as ordinary text in the same reply, *before* the tool call — the dialog cannot display the material, and no summary inside the tool stands in for it.
+Questions are put in **prose**, in the flow of the conversation, with your reasoning visible and the human free to answer past the question you actually asked. Nothing here mandates `AskUserQuestion`: a skill reaches for the dialog only when the exchange really is a routing decision over a closed set — a finding's verdict, a breakdown's confirmation — and never in a design conversation, where a ballot of options stands in for a position you should have taken. When a skill does use it, everything the human must read to answer is printed as ordinary text in the same reply, *before* the tool call — the dialog cannot display the material, and no summary inside the tool stands in for it.
 
 ## Escape hatches
 
 Three, honoured immediately in every asking skill:
 
 - **`explain`** — brief per `/domain-expansion`, code anchors and excerpts now welcome, then re-put the same question.
-- **Batched answers** — several answers arriving as one free-text message, or a brief of how the human wants the thing to work, are taken as given: reflect back what the message settled and what it left open, then ask on from the open part; never re-ask them one by one.
+- **Batched answers** — several answers arriving as one free-text message, or a picture of how the human wants the thing to work, are taken as given: reflect back what the message settled and what it left open, then ask on from the open part; never re-ask them one by one.
 - **`stop`** — end the questioning now: record what's untouched in the asking skill's terms (an `unanswered` outcome, an unsettled branch) and go to its wrap-up.

@@ -3,26 +3,28 @@ name: grilling
 description: Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trigger phrases.
 ---
 
-Interview the user relentlessly until you reach a shared understanding. Map this as a **design tree**: every decision branches into the decisions that hang off it.
+Design a thing *with* the user, by argument, until you reach a shared understanding. This is not an interview. It is a conversation between two people who both hold opinions, in which the design being built is the user's and your job is to load it until it either holds or breaks.
 
-## The brief
+Open per the opening in `/hitl-questions` — set context, ask for the user's picture, reflect the split back, let them correct it. Every question you put obeys that contract too; what's local here is the cadence.
 
-Open by asking for the user's **brief**: how they picture the thing working, in their own words, at whatever length they have — before any question is put. Someone who invokes a grilling usually already holds a shape of the answer, and the brief lets them lay it out once instead of reconstructing it one choice at a time. A user with no picture yet, or who says `just ask`, goes straight to the first round.
+## The tree is yours, not theirs
 
-**Reflect the brief back** before asking anything — this is a step, not a courtesy. Recast it as the first cut of the design tree in two lists: what the brief **settled**, each item stated as a decision in the user's terms, and what it left **open**, including anything the brief assumed silently or contradicted itself on. The user corrects the split, and only then do the rounds begin. Settled decisions stay settled until a later answer reopens one; the first round is the frontier of the open list. A brief arriving mid-session is handled the same way, per the contract's batched-answers hatch.
+Track the design as a **tree**: every decision branches into the decisions that hang off it, and the corrected split from the opening is its first cut. The tree is bookkeeping — it tells you what is settled, what is open, and what nothing has touched yet, so nothing ends up silently assumed.
 
-Work the tree in **rounds**. The **frontier** is every decision whose prerequisites are already settled — the questions you can ask _now_ without guessing at answers you haven't heard yet. Ask the whole frontier in one round, then wait for the user's answers before the next round.
+It is never read out. A numbered list of open branches put to the user is the failure this skill exists to avoid: it hands them a ballot, and the design becomes yours assembled from their answers.
 
-Every question obeys the presentation contract in `/hitl-questions` — cold-reader wording, the project's domain language, facts looked up rather than asked, escape hatches honoured. What's local here is the cadence: whole-frontier rounds, each question numbered and formatted like so (the ➡️ line is the contract's recommendation):
+## One decision at a time
 
-```
-❓ **Q1** - **<question title>**: <question body, might be multiple paragraphs, including multiple choices>
+Take the open decision that **most constrains the rest** — the one whose answer moves the most other branches — and stay on it until it settles. Everything else waits, including the questions you are itching to ask.
 
-➡️ <your recommended answer>
-```
+A turn on that decision is a **position**, not a question block: what you think the decision actually is, where you would take it and what that costs, and where the user's picture is wrong, underspecified, or paying for something it doesn't need. They argue back, redirect, or settle it. Put a direct question only when you genuinely cannot form a position without something only they hold — what was meant, what is wanted, which trade-off they'll take — and then ask that one question and stop.
 
-Each round the user answers reshapes the tree — settled decisions push the frontier outward and unblock questions that depended on them. Recompute the frontier and ask the next round. A question whose answer depends on another question still open in this round belongs to a _later_ round, not this one.
+Push, and keep pushing. A grilling that agrees with the user's first picture has grilled nothing. Name the case the design doesn't handle, the assumption carrying the load, the thing that will be painful to change later, the simpler shape that would do. Concede when they're right and say so in a line; don't relitigate a decision they've reaffirmed.
 
-A frontier question that needs a fact from the environment dispatches a sub-agent per the contract — and doesn't block the round: a running exploration is an unsettled prerequisite, so only the questions downstream of it wait for the sub-agent to report; ask the rest of the frontier now.
+A branch that needs a fact from the environment is yours to answer, per the contract — look it up, or dispatch a sub-agent for the big ones. A running exploration doesn't stall the conversation: carry on with a decision that doesn't depend on it.
 
-The session is done when the frontier is empty: every branch of the design tree visited, nothing left silently assumed. Do not act on it until the user confirms you have reached a shared understanding.
+## Settling and moving on
+
+When a decision settles, state it in one line in the user's terms and fold it into the tree. Settled decisions stay settled until a later answer reopens one, and each opens the branches beneath it. Then pick the next decision the same way.
+
+The session is done when nothing in the tree is open. Put the whole design back to the user as one piece, in their terms, and get their confirmation before acting on any of it.
