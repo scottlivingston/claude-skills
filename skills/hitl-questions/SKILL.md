@@ -19,6 +19,8 @@ A gate escalating a single question mid-pipeline has no opening — it asks its 
 
 Finding facts is the agent's job, never the human's. When a question hinges on a fact from the environment — the code, the tracker, the docs — look it up or dispatch a sub-agent; the human is asked only what no lookup can answer: what was *meant*, what is *wanted*, which trade-off to take. The decisions are the human's — put each one to them and wait. An agent that answers its own question has broken the exchange.
 
+**A decision the record already made is a fact too.** Derive before you ask: where a decision already recorded, an earlier answer from this human, or the code itself settles the matter, settling it *is* the agent's work. **The test is the answer, not the topic — a question earns its turn only when the human's answer would change what gets built or written.** No topic, defect kind, or always-ask list earns one on its own. Two defensible answers is a question; one defensible answer standing against something simply wrong is a repair — make it, and record it where the human can see and override it. The line between this and the paragraph above is what kind of question it is: standing in for the human on a question of intent breaks the exchange, and handing them one the record already answers wastes it.
+
 ## The cold reader
 
 Every question is written for a cold reader: someone who joined the project today must be able to answer from the question alone — assume the human has not read the spec, the map, the diff, or the transcript that produced the question. Concretely:
