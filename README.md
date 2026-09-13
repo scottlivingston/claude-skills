@@ -105,6 +105,7 @@ What must be true of your project and working style for this workflow to fit:
 - **The effort is bigger than one context window.** That's what the map is for. If charting surfaces no fog — the whole journey fits one session — wayfinder tells you to skip the map and just do the work.
 - **A human is actually available.** Grilling, prototypes, design decisions, spec-gap resolutions, and gate verdicts are all HITL by design — `/next auto` batches them at durable gates rather than removing them. This workflow reduces where human attention goes; it does not remove it.
 - **You work in a git repo with a test suite you trust.** Ship implements in isolated worktrees and gates every serial merge on green tests; without meaningful tests, "never merge on red" protects nothing.
+- **Fan-outs never inherit the session's model by accident.** Every spawned agent runs on a tier — executors (implementers, merges, fixes, mechanics) default to Sonnet; deciders (reviewers, validators, planners, drain and research agents) and auditors (the few run-once reads whose misses nothing catches: labeling, the spec grounding read, the map cross-read, the closing pass) default to the session's model unless a policy file pins them. Put `decider: opus` and `auditor: fable` in `~/.claude/model-policy.md` and a session on any model reviews on Opus and audits on Fable.
 - **Sessions are disposable; only the tracker is durable.** Anything worth keeping must land on an issue before context clears. The flip side: any session — yours, a teammate's, a background agent's — can pick up the effort cold.
 - **Concurrency is normal.** Background drain agents and parallel sessions edit the tracker at the same time; claims (`in-progress`), a single map-writer per session, and reconcile-before-routing in `/next` are what keep them from colliding.
 
@@ -127,6 +128,7 @@ Used by the chain, and useful on their own:
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
 - **hitl-questions** — the presentation contract for every question put to the human: the opening where the human states their design before the agent proposes anything, facts vs decisions, cold-reader blocks, one topic per block, domain language, recommendations, escape hatches
 - **issue-tracker** — the tracker contract every workflow skill speaks, with GitHub and local-markdown implementations and a per-repo override
+- **model-policy** — which model every spawned agent runs on: three tiers (executor, decider, auditor) resolved from `.claude/model-policy.md`, then `~/.claude/model-policy.md`, then defaults — so a session on an expensive model never fans it out by accident
 - **conventions** — where a repo's reviewable coding standards live (`CONVENTIONS.md`, per-directory deltas, nearest scope wins) and how reviewers find them
 - **code-anchors** — the citation format for showing the human code: verified, clickable `path:line` references, never pasted snippets
 

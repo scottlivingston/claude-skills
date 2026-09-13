@@ -78,7 +78,8 @@ The slots — the workflow has no conversation context:
 - the standards sources with the directory scope each binds (the smell baseline itself is embedded in the template — step 3's text and the template's `SMELL_BASELINE` const are the same words, kept in sync),
 - the dedup inputs — the open `review-finding` tickets and the spec issue's prior `<!-- diff-review summary -->` comments, fetched **before** launching (the summaries also feed the validators as the binding answer record),
 - the tracker inputs — the spec issue's ref when the spec is a tracker issue, and the tracker's create/label/parent/comment operations per `/issue-tracker` (null → auto-ticket findings and the pending-questions post come back for the manager, step 7),
-- the user's default-branch OK from step 1, when given.
+- the user's default-branch OK from step 1, when given,
+- the three model slots, resolved per `/model-policy` (`inherit` fills as `null`) — say which models the tiers resolved to in one line before launching.
 
 The workflow returns the full labeled queue — every finding with its flags, verdicts, proposal, size, route, and applied SHA or ticket ref — plus the escalation queue with question classes, and that return value is all the manager sees of the pipeline.
 

@@ -2,9 +2,9 @@ export const meta = {
   name: 'ship-wave',
   description: 'One ship wave: claim ∥ plan → collision check → implement in worktrees → merge in completion order → verify the merged diff → route — escalate intent, auto-resolve code',
   phases: [
-    { title: 'Claim + Plan', detail: 'sonnet claim agent alongside one planner per ticket; collision check over the finished plans' },
-    { title: 'Implement', detail: 'one sonnet implementer per ticket, each in an isolated worktree', model: 'sonnet' },
-    { title: 'Merge', detail: 'strictly serialized merges in implementer-completion order; tests after each', model: 'sonnet' },
+    { title: 'Claim + Plan', detail: 'executor-tier claim agent alongside one decider-tier planner per ticket; collision check over the finished plans' },
+    { title: 'Implement', detail: 'one executor-tier implementer per ticket, each in an isolated worktree' },
+    { title: 'Merge', detail: 'strictly serialized executor-tier merges in implementer-completion order; tests after each' },
     { title: 'Review', detail: 'spec + standards reviewers over the merged wave diff (closing pass: sweeper + requirements union)' },
     { title: 'Label', detail: 'normalize into IDed findings; dedup vs open tickets and the ledger' },
     { title: 'Validate findings', detail: 'fresh adversarial validators, chunked — refuted findings leave here' },
@@ -45,9 +45,18 @@ const TRACKER_MECHANICS = FILL    // prose: the tracker's claim/unclaim/close/co
 const WIDE = FILL                 // true past ~15 files / ~1,500 changed lines expected → partitioned review
 const TEST_NOTES = FILL           // how to run the suite / typecheck / affected tests, or "" to let agents discover
 
+const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model ('sonnet'), or null to inherit the session model
+const DECIDER_MODEL = FILL     // per /model-policy: the decider tier's resolved model ('opus'), or null to inherit — never leave a fan-out on the session's model by accident
+const AUDITOR_MODEL = FILL     // per /model-policy: the auditor tier's resolved model ('fable') for the run-once find-side reads, or null to inherit
+
 // ═══════════ FIXED BELOW THIS LINE — edit only when the run genuinely deviates ═══════════
 
 const CHUNK_SIZE = 5 // findings per chunk — an axis's findings flow through validate → propose → validate-fix in chunks, each chunk an independent pipeline chain
+
+// Model tiers per /model-policy: every agent() call names its tier; a pinned tier passes
+// `model`, an inherited one (null slot) passes nothing and takes the harness default.
+const TIER_MODEL = { executor: EXECUTOR_MODEL, decider: DECIDER_MODEL, auditor: AUDITOR_MODEL }
+const tier = t => (TIER_MODEL[t] ? { model: TIER_MODEL[t] } : {})
 
 const PREFIX = (CLOSING ? 'C' : 'W') + WAVE
 const DIFF_CMD = 'git diff ' + PRE_WAVE_SHA + '...HEAD'
@@ -576,9 +585,9 @@ if (!CLOSING) {
   phase('Claim + Plan')
   // Claims gate implementers, not planners — the claim agent and the planners run together.
   const claimAndPlans = await parallel([
-    () => agent(claimPrompt(), { schema: CLAIM_SCHEMA, model: 'sonnet', effort: 'low', label: 'claim', phase: 'Claim + Plan' }),
+    () => agent(claimPrompt(), { ...tier('executor'), schema: CLAIM_SCHEMA, effort: 'low', label: 'claim', phase: 'Claim + Plan' }),
   ].concat(TICKETS.map(t => () =>
-    agent(plannerPrompt(t), { schema: PLAN_SCHEMA, label: 'plan:' + t.ref, phase: 'Claim + Plan' }).then(p => ({ t, plan: p }))
+    agent(plannerPrompt(t), { ...tier('decider'), schema: PLAN_SCHEMA, label: 'plan:' + t.ref, phase: 'Claim + Plan' }).then(p => ({ t, plan: p }))
   )))
   const claim = claimAndPlans[0] || { claimed: [], failed: TICKETS.map(t => ({ ref: t.ref, reason: 'claim agent died' })) }
   const plans = claimAndPlans.slice(1).filter(Boolean)
@@ -603,7 +612,7 @@ if (!CLOSING) {
         if (shared.length) overlaps.push(active[i].t.ref + ' ∩ ' + active[k].t.ref + ': ' + shared.join(', '))
       }
     }
-    const c = await agent(collisionPrompt(active, overlaps), { schema: COLLISION_SCHEMA, label: 'collision-check', phase: 'Claim + Plan' })
+    const c = await agent(collisionPrompt(active, overlaps), { ...tier('decider'), schema: COLLISION_SCHEMA, label: 'collision-check', phase: 'Claim + Plan' })
     if (c) {
       for (const a of c.amendments) amendments.set(a.ref, a.amendment)
       collisionNotes = c.mergeNotes
@@ -617,13 +626,13 @@ if (!CLOSING) {
   let mergeLock = Promise.resolve()
   await parallel(active.map(({ t, plan }) => async () => {
     const impl = await agent(implementerPrompt(t, plan, amendments.get(t.ref)),
-      { schema: IMPL_SCHEMA, model: 'sonnet', isolation: 'worktree', label: 'impl:' + t.ref, phase: 'Implement' })
+      { ...tier('executor'), schema: IMPL_SCHEMA, isolation: 'worktree', label: 'impl:' + t.ref, phase: 'Implement' })
     if (!impl || impl.status === 'parked' || !impl.branch) {
       parked.push({ ref: t.ref, at: 'implement', reason: impl ? impl.notes : 'implementer died' })
       return
     }
     const myTurn = mergeLock.then(() =>
-      agent(mergePrompt(t, impl.branch, collisionNotes), { schema: MERGE_SCHEMA, model: 'sonnet', label: 'merge:' + t.ref, phase: 'Merge' }))
+      agent(mergePrompt(t, impl.branch, collisionNotes), { ...tier('executor'), schema: MERGE_SCHEMA, label: 'merge:' + t.ref, phase: 'Merge' }))
     mergeLock = myTurn.catch(() => null) // a failed merge never blocks the chain
     const m = await myTurn
     if (m && m.status === 'merged') merged.push({ ref: t.ref, sha: m.sha, testSummary: m.testSummary })
@@ -652,7 +661,7 @@ async function runAxis(axisName, labeled) {
   await pipeline(chunk(inQueue, CHUNK_SIZE),
     async (c, _, i) => {
       const r = await agent(findingValidatorPrompt(axisName, c),
-        { schema: FINDING_VERDICTS_SCHEMA, phase: 'Validate findings', label: 'validate:' + axisName + ':' + (i + 1) })
+        { ...tier('decider'), schema: FINDING_VERDICTS_SCHEMA, phase: 'Validate findings', label: 'validate:' + axisName + ':' + (i + 1) })
       const verdicts = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
       for (const f of c) {
         const v = verdicts.get(f.id)
@@ -677,7 +686,7 @@ async function runAxis(axisName, labeled) {
     async (survivors, _, i) => {
       if (!survivors.length) return survivors
       const props = await agent(proposerPrompt(axisName, survivors),
-        { schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'propose:' + axisName + ':' + (i + 1) })
+        { ...tier('decider'), schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'propose:' + axisName + ':' + (i + 1) })
       const byId = new Map(((props && props.proposals) || []).map(p => [p.id, p]))
       for (const f of survivors) {
         const p = byId.get(f.id)
@@ -691,7 +700,7 @@ async function runAxis(axisName, labeled) {
     async (survivors, _, i) => {
       if (!survivors.length) return survivors
       const r = await agent(fixValidatorPrompt(axisName, survivors, roster),
-        { schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + axisName + ':' + (i + 1) })
+        { ...tier('decider'), schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + axisName + ':' + (i + 1) })
       const fvs = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
       for (const f of survivors) {
         const v = fvs.get(f.id)
@@ -725,14 +734,14 @@ async function standardsAxis(groups) {
   if (CLOSING) {
     // The closing pass's standards-side source is the cross-wave sweeper — the one
     // place the pipeline looks beyond written rules, at parallel-implementation drift.
-    thunks.push(() => agent(sweeperPrompt('closing'), { phase: 'Review', label: 'review:cross-wave-sweeper' }))
-    if (STANDARDS_SOURCES.length) thunks.push(...groups.map(g => () => agent(standardsReviewerPrompt(g), { phase: 'Review', label: 'review:std:' + g.name })))
+    thunks.push(() => agent(sweeperPrompt('closing'), { ...tier('auditor'), phase: 'Review', label: 'review:cross-wave-sweeper' }))
+    if (STANDARDS_SOURCES.length) thunks.push(...groups.map(g => () => agent(standardsReviewerPrompt(g), { ...tier('decider'), phase: 'Review', label: 'review:std:' + g.name })))
   } else {
-    thunks.push(...groups.map(g => () => agent(standardsReviewerPrompt(g), { phase: 'Review', label: 'review:std:' + g.name })))
-    if (groups.length > 1) thunks.push(() => agent(sweeperPrompt('wave'), { phase: 'Review', label: 'review:std:cross-cutting' }))
+    thunks.push(...groups.map(g => () => agent(standardsReviewerPrompt(g), { ...tier('decider'), phase: 'Review', label: 'review:std:' + g.name })))
+    if (groups.length > 1) thunks.push(() => agent(sweeperPrompt('wave'), { ...tier('decider'), phase: 'Review', label: 'review:std:cross-cutting' }))
   }
   const reports = (await parallel(thunks)).filter(Boolean)
-  const labeled = await agent(labelPrompt('STD', 'Standards', reports), { schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:std' })
+  const labeled = await agent(labelPrompt('STD', 'Standards', reports), { ...tier('auditor'), schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:std' })
   return runAxis('Standards', labeled ? labeled.findings : [])
 }
 
@@ -740,31 +749,31 @@ async function specAxis(groups, requirements) {
   const reports = []
   if (CLOSING) {
     // Requirements-union: is every requirement implemented SOMEWHERE in the run?
-    const suspects = (await agent(requirementsUnionPrompt(), { phase: 'Review', label: 'review:requirements-union' }) || '')
+    const suspects = (await agent(requirementsUnionPrompt(), { ...tier('auditor'), phase: 'Review', label: 'review:requirements-union' }) || '')
       .split('\n').map(s => s.trim()).filter(Boolean)
     if (suspects.length) {
       const checks = (await parallel(suspects.map(q => () =>
-        agent(checkerPrompt(q), { schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' }).then(c => ({ q, c }))))).filter(Boolean)
+        agent(checkerPrompt(q), { ...tier('decider'), schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' }).then(c => ({ q, c }))))).filter(Boolean)
       const missing = checks.filter(x => x.c.status === 'missing' || x.c.status === 'partial')
       if (missing.length) reports.push('Requirements-union check:\n' + missing.map(x => '- ' + x.q + ': ' + x.c.status + ' — ' + x.c.note).join('\n'))
     }
   } else {
     const reviews = (await parallel(groups.map(g => () =>
-      agent(specReviewerPrompt(g), { schema: SPEC_REVIEW_SCHEMA, phase: 'Review', label: 'review:spec:' + g.name })))).filter(Boolean)
+      agent(specReviewerPrompt(g), { ...tier('decider'), schema: SPEC_REVIEW_SCHEMA, phase: 'Review', label: 'review:spec:' + g.name })))).filter(Boolean)
     reports.push(...reviews.map(r => r.report))
     if (groups.length > 1 && requirements.length) {
       const touched = new Set(reviews.flatMap(r => r.requirementsTouched))
       const unclaimed = requirements.filter(q => !touched.has(q))
       if (unclaimed.length) {
         const checks = (await parallel(unclaimed.map(q => () =>
-          agent(checkerPrompt(q), { schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' }).then(c => ({ q, c }))))).filter(Boolean)
+          agent(checkerPrompt(q), { ...tier('decider'), schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' }).then(c => ({ q, c }))))).filter(Boolean)
         const missing = checks.filter(x => x.c.status === 'missing' || x.c.status === 'partial')
         if (missing.length) reports.push('Requirement-coverage check (requirements no slice claimed):\n' + missing.map(x => '- ' + x.q + ': ' + x.c.status + ' — ' + x.c.note).join('\n'))
       }
     }
   }
   if (!reports.length) return { survivors: [], refuted: [], shelved: [] }
-  const labeled = await agent(labelPrompt('SPEC', 'Spec', reports), { schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:spec' })
+  const labeled = await agent(labelPrompt('SPEC', 'Spec', reports), { ...tier('auditor'), schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:spec' })
   return runAxis('Spec', labeled ? labeled.findings : [])
 }
 
@@ -773,7 +782,7 @@ let requirements = []
 if (WIDE && !CLOSING) {
   phase('Review')
   const fileList = 'Changed files: run ' + DIFF_CMD + ' --stat yourself for the list and sizes.'
-  const p = await agent(partitionPrompt(fileList), { schema: PARTITION_SCHEMA, label: 'partition', phase: 'Review' })
+  const p = await agent(partitionPrompt(fileList), { ...tier('decider'), schema: PARTITION_SCHEMA, label: 'partition', phase: 'Review' })
   if (p && p.groups.length) {
     groups = p.groups.map(g => ({ name: g.name, paths: g.paths, decisionIds: g.decisionIds, diffCmd: DIFF_CMD + ' -- ' + g.paths.join(' ') }))
     requirements = p.requirements
@@ -798,7 +807,7 @@ for (const s of std.survivors) {
 }
 if (pairList.length) {
   const settled = await parallel(pairList.map(([a, b]) => () =>
-    agent(pairPrompt(a, b), { schema: PAIR_SCHEMA, phase: 'Validate fixes', label: 'pair:' + a.id + '+' + b.id })))
+    agent(pairPrompt(a, b), { ...tier('decider'), schema: PAIR_SCHEMA, phase: 'Validate fixes', label: 'pair:' + a.id + '+' + b.id })))
   pairList.forEach(([a, b], i) => {
     const r = settled[i]
     // A dead pair agent escalates the pair — conservative, and visible.
@@ -882,7 +891,7 @@ while (pending.length) {
 
 let apply = { applied: [], demoted: [], testSummary: 'no auto-apply candidates' }
 if (ordered.length) {
-  apply = (await agent(fixAgentPrompt(ordered), { schema: APPLY_SCHEMA, label: 'fix:auto-apply', model: 'sonnet' })) ||
+  apply = (await agent(fixAgentPrompt(ordered), { ...tier('executor'), schema: APPLY_SCHEMA, label: 'fix:auto-apply' })) ||
     { applied: [], demoted: ordered.map(f => ({ id: f.id, reason: 'demoted: fix agent died', kind: 'preconditions' })), testSummary: '' }
 }
 for (const a of apply.applied) { const f = byId.get(a.id); if (f) { f.status = 'auto-applied'; f.sha = a.sha } }
@@ -898,7 +907,7 @@ for (const d of apply.demoted) {
 const autoTicket = all.filter(f => f.route === 'auto-ticket')
 let tickets = []
 if (autoTicket.length) {
-  const t = await agent(ticketAgentPrompt(autoTicket), { schema: TICKET_SCHEMA, label: 'ticket:auto', model: 'sonnet', effort: 'low' })
+  const t = await agent(ticketAgentPrompt(autoTicket), { ...tier('executor'), schema: TICKET_SCHEMA, label: 'ticket:auto', effort: 'low' })
   tickets = (t && t.tickets) || []
   const covered = new Set(tickets.flatMap(x => x.findingIds))
   for (const f of autoTicket) {
@@ -936,7 +945,7 @@ const digest = {
 }
 let ledger = { posted: false, marker: 'no escalations — no pending-questions comment needed' }
 if (escalations.length || deferredQueue.length) {
-  ledger = (await agent(ledgerPrompt(escalations.concat(deferredQueue), digest), { schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
+  ledger = (await agent(ledgerPrompt(escalations.concat(deferredQueue), digest), { ...tier('decider'), schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
     { posted: false, marker: 'ledger agent died — POST THE PENDING-QUESTIONS COMMENT FROM THE MANAGER before anything else' }
 }
 

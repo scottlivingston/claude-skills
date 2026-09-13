@@ -42,9 +42,18 @@ const DEFAULT_BRANCH_OK = FILL    // false, or the user's exact words OKing comm
 const SPEC_ISSUE_REF = FILL       // tracker ref of the spec issue ("#42") when the spec IS a tracker issue, else null — auto-tickets parent to it
 const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent/comment operations per /issue-tracker (exact commands), or null → auto-ticket findings and the pending-questions post come back for the manager (step 7)
 
+const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model ('sonnet'), or null to inherit the session model
+const DECIDER_MODEL = FILL     // per /model-policy: the decider tier's resolved model ('opus'), or null to inherit — never leave a fan-out on the session's model by accident
+const AUDITOR_MODEL = FILL     // per /model-policy: the auditor tier's resolved model ('fable') for the run-once find-side reads, or null to inherit
+
 // ═══════════ FIXED BELOW THIS LINE — edit only when the run genuinely deviates ═══════════
 
 const CHUNK_SIZE = 5 // findings per chunk — an axis's findings flow through validate → propose → validate-fix in chunks, each chunk an independent pipeline chain
+
+// Model tiers per /model-policy: every agent() call names its tier; a pinned tier passes
+// `model`, an inherited one (null slot) passes nothing and takes the harness default.
+const TIER_MODEL = { executor: EXECUTOR_MODEL, decider: DECIDER_MODEL, auditor: AUDITOR_MODEL }
+const tier = t => (TIER_MODEL[t] ? { model: TIER_MODEL[t] } : {})
 
 const SMELL_BASELINE = [
   'Smell baseline (Fowler, Refactoring ch.3) — applies even when the repo documents nothing. Every hit is a labelled hypothesis ("possible Feature Envy") the adversarial validators must confirm; a documented repo standard overrides the baseline; skip anything tooling already enforces. Each smell reads what-it-is → how-to-fix:',
@@ -478,7 +487,7 @@ async function runAxis(axisName, labeled) {
   await pipeline(chunk(inQueue, CHUNK_SIZE),
     async (c, _, i) => {
       const r = await agent(findingValidatorPrompt(axisName, c),
-        { schema: FINDING_VERDICTS_SCHEMA, phase: 'Validate findings', label: 'validate:' + axisName + ':' + (i + 1) })
+        { ...tier('decider'), schema: FINDING_VERDICTS_SCHEMA, phase: 'Validate findings', label: 'validate:' + axisName + ':' + (i + 1) })
       const verdicts = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
       for (const f of c) {
         const v = verdicts.get(f.id)
@@ -503,7 +512,7 @@ async function runAxis(axisName, labeled) {
     async (survivors, _, i) => {
       if (!survivors.length) return survivors
       const props = await agent(proposerPrompt(axisName, survivors),
-        { schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'propose:' + axisName + ':' + (i + 1) })
+        { ...tier('decider'), schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'propose:' + axisName + ':' + (i + 1) })
       const byId = new Map(((props && props.proposals) || []).map(p => [p.id, p]))
       for (const f of survivors) {
         const p = byId.get(f.id)
@@ -517,7 +526,7 @@ async function runAxis(axisName, labeled) {
     async (survivors, _, i) => {
       if (!survivors.length) return survivors
       const r = await agent(fixValidatorPrompt(axisName, survivors, roster),
-        { schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + axisName + ':' + (i + 1) })
+        { ...tier('decider'), schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + axisName + ':' + (i + 1) })
       const fvs = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
       for (const f of survivors) {
         const v = fvs.get(f.id)
@@ -543,10 +552,10 @@ async function runAxis(axisName, labeled) {
 }
 
 async function standardsAxis(groups) {
-  const thunks = groups.map(g => () => agent(standardsReviewerPrompt(g), { phase: 'Review', label: 'review:std:' + g.name }))
-  if (WIDE) thunks.push(() => agent(sweeperPrompt(), { phase: 'Review', label: 'review:std:cross-cutting' }))
+  const thunks = groups.map(g => () => agent(standardsReviewerPrompt(g), { ...tier('decider'), phase: 'Review', label: 'review:std:' + g.name }))
+  if (WIDE) thunks.push(() => agent(sweeperPrompt(), { ...tier('decider'), phase: 'Review', label: 'review:std:cross-cutting' }))
   const reports = (await parallel(thunks)).filter(Boolean)
-  const labeled = await agent(labelPrompt('STD', 'Standards', reports), { schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:std' })
+  const labeled = await agent(labelPrompt('STD', 'Standards', reports), { ...tier('auditor'), schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:std' })
   return runAxis('Standards', labeled ? labeled.findings : [])
 }
 
@@ -556,7 +565,7 @@ async function specAxis(groups, requirements) {
     return { skipped: true, survivors: [], refuted: [], shelved: [] }
   }
   const reviews = (await parallel(groups.map(g => () =>
-    agent(specReviewerPrompt(g), { schema: SPEC_REVIEW_SCHEMA, phase: 'Review', label: 'review:spec:' + g.name })))).filter(Boolean)
+    agent(specReviewerPrompt(g), { ...tier('decider'), schema: SPEC_REVIEW_SCHEMA, phase: 'Review', label: 'review:spec:' + g.name })))).filter(Boolean)
   const reports = reviews.map(r => r.report)
 
   // Missing requirements are a property of the union, not any slice.
@@ -565,7 +574,7 @@ async function specAxis(groups, requirements) {
     const unclaimed = requirements.filter(q => !touched.has(q))
     if (unclaimed.length) {
       const checks = (await parallel(unclaimed.map(q => () =>
-        agent(checkerPrompt(q), { schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' })
+        agent(checkerPrompt(q), { ...tier('decider'), schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' })
           .then(c => ({ q, c }))))).filter(Boolean)
       const missing = checks.filter(x => x.c.status === 'missing' || x.c.status === 'partial')
       if (missing.length) {
@@ -574,7 +583,7 @@ async function specAxis(groups, requirements) {
       }
     }
   }
-  const labeled = await agent(labelPrompt('SPEC', 'Spec', reports), { schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:spec' })
+  const labeled = await agent(labelPrompt('SPEC', 'Spec', reports), { ...tier('auditor'), schema: FINDINGS_SCHEMA, phase: 'Label', label: 'label:spec' })
   return runAxis('Spec', labeled ? labeled.findings : [])
 }
 
@@ -584,7 +593,7 @@ let groups = [{ name: 'whole-diff', paths: null, decisionIds: [], diffCmd: DIFF_
 let requirements = []
 if (WIDE) {
   phase('Partition')
-  const p = await agent(partitionPrompt(), { schema: PARTITION_SCHEMA, label: 'partition' })
+  const p = await agent(partitionPrompt(), { ...tier('decider'), schema: PARTITION_SCHEMA, label: 'partition' })
   if (p && p.groups.length) {
     groups = p.groups.map(g => ({ name: g.name, paths: g.paths, decisionIds: g.decisionIds, diffCmd: DIFF_CMD + ' -- ' + g.paths.join(' ') }))
     requirements = p.requirements
@@ -618,7 +627,7 @@ for (const s of std.survivors) {
 // Settle each pair: do the two validated fixes agree or compete?
 if (pairList.length) {
   const settled = await parallel(pairList.map(([a, b]) => () =>
-    agent(pairPrompt(a, b), { schema: PAIR_SCHEMA, phase: 'Validate fixes', label: 'pair:' + a.id + '+' + b.id })))
+    agent(pairPrompt(a, b), { ...tier('decider'), schema: PAIR_SCHEMA, phase: 'Validate fixes', label: 'pair:' + a.id + '+' + b.id })))
   pairList.forEach(([a, b], i) => {
     const r = settled[i]
     // A dead pair agent escalates the pair — conservative, and visible.
@@ -706,7 +715,7 @@ while (pending.length) {
 
 let apply = { applied: [], demoted: [], testSummary: 'no auto-apply candidates' }
 if (ordered.length) {
-  apply = (await agent(fixAgentPrompt(ordered), { schema: APPLY_SCHEMA, label: 'fix:auto-apply', model: 'sonnet' })) ||
+  apply = (await agent(fixAgentPrompt(ordered), { ...tier('executor'), schema: APPLY_SCHEMA, label: 'fix:auto-apply' })) ||
     { applied: [], demoted: ordered.map(f => ({ id: f.id, reason: 'demoted: fix agent died', kind: 'preconditions' })), testSummary: '' }
 }
 for (const a of apply.applied) { const f = byId.get(a.id); if (f) { f.status = 'auto-applied'; f.sha = a.sha } }
@@ -722,7 +731,7 @@ for (const d of apply.demoted) {
 const autoTicket = all.filter(f => f.route === 'auto-ticket')
 let tickets = []
 if (autoTicket.length && TICKET_MECHANICS) {
-  const t = await agent(ticketAgentPrompt(autoTicket), { schema: TICKET_SCHEMA, label: 'ticket:auto', model: 'sonnet', effort: 'low' })
+  const t = await agent(ticketAgentPrompt(autoTicket), { ...tier('executor'), schema: TICKET_SCHEMA, label: 'ticket:auto', effort: 'low' })
   tickets = (t && t.tickets) || []
   const covered = new Set(tickets.flatMap(x => x.findingIds))
   for (const f of autoTicket) {
@@ -765,7 +774,7 @@ const digest = {
 }
 let ledger = { posted: false, marker: escalations.length ? 'no tracker spec issue — run the question loop from this return, in-session' : 'no escalations — no pending-questions comment needed' }
 if (escalations.length && SPEC_ISSUE_REF && TICKET_MECHANICS) {
-  ledger = (await agent(ledgerPrompt(escalations, digest), { schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
+  ledger = (await agent(ledgerPrompt(escalations, digest), { ...tier('decider'), schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
     { posted: false, marker: 'ledger agent died — POST THE PENDING-QUESTIONS COMMENT FROM THE MANAGER before anything else' }
 }
 

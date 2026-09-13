@@ -7,7 +7,7 @@
     {
       "name": "scott-skills",
       "source": "./",
-      "description": "Scott's end-to-end workflow for Claude Code: chart an effort as a wayfinder map, resolve it, slice the decisions into shippable specs, review each slice and its spec, break it into tickets, and ship it wave by wave — driven by /next, every review gate on the finding-pipeline contract — plus standalone skills for grilling, design, domain modeling, prototyping, research, TDD, wizards, and writing for agents."
+      "description": "Scott's end-to-end workflow for Claude Code: chart an effort as a wayfinder map, resolve it, slice the decisions into shippable specs, review each slice and its spec, break it into tickets, and ship it wave by wave — driven by /next, every review gate on the finding-pipeline contract, every spawned agent on a policy-resolved model tier — plus standalone skills for grilling, design, domain modeling, prototyping, research, TDD, wizards, and writing for agents."
     }
   ]
 }
