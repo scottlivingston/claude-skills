@@ -40,7 +40,7 @@ Every invocation starts the same way, whether it's the first session or a resume
 
 1. Read the spec in full — kernel plus addressable decisions per the tracker doc — including Testing Decisions, the **Seams under test** list, and the Decision Index.
 2. List the spec's sub-issue tickets with states, blocking edges, claims, and the decision IDs each cites.
-3. Read the spec issue's comments and collect the ledger: prior wave/closing summaries (adjudication memory), any pending-questions comment, the answer record (`w<n>-answer` comments and verdict-posted spec comments), open `review-finding` tickets.
+3. Read the spec issue's comments and collect the ledger: prior wave/closing summaries (adjudication memory), any pending-questions comment, the answer record (the answered entries in prior summaries, and the spec comments their verdicts posted), open `review-finding` tickets.
 4. Find or create the ship branch (`spec-<number>-<slug>`); check it out. Record the run's base: `git merge-base <default-branch> HEAD`.
 5. Pick the resume point:
    - A **pending-questions comment with no matching summary** → resume at **the question loop** (step 4 below) from that comment. Do not re-run the wave's pipeline.

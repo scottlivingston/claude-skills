@@ -39,7 +39,7 @@ Look for the originating spec, in this order:
 3. A PRD/spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** reviewer stage will skip and report "no spec available".
 
-When the spec is a tracker issue, "the spec contents" means the kernel body plus its **addressable decisions**, reassembled in index order per the tracker doc's spec-decision convention — the decision marker is also what separates spec content from this skill's own round-summary comments on the same issue. A spec with no Decision Index is just its body (the pre-index format).
+When the spec is a tracker issue, "the spec contents" means the kernel body plus its **addressable decisions**, reassembled in index order per the tracker doc's spec-decision convention — the decision marker is also what separates spec content from this skill's own round-summary comments on the same issue. A spec with no Decision Index is just its body.
 
 ### 3. Identify the standards sources
 
@@ -86,7 +86,7 @@ The workflow returns the full labeled queue — every finding with its flags, ve
 **Partition wide diffs.** One reviewer per axis is the default and, when the diff fits, the better one — a single reader sees every cross-file pattern. Past what one reviewer can hold alongside its standards and spec (soft heuristic: more than ~15 files or ~1,500 changed lines, judged from step 1's `--stat` — the template's `WIDE` slot), the script inserts a **partition stage**: one cheap agent reads the file list and stats — not the full diff — plus the spec and the standards-scope map, and clusters the changed files into logical groups, by subsystem or directory, which also aligns with scoped `CONVENTIONS.md` boundaries. Each group becomes a path-scoped diff command (`git diff <fixed-point>...HEAD -- <paths>`), and **both axes share the one partition** — then one reviewer per group per axis:
 
 - A **Standards chunk reviewer** gets its group's diff command and only the standards governing those paths (plus the smell baseline).
-- A **Spec chunk reviewer** gets its group's diff command, the spec **kernel** with its full Decision Index, and the **full text of the decisions routed to its group** — the partition stage assigns decision IDs to groups the same way it clusters files (it already reads the spec). The index one-liners stand in for every other decision, so scope creep stays checkable against the whole decision surface; a reviewer that suspects a hunk answers an unrouted decision fetches that decision by ID (the tracker doc's read). Its report also lists **which spec requirements its slice touches**. (A pre-index spec is passed whole instead — it has no units to route.)
+- A **Spec chunk reviewer** gets its group's diff command, the spec **kernel** with its full Decision Index, and the **full text of the decisions routed to its group** — the partition stage assigns decision IDs to groups the same way it clusters files (it already reads the spec). The index one-liners stand in for every other decision, so scope creep stays checkable against the whole decision surface; a reviewer that suspects a hunk answers an unrouted decision fetches that decision by ID (the tracker doc's read). Its report also lists **which spec requirements its slice touches**. (A spec with no Decision Index is passed whole instead — it has no units to route.)
 
 Partitioning silently breaks two whole-diff properties; the script restores each:
 

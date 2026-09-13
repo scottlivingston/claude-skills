@@ -57,7 +57,7 @@ Workflow roles:
 A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed one line each in the spec body's Decision Index (see `/specify`). Two operations:
 
 - **Publish decision**: attach one decision (ID, title, body) to a spec, in index order.
-- **Read**: reading a spec "in full" means the body plus every decision, in index order; a single decision is fetchable by ID. Decisions are **spec content**, distinct from process comments (wave summaries, review round summaries, spec-gap notes) — an implementation must keep the two tellable apart. A spec with no Decision Index is just its body (the pre-index format).
+- **Read**: reading a spec "in full" means the body plus every decision, in index order; a single decision is fetchable by ID. Decisions are **spec content**, distinct from process comments (wave summaries, review round summaries, spec-gap notes) — an implementation must keep the two tellable apart. A spec with no Decision Index is just its body.
 
 ### Workflow operations
 
