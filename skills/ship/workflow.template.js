@@ -43,7 +43,7 @@ const PRIOR_LEDGER_SUMMARIES = FILL // pre-fetched prior wave/closing summary co
 const PRIOR_ANSWERS = FILL        // pre-fetched answer record — the answered entries in prior wave/closing summaries and the spec comments their verdicts posted, verbatim: ["..."] — [] if none; binding spec text for classification
 const TRACKER_MECHANICS = FILL    // prose: the tracker's claim/unclaim/close/comment/create/label/parent operations per /issue-tracker (exact commands)
 const WIDE = FILL                 // true past ~15 files / ~1,500 changed lines expected → partitioned review
-const TEST_NOTES = FILL           // how to run the suite / typecheck / affected tests, or "" to let agents discover
+const TEST_NOTES = FILL           // per /testing: the governing TESTING.md sections verbatim (Typecheck, Unit, Integration, Scoping to a change, Green — each with the scope it binds), or "" when the repo has none and agents discover commands themselves
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model ('sonnet'), or null to inherit the session model
 const DECIDER_MODEL = FILL     // per /model-policy: the decider tier's resolved model ('opus'), or null to inherit — never leave a fan-out on the session's model by accident
@@ -344,7 +344,7 @@ function implementerPrompt(t, plan, amendment) {
     plan.plan,
     amendment ? 'Collision-check amendment — build against this shared shape:\n' + amendment : null,
     'Discipline (/implement + /tdd): red–green at the spec\'s seams — red test first, then the code that greens it; typecheck regularly; run single test files regularly; commit in your worktree as you go.',
-    TEST_NOTES ? 'Test/typecheck commands: ' + TEST_NOTES : null,
+    TEST_NOTES ? 'Test recipes (per /testing) — use the Scoping to a change rule against the files you touch for the set you run while working, and the Green set before you report done:\n' + TEST_NOTES : null,
     'The plan is a map, not a contract: if the code contradicts it, deviate and note the deviation in a ticket comment — the territory wins. If you need an uncited decision, check the Decision Index and fetch it by ID, noting the missed routing in a ticket comment.',
     'If the ticket cannot be built — a decision the spec holds nowhere, work no listed seam covers — PARK: unclaim, comment what is missing on the ticket, comment the gap on spec issue ' + SPEC_ISSUE_REF + ', return status=parked.',
     'Tracker operations:',
@@ -357,8 +357,8 @@ function mergePrompt(t, branch, mergeNotes) {
   return j([
     'You are a merge agent of ship wave ' + WAVE + ', working in the MAIN checkout. Merge worktree branch ' + branch + ' (ticket ' + t.ref + ') into ' + SHIP_BRANCH + '. Verify you are on ' + SHIP_BRANCH + ' first.',
     mergeNotes.length ? 'Unreconciled collision notes from the plan stage — you inherit these tensions:\n' + mergeNotes.map(n => '- ' + n).join('\n') : null,
-    'On conflict, resolve preserving BOTH tickets\' intent, then re-test. After the merge run the affected tests (full suite if cheap).',
-    TEST_NOTES ? 'Test commands: ' + TEST_NOTES : null,
+    'On conflict, resolve preserving BOTH tickets\' intent, then re-test. After the merge run the scoped set: the Scoping to a change rule below applied to the merged files (full suite where the rule says so, or when no rule exists and the suite is cheap).',
+    TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
     'NEVER merge on red: a branch that cannot come green is parked — abort/revert the merge so ' + SHIP_BRANCH + ' stays green, comment the failure on the ticket, return status=parked.',
     'On green: close the ticket with a comment linking its commits, remove in-progress. Tracker operations:',
     TRACKER_MECHANICS,
@@ -531,8 +531,8 @@ function fixAgentPrompt(batch) {
     '- git rev-parse --abbrev-ref HEAD → if HEAD is not ' + SHIP_BRANCH + ', apply NOTHING: demote everything, kind=preconditions, reason "demoted: not on the ship branch".',
     '- If a precondition cannot be verified at all, demote with kind=preconditions, reason "demoted: couldn\'t verify preconditions" — the distinct wording matters; only that one is a bug to chase.',
     'Anchor each edit by the proposal\'s quoted snippet, never by line number. A finding whose staleAfter lists earlier IDs: those fixes may have invalidated this proposal\'s premise — re-ground it against the code as it now stands before applying; if it no longer holds, demote it, kind=other, saying why.',
-    'After the whole batch: run the full test suite once; revert any finding-commit that breaks it and demote that finding, kind=test-failure, with the failure attached.',
-    TEST_NOTES ? 'Test commands: ' + TEST_NOTES : null,
+    'After the whole batch: run the Green set once (the full test suite when no recipe names one); revert any finding-commit that breaks it and demote that finding, kind=test-failure, with the failure attached.',
+    TEST_NOTES ? 'Test recipes (per /testing) — the Green section is the set to run:\n' + TEST_NOTES : null,
     'Batch:',
     JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, proposal: f.proposal, sketch: f.sketch, pairWith: f.pairWith || null, dependsOn: f.dependsOn || [], staleAfter: f.staleAfter || [] }))),
   ])

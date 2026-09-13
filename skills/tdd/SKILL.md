@@ -36,6 +36,6 @@ When the shape of that interface is itself in question — how deep the module i
 
 ## Rules of the loop
 
-- **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
+- **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features. The invocation and the test-name filter that keep the loop tight come from `/testing`.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle.
 - **Refactoring is not part of the loop.** It belongs to the review stage (`/diff-review`, whose Standards axis carries the smell baseline), not the red → green implementation cycle.

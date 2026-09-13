@@ -18,7 +18,7 @@ When the work comes from a ticket on the issue tracker (see `/issue-tracker`):
 
 Use /tdd where possible, at pre-agreed seams.
 
-Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+Resolve the test recipes per `/testing` for the files the work touches before the first run: the *Scoping to a change* set is what you run while working, and the *Green* set is what passes once at the end — and if the repo has none, say "no TESTING.md — agents discovered test commands" in your report, then run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
 Outside a `/ship` run, review the work with /diff-review once done; inside one, the wave verification reviews the merged diff — don't review your own worktree.
 
