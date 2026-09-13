@@ -65,20 +65,26 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 
 **Every block obeys the presentation contract in `/hitl-questions`** — the cold-reader rules, the domain language, the recommendation, the `AskUserQuestion` mechanics, the escape hatches. Every artifact in this chain is agent-written and the question loop is often the user's first contact with the material, so the contract's cold-reader test bites hardest here: someone who joined the project today must be able to pick an option from the block alone.
 
-**One question per turn**, in the order later work most likely builds on. Per escalation, print its block (anchors and excerpts arrive on request, via `explain`):
+**One question per turn**, in the order later work most likely builds on. Per escalation, print its block:
 
 ```
-### <short plain title of the tension> — <question class> — <i> of <n> (<ID>)
-- **The situation:** <1–2 sentences of orientation, assuming nothing>
-- **The question:** <one line, in the domain's terms>
-- **What the source says:** <each cited unit named by what it decided or requires, then its quoted sentence; or "the source is silent here">
-- **What the material does today:** <one line — "what the code does today" at a code gate, behaviour not implementation>
-- **Why it needs you:** <the gate skill's question class>
-- **Options:** <each as an outcome for the product — what holds, what changes — with its consequence and what it triggers>
-- **Recommendation:** <the option you'd pick and the one-line why>
+### <plain title of what's being decided> — <i> of <n> (<ID>)
+
+<One or two sentences: what part of the product this concerns, and what the question is.>
+
+> <the spec line, decision text, or code the question turns on — quoted, with its anchor>
+
+<What's wrong with that text, and what breaks downstream if it simply stands.>
+
+- **<option, as an outcome>** — <what it costs, what it triggers>
+- **<option, as an outcome>** — <what it costs, what it triggers>
+
+<The option you'd pick, and the one-line why.>
 ```
 
-— then ask with `AskUserQuestion` per the contract. The contract's escape hatches bind here as: `explain` gets its answer, then the same ID is re-asked; batched verdicts are taken as given; "stop" records every untouched ID as `unanswered` and goes to the wrap-up.
+That shape is the contract's cold-reader rules made concrete: the quote is the finding's own source field printed rather than paraphrased, and the stakes line is the cost field stage 4 filled. Two bindings are local to a gate. An **absence** has no sentence to quote — say the material is silent and quote whatever was meant to cover it. And the question class is routing vocabulary: it surfaces in the orientation summary's counts and nowhere the user reads a block.
+
+Then ask with `AskUserQuestion` per the contract. The contract's escape hatches bind here as: `explain` gets its answer, then the same ID is re-asked; batched verdicts are taken as given; "stop" records every untouched ID as `unanswered` and goes to the wrap-up.
 
 **Act on the collected answers after the loop, none mid-loop**: post the source amendments the verdicts chose, run one serial fix agent for repairs the answers unlocked (re-grounding each proposal against the current state by its quoted snippet), file the tickets called for, revert what the audit overrode. Then post the summary comment.
 
