@@ -124,6 +124,7 @@ Used by the chain, and useful on their own:
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
 - **tdd** — the red–green loop, seams, mocking guidance, and test anti-patterns
 - **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
+- **cold-read** — repair a document many agent sessions have edited so it reads to someone holding only the doc and what it points at: ghosts, broken pointers, changelog prose, aliases, undefined terms, residue, stale caches — every repair proved by a lookup, only the rest asked
 - **diff-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
 - **hitl-questions** — the presentation contract for every question put to the human: the opening where the human states their design before the agent proposes anything, facts vs decisions, cold-reader blocks, one topic per block, domain language, recommendations, escape hatches

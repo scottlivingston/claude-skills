@@ -1,0 +1,42 @@
+---
+name: cold-read
+description: Repair a document that many agent sessions have edited so it reads to a cold reader — one holding only the doc and what it points at. Hunts ghosts of things the repo no longer has, pointers that don't resolve, changelog prose written as a change instead of a state, one thing under two names, undefined terms, arguments with a reader who has left, caches the tree has moved from, and contradictions between layers; repairs proved by lookup land directly, and only what no lookup settles is asked. Use when the user asks to clean up, sweep, or cold-read a doc, or after a doc has absorbed several rounds of agent edits.
+---
+
+Every agent that opens a document is a **cold reader**: it holds the document, whatever the document points at, and nothing else — no memory of the sessions that wrote it. A document edited across many sessions accumulates **sediment** (per `/writing-for-agents`): each session wrote for the reader it had — the human who knew what had just been renamed, the agent that resisted a rule the round before — and layers addressed to readers who are gone settle on top of what is still live. This skill cores through the sediment: one whole read from the cold reader's seat, every claim about what exists resolved against the tree, every defect repaired by proof.
+
+**Reach** is what the cold reader has: the document, every document its pointers name directly — a skill it cites, a file it links, a contract it says to consult — and anything bundled in its own folder, such as a workflow template. One hop: a definition two pointers away is reachable only if the document carries the first pointer itself. A term defined anywhere in reach is defined. A term defined only in a transcript, a commit message, or a doc nothing in reach points at is not, however well the last session knew it.
+
+The document's rules leave exactly as they came in: the pass changes how they read, never what they require. The reasons stay too — the gotcha, the why behind a choice — because a cache of what no lookup can find is what a document is for. What goes is the layer addressed to someone who is no longer reading.
+
+## Defects
+
+Each one is what a cold reader trips on, the lookup that proves it, and the repair the proof licenses.
+
+- **Ghost** — a name for something the repo no longer has: a file, skill, label, comment marker, stage, slot, command, or format — and the caveat or branch that existed only to handle it. Proof: nothing in the tree answers to the name, and history (`git log -S`) shows something once did. Repair: name what stands in its place today, or strike the mention together with any branch only it justified.
+- **Broken pointer** — a link, path, section reference, or "see X" whose target doesn't resolve, because it moved or was never written. Proof: the same lookup. Repair: re-point at where the material lives. Material that lives nowhere is a question — write it here, or strike the promise — because striking silently hides a gap someone meant to fill.
+- **Changelog prose** — a sentence that describes a change rather than a state: *now*, *no longer*, *instead of the old*, *previously*, *(formerly X)*, a contrast against a format or behaviour nothing in reach still has. It was written for whoever made the change; the cold reader has no before to contrast with. Proof: the other side of the contrast resolves to nothing in reach. Repair: state the present tense and drop the contrast.
+- **Alias** — one thing answering to two names, within the document or between it and its source of truth: the stage the doc calls one thing and the template it describes calls another. A cold reader counts two things. Proof: the source of truth names it. Repair: the source's name, at every mention.
+- **Undefined term** — a term, abbreviation, or coined word used as though known and defined nowhere in reach. Proof: search reach for the definition. Repair: define it at first use, switch to the term reach already defines, or add the pointer to where it is defined.
+- **Residue** — text addressed to a reader who has left: a justification answering an objection raised in an earlier session, emphasis stacked by rounds of reinforcement (the third *never*, the bolded *always*, "this needs saying because…"), an aside on why the sentence was added, and the **note to the next editor** — "keep the two in sync", "edit there first, then here" — which the reader executing the document never is. Proof: the no-op test in `/writing-for-agents` — remove the sentence and the instruction still holds. Repair: strike it; where it carries a genuine reason, keep the reason and strike the argument. A sync note guards a copy, and per the cache rule the copy usually goes with the note.
+- **Stale cache** — a count, list, ordering, or example the document restates from something in the tree that has since moved: how many tiers there are, which skills exist, which stages a template runs. Proof: recount against the tree. Repair per `/writing-for-agents`'s cache rule — strike the copy and lean on the pointer where the lookup is cheap; correct it where the lookup is genuinely expensive.
+- **Contradiction** — two passages that cannot both hold, almost always an early layer under a later one. Proof: reach settles which stands — a later ruling, the source of truth the passage describes. Repair: the losing passage goes. Two passages that both genuinely stand are a question.
+
+The kinds overlap by design — a copied block that drifted from its source is a stale cache and, where the document also claims they match, a contradiction. The list says what to hunt; one repair closes every kind it satisfies.
+
+## Process
+
+1. **Scope.** The argument names the documents — a file, a folder, a glob. With no argument, the documents the current branch has changed since its merge-base with the default branch; on the default branch itself, ask which.
+2. **Read whole and list the referents.** One pass over the document, writing down every name that claims something exists — paths, skills, commands, labels, markers, sections, slots, stage names, variables, links, and every **term**: a word the document coins, bolds, or uses in a sense ordinary English doesn't carry. Plain English is not a referent. Done when every such name is on the list; a name skipped here is a defect never found.
+3. **Resolve.** Look each referent up: the tree (`grep`, `ls`) for the present, reach for terms and pointers, and history (`git log -S`) for anything the tree lacks. A history hit only says the name once existed; the present is settled by the grep beside it, and a ghost needs both. Done when every referent carries a location or is marked unresolved.
+4. **Sweep** the document against the defect list with the resolved referents in hand. Several documents fan out as one agent per document on the **decider tier** per `/model-policy`, each running steps 2–4 and returning its findings with proofs; a single document is swept inline.
+5. **Repair.** The bar is the one document gates hold in `/finding-pipeline`: a repair lands only when it is **provably derivable** — the proof is a lookup anyone can rerun. Each landed repair is one line: what changed, in the document's own terms, and the proof. What no lookup settles — a broken pointer to material that lives nowhere, a contradiction whose halves both stand, a name that might resolve outside the repo — is held as a question.
+6. **Re-read cold.** Take the repaired document from the seat once more. Done when every referent resolves, every term is defined in reach, and every sentence describes the present state.
+7. **Report and ask.** The change list first, written as the commit body it will become — one line per repair, proof trailing. Then the held questions, one per turn, per `/hitl-questions`. Edits stay in the working tree for the user to diff and commit.
+
+## Rules
+
+- **Every landed edit has a lookup behind it.** A repair the reader could not re-derive from the tree or reach is a question, not an edit.
+- **Rules as they came in.** A correction that arrives with a new constraint, prohibition, or house rule lands without the addition; new rules are the human's to ask for.
+- **Reasons stay.** The why behind a choice is a cache the environment can't supply; residue is the argument wrapped around it, and only the wrapping goes.
+- **Cheap by default.** A clean document costs one read and a one-line report — say so and stop.
