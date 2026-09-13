@@ -24,7 +24,7 @@ A **closed map** isn't a dead end: `/specify` links each spec before the map clo
 
 Background agents and parallel sessions may have finished work no one folded in. Before choosing anything, heal the record:
 
-- **Map**: any closed child ticket missing from Decisions-so-far → fold it now (append the pointer, graduate fog it made specifiable, rule out-of-scope what it exposed, **file it into a slice or Map-wide decisions**), per the wayfinder skill. This session is the map's single writer.
+- **Map**: any closed child ticket missing from Decisions so far → fold it now (append the pointer, graduate fog it made specifiable, rule out-of-scope what it exposed, **file it into a slice or Map-wide decisions**), per the wayfinder skill. This session is the map's single writer.
 - **Stale claims**: an open ticket labelled `in-progress` may be live in another session — never steal it silently. If the user says it's abandoned, unclaim it.
 
 ## Route
@@ -40,10 +40,10 @@ Sealed slices are checked **before** the map rows: a sealed slice is committed w
 | Sealed slice, `slice-reviewed` marker, no spec linked | Slice ready to spec | `/specify <slice>` |
 | Sealed slice with a spec | Slice in delivery | Route on that spec, using the spec rows below |
 | Map open, open child tickets exist | Working the map | See [Working the map](#working-the-map) below |
-| Map open, no open children, Not-yet-specified non-empty | Still charting | A wayfinder session: graduate what's now specifiable into tickets (create-then-wire), then stop |
-| Map open, no open children, Not-yet-specified empty, closed tickets unfiled or a slice unsealed | Charting done, partition open | A wayfinder session: file the remaining resolutions, then propose the seal on each unsealed slice (per wayfinder's sealing rule) |
+| Map open, no open children, Not yet specified non-empty | Still charting | A wayfinder session: graduate what's now specifiable into tickets (create-then-wire), then stop |
+| Map open, no open children, Not yet specified empty, closed tickets unfiled or a slice unsealed | Charting done, partition open | A wayfinder session: file the remaining resolutions, then propose the seal on each unsealed slice (per wayfinder's sealing rule) |
 | Map open, `<!-- map-review pending-questions -->` comment with no matching summary | Map review gated | Resume `/map-review`'s question loop from the comment (per `/finding-pipeline`) — never re-run its pipeline |
-| Map complete (no open children, Not-yet-specified empty, all filed, all slices sealed), no `map-reviewed` marker | Map complete, unreviewed | `/map-review <map>` — the whole-map pass; on a sliced map its findings may land as follow-ups rather than repairs, per that skill |
+| Map complete (no open children, Not yet specified empty, all filed, all slices sealed), no `map-reviewed` marker | Map complete, unreviewed | `/map-review <map>` — the whole-map pass; on a sliced map its findings may land as follow-ups rather than repairs, per that skill |
 | Map open, complete, `map-reviewed` marker, unsliced | Map reviewed | `/specify <map>` |
 | Spec open, no `impl` sub-issues, `<!-- spec-review pending-questions -->` comment with no matching summary | Spec review gated | Resume `/spec-review`'s question loop from the comment (per `/finding-pipeline`) — never re-run its pipeline |
 | Spec open, no `impl` sub-issues, no `spec-reviewed` marker | Spec unreviewed | `/spec-review <spec>` — the pipeline is agent work; defects escalate at its gate |

@@ -64,7 +64,7 @@ File overlap is still never an edge — the fix for two same-wave tickets sharin
 
 ### 4. The DAG critic
 
-Before any human sees the breakdown, one **adversarial critic agent** — fresh, not the author — scores the DAG against the two properties from step 3. Give it the tickets with their edges and territory claims, the edge test, and repo access; it must:
+Before any human sees the breakdown, one **adversarial critic agent** — fresh, not the author, on the decider tier per `/model-policy` — scores the DAG against the two properties from step 3. Give it the tickets with their edges and territory claims, the edge test, and repo access; it must:
 
 - **Compute the wave structure** and challenge the depth: every edge re-tested against the edge test; a chain of width-1 waves is a finding to justify, not a default (hub-and-spoke — one skeleton ticket blocking many independent slices — is healthy; a chain usually means fake edges, or one incremental storyline that should re-slice along independent capabilities).
 - **Verify the territory claims** — grep and list the actual files behind each claim, don't take the author's word — and flag every same-wave pair whose territories collide.
@@ -82,7 +82,7 @@ Present the proposed breakdown **as plain markdown text in your reply** — a nu
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 - **Decisions**: the decision IDs this ticket cites (spec sources only) — the agent implementing it will receive exactly these in full
-- **Where it lands**: the module or subsystem this slice touches, named in the project's own vocabulary — one plain phrase, so the user can judge the breakdown at the concept level. Code references per `/code-anchors` on request. (The published tickets still avoid file paths, per the note below.)
+- **Where it lands**: the module or subsystem this slice touches, named in the project's own vocabulary — one plain phrase, so the user can judge the breakdown at the concept level. Code references (`path:line`) on request. (The published tickets still avoid file paths, per the note below.)
 
 For a spec source, follow the wave structure with the **coverage check's result**: any decision no ticket cites, listed by ID — each is either a missing ticket or a dead decision, the user's call.
 

@@ -17,7 +17,7 @@ A gate escalating a single question mid-pipeline has no opening — it asks its 
 
 ## Facts vs decisions
 
-Finding facts is the agent's job, never the human's. When a question hinges on a fact from the environment — the code, the tracker, the docs — look it up or dispatch a sub-agent; the human is asked only what no lookup can answer: what was *meant*, what is *wanted*, which trade-off to take. The decisions are the human's — put each one to them and wait. An agent that answers its own question has broken the exchange.
+Finding facts is the agent's job, never the human's. When a question hinges on a fact from the environment — the code, the tracker, the docs — look it up or dispatch a sub-agent (decider tier per `/model-policy`); the human is asked only what no lookup can answer: what was *meant*, what is *wanted*, which trade-off to take. The decisions are the human's — put each one to them and wait. An agent that answers its own question has broken the exchange.
 
 **A decision the record already made is a fact too.** Derive before you ask: where a decision already recorded, an earlier answer from this human, or the code itself settles the matter, settling it *is* the agent's work. **The test is the answer, not the topic — a question earns its turn only when the human's answer would change what gets built or written.** No topic, defect kind, or always-ask list earns one on its own. Two defensible answers is a question; one defensible answer standing against something simply wrong is a repair — make it, and record it where the human can see and override it. The line between this and the paragraph above is what kind of question it is: standing in for the human on a question of intent breaks the exchange, and handing them one the record already answers wastes it.
 
@@ -27,7 +27,7 @@ Every question is written for a cold reader: someone who joined the project toda
 
 - **Things are named by what they decided or require.** A decision, ticket, or section enters the question as a clause saying what it is — "the decision that every dialog returns keyboard focus to its opener on close" — and is referred to that way on every mention; its title alone is agent-written and can be as opaque as its number. The ID (`D6`, `#401`) appears at most once per question, trailing in parentheses as the record's handle — in the block header or after the first mention — and never in the question line or an option label. Same for locations — "the five admin-side dialogs" beats a crate path.
 - **Situation before question.** Open with one or two sentences: what part of the product this concerns and what the change wants there. Only then the question.
-- **Quote the material, don't describe it.** When a question turns on a specific sentence — a spec line, a decision's text, a comment, a signature — print it verbatim, anchored per `/code-anchors`, instead of paraphrasing what it says. A paraphrase is one more agent-written artifact standing between the human and the thing they are deciding about, and it can drift from what is actually there.
+- **Quote the material, don't describe it.** When a question turns on a specific sentence — a spec line, a decision's text, a comment, a signature — print it verbatim, with its `path:line`, instead of paraphrasing what it says. A paraphrase is one more agent-written artifact standing between the human and the thing they are deciding about, and it can drift from what is actually there.
 - **Stakes before options.** One line, before the options, on what breaks if nobody acts. Without it the human weighs the options against nothing; and a question whose honest answer is *nothing breaks* is one you should have settled yourself.
 - **No process residue.** Validator notes, drafting history, and sub-agent mechanics never reach the question — a caveat surfaced along the way becomes part of an option's consequence or the recommendation, in the reader's terms.
 - **One topic per block.** A question asks one thing and carries only what's needed to answer it. A second question, a related tension on another branch, an aside about where the answer gets recorded — each is its own block or its own turn. Two topics in one block means one gets answered and the other is dropped without either of you noticing.
@@ -35,7 +35,7 @@ Every question is written for a cold reader: someone who joined the project toda
 
 ## Domain language
 
-Questions speak the project's **domain language** — capabilities, behaviors, cases, and consequences, per `CONTEXT.md`'s vocabulary — so the human engages with the decision, not with functions, file paths, and line numbers. When a question lands on terrain they don't hold a model of, `/domain-expansion` briefs them and re-puts the question; the code itself is one ask away, cited per `/code-anchors`.
+Questions speak the project's **domain language** — capabilities, behaviors, cases, and consequences, per `CONTEXT.md`'s vocabulary — so the human engages with the decision, not with functions, file paths, and line numbers. When a question lands on terrain they don't hold a model of, brief them in plain language on what the system does there today and re-put the question; the code itself is one ask away, cited as `path:line`.
 
 ## The recommendation
 
@@ -49,6 +49,6 @@ Questions are put in **prose**, in the flow of the conversation, with your reaso
 
 Three, honoured immediately in every asking skill:
 
-- **`explain`** — brief per `/domain-expansion`, code anchors and excerpts now welcome, then re-put the same question.
+- **`explain`** — a plain-language briefing on what the system does in the area the question touches, `path:line` references and excerpts now welcome, then re-put the same question.
 - **Batched answers** — several answers arriving as one free-text message, or a picture of how the human wants the thing to work, are taken as given: reflect back what the message settled and what it left open, then ask on from the open part; never re-ask them one by one.
 - **`stop`** — end the questioning now: record what's untouched in the asking skill's terms (an `unanswered` outcome, an unsettled branch) and go to its wrap-up.

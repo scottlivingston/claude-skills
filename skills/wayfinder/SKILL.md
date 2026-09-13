@@ -15,7 +15,7 @@ Wayfinder is **planning**: each ticket resolves a decision, and the map is done 
 
 ## Refer by name
 
-Every map and ticket is an issue, so it has a **name** — its title. In everything the human reads — narration, the map's Decisions-so-far — refer to it by that name, never by a bare id, number, or slug. A wall of `#42, #43, #44` is illegible; names read at a glance. The id and URL don't vanish — a name wraps its link — but they ride *inside* the name, never stand in for it.
+Every map and ticket is an issue, so it has a **name** — its title. In everything the human reads — narration, the map's Decisions so far — refer to it by that name, never by a bare id, number, or slug. A wall of `#42, #43, #44` is illegible; names read at a glance. The id and URL don't vanish — a name wraps its link — but they ride *inside* the name, never stand in for it.
 
 ## The Map
 
@@ -128,7 +128,7 @@ A slice is a **child issue of the map** labelled `wayfinder:slice` — never a t
 
 **Slices are fog-shaped.** Chart one only when you can state what it ships and what it needs first — the same test the fog uses, one altitude up. Before that, the decisions it will claim sit unfiled, which is not a defect. Don't pre-slice the map into a partition you can't defend yet: ship order becomes visible in the *resolutions* ("the read path can land before the schema change"), never in the question order.
 
-**Every closed ticket ends up in exactly one place** — a slice's Decisions list, the map's **Map-wide decisions** section, or unfiled while the partition is still dim. Map-wide is for the resolutions that bind every slice (the error model, the vocabulary, cross-cutting contracts); every spec's kernel inherits them, so they are never duplicated into slices. Filing is a **link, never a copy**: the gist stays in Decisions-so-far, the resolution stays on its ticket, and nothing here can go stale when a later ticket supersedes an earlier one.
+**Every closed ticket ends up in exactly one place** — a slice's Decisions list, the map's **Map-wide decisions** section, or unfiled while the partition is still dim. Map-wide is for the resolutions that bind every slice (the error model, the vocabulary, cross-cutting contracts); every spec's kernel inherits them, so they are never duplicated into slices. Filing is a **link, never a copy**: the gist stays in Decisions so far, the resolution stays on its ticket, and nothing here can go stale when a later ticket supersedes an earlier one.
 
 ### Sealing a slice
 
@@ -178,7 +178,7 @@ User invokes with a loose idea.
 
 1. **Name the destination.** Run a `/grilling` and `/domain-modeling` session to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Grill again, **breadth-first** this time: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear, the whole journey small enough for one session — you don't need a map. Stop and ask the user how they'd like to proceed.
-3. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first so the markers exist): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.
+3. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first so the markers exist): Destination and Notes filled in, Decisions so far empty, the fog sketched into **Not yet specified**.
 4. **Create the tickets you can specify now** as child issues of the map — then wire blocking edges in a **second pass** — **create-then-wire**, because issues need ids before they can reference each other. Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
 
    Chart any **slice** you can already state the same way (create-then-wire; slices block each other in ship order). Most maps can't name one this early — the partition shows up in the resolutions, not the questions — and that is the normal case, not a gap.
@@ -188,10 +188,10 @@ User invokes with a loose idea.
 
 User invokes with a map (URL or number). A ticket is **optional** — without one, you pick the next decision, not the user.
 
-1. Load the **map** — the low-res view, not every ticket body. **If the map is already complete** (no open tickets, empty Not-yet-specified), don't hunt for work: say so and point at [Completion and handoff](#completion-and-handoff).
+1. Load the **map** — the low-res view, not every ticket body. **If the map is already complete** (no open tickets, empty Not yet specified), don't hunt for work: say so and point at [Completion and handoff](#completion-and-handoff).
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: label it `in-progress` before any work.
 3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand; invoke the skills the `## Notes` block names. If in doubt, use `/grilling` and `/domain-modeling`.
-4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
+4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions so far.
 5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals a ticket — this one or another — sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
 6. **File the resolution** — into a slice's Decisions list, into **Map-wide decisions**, or leave it unfiled if the partition is still too dim to place it. If the answer made a new slice statable, chart it now (create-then-wire, ship order as blocking edges). See [Slices](#slices).
 7. **If this closed a slice's last open ticket, propose the seal** — see [Sealing a slice](#sealing-a-slice). Don't start the sealed slice's handoff in this session.
