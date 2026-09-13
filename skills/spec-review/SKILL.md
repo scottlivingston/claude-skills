@@ -7,7 +7,7 @@ A spec is the last artifact before code. Everything downstream trusts it absolut
 
 It is the spec-side mirror of `/map-review`: that skill checks whether the map's decisions compose; this one checks whether the spec they became is **implementable as written**. Both run the pipeline in `/finding-pipeline` — the invariants (adversarial validation, routing, gate markers, question mechanics) live there; what's here is what a spec defect is and what repairing one touches.
 
-For tracker operations, invoke `/issue-tracker`.
+For tracker operations, invoke `/issue-tracker`. The spec's own structure — the kernel's sections, the Decision Index, and the decision units it addresses — is defined in `/specify`.
 
 ## Precondition
 
@@ -24,7 +24,7 @@ The spec's origin decides how much to hunt:
 
 - **Underdetermined decision** — the `Decided:` line names the question but not the verdict, so an implementer must choose. The sharpest test: could two competent agents read this and build incompatible things?
 - **Stale ground truth** — the spec asserts something about the codebase that isn't true: a module that moved, prior art that was refactored away, a boundary that no longer exists. Only reachable by reading the code, which is why this stage reads it.
-- **Stale cache** — a count, figure, or ordered list the spec restates from something that can change underneath it: how many tests a tier holds, how many migrations apply, which call sites read a variable. The spec is *allowed* these — a criterion needs a number to be falsifiable and a ticket agent needs to know what to hit — so the number's existence is never the defect. The defect is the number disagreeing with the tree today, a measurement sitting undated as though it were a live claim, or a second copy of a list the spec already links the owner of. All three repair per the contract's *striking outranks correcting*, and none of them is a question.
+- **Stale cache** — a count, figure, or ordered list the spec restates from something that can change underneath it: how many tests a suite holds, how many migrations apply, which call sites read a variable. The spec is *allowed* these — a criterion needs a number to be falsifiable and a ticket agent needs to know what to hit — so the number's existence is never the defect. The defect is the number disagreeing with the tree today, a measurement sitting undated as though it were a live claim, or a second copy of a list the spec already links the owner of. All three repair per the contract's *striking outranks correcting*, and none of them is a question.
 - **Seam gap** — a decision introduces behaviour that no seam in **Seams under test** can observe, or a listed seam sits below the highest one available. `/tdd` tests at the listed seams and no others, so both stall a ship agent mid-wave.
 - **Unfalsifiable acceptance** — a user story or decision written so no test can decide pass from fail. `/ship` verifies against these; a fuzzy one makes that verification theatre.
 - **Uncovered story** — a numbered user story that no decision, and nothing in Solution, serves.

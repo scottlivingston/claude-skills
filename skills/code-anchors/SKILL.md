@@ -5,7 +5,7 @@ description: The anchor format for citing code to the human — verified, clicka
 
 # Code anchors
 
-Shared convention for citing code to the human. HITL exchanges speak the project's domain language by default — capabilities and concepts, not file paths — so an anchor appears when the human *asks* to see the code, or when a claim genuinely needs its source cited. When code is cited, this is how: a clickable reference the human cmd-clicks and reads in their own editor, never pasted code.
+Shared convention for citing code to the human. Human-in-the-loop (HITL) exchanges speak the project's domain language by default, per `/hitl-questions` — capabilities and concepts, not file paths — so an anchor appears when the human *asks* to see the code, or when a claim genuinely needs its source cited. When code is cited, this is how: a clickable reference the human cmd-clicks and reads in their own editor, never pasted code.
 
 ## The anchor format
 

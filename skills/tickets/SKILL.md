@@ -19,7 +19,7 @@ A spec should also carry the `spec-reviewed` marker — `/spec-review`'s full re
 
 ### 2. Explore the codebase (optional)
 
-If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
+If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's domain glossary vocabulary, and respect the architecture decision records (ADRs) in the area you're touching — glossary and ADRs both per `/domain-modeling`.
 
 Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
 
@@ -74,7 +74,7 @@ A demanded re-cut gets exactly **one** revision, re-scored by the critic. A seco
 
 ### 5. Quiz the user
 
-**Under `/next auto`, this quiz is skipped**: a critic-passed breakdown is auto-approved and publishing proceeds. What would have been quiz findings — decisions no ticket cites, a second critic failure — post as `<!-- tickets pending-questions -->` on the spec instead, per `/finding-pipeline`'s gate (notify, end the turn; a matching `<!-- tickets summary -->` records the verdicts). Manual invocations run the quiz below as always.
+**Under `/next auto`, this quiz is skipped**: a critic-passed breakdown is auto-approved and publishing proceeds. What would have been quiz findings — decisions no ticket cites, a second critic failure — post as `<!-- tickets pending-questions -->` on the spec instead, per `/finding-pipeline`'s gate (notify, end the turn; a matching `<!-- tickets summary -->` records the verdicts). Manual invocations run the quiz below.
 
 Present the proposed breakdown **as plain markdown text in your reply** — a numbered list, followed by the wave structure so the user can see the parallelism at a glance. For each ticket, show:
 

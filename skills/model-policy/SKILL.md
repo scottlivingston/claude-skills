@@ -37,6 +37,6 @@ A value is anything the harness's `model` option accepts — an alias (`sonnet`,
 
 ## Applying it
 
-- **Workflow templates** carry three data slots, `EXECUTOR_MODEL`, `DECIDER_MODEL`, and `AUDITOR_MODEL`, filled with the resolved values (`inherit` fills as `null`). Every `agent()` call in the fixed section names its tier through the template's `tier()` helper, which passes `model` only when the tier is pinned. A fill agent resolves the policy itself — the files are readable from any checkout — and fills all three slots; the manager never threads a model through.
-- **Skills that spawn with the `Agent` tool** (`/drain`, `/research`, `/next`'s fill and whole-stage subagents) pass `model` with the tier's resolved value, and omit it when the tier resolves to `inherit`.
+- **Workflow templates** carry three data slots, `EXECUTOR_MODEL`, `DECIDER_MODEL`, and `AUDITOR_MODEL`, filled with the resolved values (`inherit` fills as `null`). Every `agent()` call below a template's `FIXED BELOW THIS LINE` marker names its tier through the template's `tier()` helper, which passes `model` only when the tier is pinned. A fill agent resolves the policy itself — the files are readable from any checkout — and fills all three slots; the manager never threads a model through.
+- **Skills that spawn with the `Agent` tool** (`/drain`, `/research`, `/cold-read`, `/next`'s fill and whole-stage subagents) pass `model` with the tier's resolved value, and omit it when the tier resolves to `inherit`.
 - **Reporting**: a skill that launches a workflow or a batch of agents says which models the tiers resolved to, in one line, before spawning — so an unexpected `fable` is visible before it costs anything.

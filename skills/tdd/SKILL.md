@@ -7,7 +7,7 @@ description: Test-driven development. Use when the user wants to build features 
 
 TDD is the red → green loop. This skill is the reference that makes that loop produce tests worth keeping: what a good test is, where tests go, the anti-patterns, and the rules of the loop. Every section applies on every cycle — consult them before and during the loop, not after.
 
-When exploring the codebase, read `CONTEXT.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
+When exploring the codebase, read `CONTEXT.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching (both per `/domain-modeling`).
 
 ## What a good test is
 
@@ -22,7 +22,7 @@ A **seam** is the public boundary you test at: the interface where you observe b
 **Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them. You can't test everything — agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case. Confirmation takes one of two forms:
 
 - **Live session**: ask the user — "What's the public interface, and which seams should we test?" Describe each proposed seam at the interface level, in the project's domain language: what boundary it is and what behaviour is observable there. Cite the code per `/code-anchors` when the user asks to see it.
-- **AFK session driven by a spec** (a `/ship` agent, say): the spec's **Seams under test** list *is* the confirmation — the human agreed it upstream, via design tickets on the wayfinder map or at `/specify` time. Don't re-ask, and don't widen it.
+- **AFK session driven by a spec** (a `/ship` agent, say): the spec's **Seams under test** list *is* the confirmation — the human agreed it upstream, via design tickets on the `/wayfinder` map or at `/specify` time. Don't re-ask, and don't widen it.
 
 Either way, no test is written at an unconfirmed seam. An AFK agent whose work no listed seam covers has found a **spec gap** — park and report it per the ship discipline, never invent a seam.
 

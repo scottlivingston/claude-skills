@@ -6,11 +6,11 @@ description: Review the changes since a fixed point (commit, branch, tag, or mer
 Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 
 - **Standards** — does the code conform to this repo's documented coding standards (plus the smell baseline below)?
-- **Spec** — does the code faithfully implement the originating issue / PRD / spec?
+- **Spec** — does the code faithfully implement the originating issue or spec?
 
 **The policy — shared with `/ship`: escalate questions about intent, auto-resolve questions about code.** The user is the intent authority, not a code reviewer — the review must never require them to hold the code in their head. Every validated finding with an uncontested fix resolves itself: applied and committed by the serial fix agent, or published as a ticket the rest of the workflow (`/ship`, `/next`) picks up. What reaches the user is exactly the set of questions the pipeline *cannot* answer, because they are questions about what was meant — the five question classes of `/finding-pipeline`'s code gates: spec unclear, competing fixes, genuine trade-off, no working fix, pervasive pattern.
 
-The pipeline is the contract in `/finding-pipeline` — stages, adversarial discipline, routing, the fix and ticket agents, gate markers, question mechanics, and the code-gate specifics live there once, shared with `/ship` and the document gates; when an invariant needs changing, change the contract, not this skill. It runs as **one dynamic `Workflow`** (this skill is your authorization), so the manager's context stays clean for the question loop. What's local here is pinning the diff, finding the spec and standards sources, the smell baseline, the reviewer briefs, and the merge offer. Nothing is ever edited in the review session itself outside the fix agents.
+The pipeline is the contract in `/finding-pipeline` — stages, adversarial discipline, routing, the fix and ticket agents, gate markers, question mechanics, and the code-gate specifics live there once, shared with `/ship` and the document gates. It runs as **one dynamic `Workflow`** (this skill is your authorization), so the manager's context stays clean for the question loop. What's local here is pinning the diff, finding the spec and standards sources, the smell baseline, the reviewer briefs, and the merge offer. Nothing is ever edited in the review session itself outside the fix agents.
 
 For the issue tracker, invoke `/issue-tracker`.
 
@@ -36,7 +36,7 @@ Look for the originating spec, in this order:
 
 1. Issue references in the commit messages (`#123`, `Closes #45`, etc.) — fetch via the tracker doc above.
 2. A path the user passed as an argument.
-3. A PRD/spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
+3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** reviewer stage will skip and report "no spec available".
 
 When the spec is a tracker issue, "the spec contents" means the kernel body plus its **addressable decisions**, reassembled in index order per the tracker doc's spec-decision convention — the decision marker is also what separates spec content from this skill's own round-summary comments on the same issue. A spec with no Decision Index is just its body.
@@ -69,7 +69,7 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 ### 4. Fill and launch the pipeline workflow
 
-**Start from [workflow.template.js](workflow.template.js) — fill it, don't author from scratch.** Read the template and fill every `FILL` slot in its data block; everything below its FIXED marker — schemas, prompt builders, stage order, the barriers — is the same every run; edit it only when this run genuinely deviates. An unfilled slot throws `FILL is not defined` at launch — loud, before any agent spawns. Filling follows the contract's *Workflow authoring invariants* — nothing through `args`, prose slots as JSON string literals. The manager fills, launches, relays progress, and does no review work itself; the reviewer briefs below and the template's prompts are the same words — keep the two in sync when either changes.
+**Start from [workflow.template.js](workflow.template.js) — fill it, don't author from scratch.** Read the template and fill every `FILL` slot in its data block; everything below its FIXED marker — schemas, prompt builders, stage order, the barriers — is the same every run; edit it only when this run genuinely deviates. An unfilled slot throws `FILL is not defined` at launch — loud, before any agent spawns. Filling follows the contract's *Workflow authoring invariants* — nothing through `args`, prose slots as JSON string literals. The manager fills, launches, relays progress, and does no review work itself; the reviewer briefs below and the template's prompts are the same words.
 
 The slots — the workflow has no conversation context:
 

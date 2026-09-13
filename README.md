@@ -114,7 +114,7 @@ What must be true of your project and working style for this workflow to fit:
 Used by the chain, and useful on their own:
 
 - **grilling** — you lay out your picture first, then it holds a position on one decision at a time until the design holds; facts get looked up, never asked
-- **wait-what** — stop and re-pitch the last message in plain language, using the project's ubiquitous vocabulary
+- **wait-what** — stop and re-pitch the last message in plain language, using the project's ubiquitous language
 - **domain-expansion** — a plain-language briefing on the system behaviour behind the current question, in the project's ubiquitous language; for when a question lands on unfamiliar terrain
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
 - **design** — decide the shape of code before it's built — module boundaries, interfaces, data shapes, and the seams tests will live at — captured as contract snippets that flow into the spec
@@ -124,7 +124,7 @@ Used by the chain, and useful on their own:
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
 - **tdd** — the red–green loop, seams, mocking guidance, and test anti-patterns
 - **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
-- **cold-read** — repair a document many agent sessions have edited so it reads to someone holding only the doc and what it points at: ghosts, broken pointers, changelog prose, aliases, undefined terms, residue, stale caches — every repair proved by a lookup, only the rest asked
+- **cold-read** — repair a document many agent sessions have edited so it reads to someone holding only the doc and what it points at: ghosts, broken pointers, changelog prose, aliases, undefined terms, residue, stale caches, contradictions — every repair proved by a lookup, only the rest asked
 - **diff-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
 - **hitl-questions** — the presentation contract for every question put to the human: the opening where the human states their design before the agent proposes anything, facts vs decisions, cold-reader blocks, one topic per block, domain language, recommendations, escape hatches

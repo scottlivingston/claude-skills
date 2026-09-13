@@ -16,8 +16,8 @@ export const meta = {
 
 // Template for the /ship wave workflow — SKILL.md's "The wave workflow" and "What
 // is local to this gate" hold the stage briefs this file encodes, and
-// /finding-pipeline (code gates included) holds the invariants; keep them in
-// sync when any changes. The same file runs the closing pass (set CLOSING).
+// /finding-pipeline (code gates included) holds the invariants. The same file
+// runs the closing pass (set CLOSING).
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
 // `script`. An unfilled slot throws "FILL is not defined" at launch — loud,
@@ -32,10 +32,10 @@ const WAVE = FILL                 // wave number n — or the closing-pass numbe
 const CLOSING = FILL              // false for a wave; for a closing pass: { deferredQueue: [...] } — the ledger's deferred-to-close blocks, verbatim ([] if none)
 const SHIP_BRANCH = FILL          // the run's branch, e.g. "spec-42-auth-rework"
 const PRE_WAVE_SHA = FILL         // HEAD of the ship branch at launch — before this wave's first merge; the run base (merge-base with default) when CLOSING
-const TICKETS = FILL              // [{ ref: "#57", title, body, decisionIds: ["D-3"] }] — the frontier; [] when CLOSING
+const TICKETS = FILL              // [{ ref: "#57", title, body, decisionIds: ["D3"] }] — the frontier; [] when CLOSING
 const SPEC_ISSUE_REF = FILL       // tracker ref of the spec issue, e.g. "#42"
 const SPEC_KERNEL = FILL          // the spec kernel verbatim — Testing Decisions, Seams under test, Decision Index included
-const DECISIONS = FILL            // { "D-3": "full decision text", ... } — union of decisions the wave's tickets cite ({} when CLOSING: reviewers fetch by ID)
+const DECISIONS = FILL            // { "D3": "full decision text", ... } — union of decisions the wave's tickets cite ({} when CLOSING: reviewers fetch by ID)
 const TRACKER_READ_OP = FILL      // one-liner: how an agent fetches a spec decision by ID, or ""
 const STANDARDS_SOURCES = FILL    // [{ path: "CONVENTIONS.md", scope: "repo root" }, ...] — [] omits the standards axis entirely ("standards axis idle")
 const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open review-finding tickets: [{ ref, title, body }] — [] if none
@@ -66,7 +66,7 @@ const j = lines => lines.filter(s => s !== null && s !== undefined && s !== '').
 
 // The contract's scope rule, stated once here and folded into the block every review-side
 // stage shares, so reviewers, labelers, and validators read the same words. Canonical
-// wording: /finding-pipeline, "The diff is the material" — edit there first, then here.
+// wording: /finding-pipeline, "The diff is the material".
 const SCOPE_RULE = 'SCOPE — the diff is the material. A finding must name something the diff DID: a line it added, changed, or removed. Code the diff never touched is out of scope however wrong it is, and whether or not a ticket already covers it. You will legitimately see far more code than you may report on — diff context lines, the repo grep behind a repo-wide flag, the files you open to check a rule — and none of it is reportable on its own. Two cases are in scope and only look like exceptions: a requirement this change was meant to deliver and did not (an absence has no anchor), and the repo-wide counts, which are evidence about a pattern the diff instantiates, never findings about the untouched instances.'
 
 // Commits are created inside this run — agents fetch the log themselves.

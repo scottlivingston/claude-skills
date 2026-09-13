@@ -29,7 +29,7 @@ Any directory may carry its own `CONVENTIONS.md`, binding everything beneath it:
 
 - **Nearest ancestor wins.** The standards governing a file are every `CONVENTIONS.md` on its ancestor path, root included; where two rules conflict, the nearer file's rule wins.
 - **Scoped files are deltas.** Write them as differences over the root — "as root, except…" plus additions — never as full copies; a copy forks and drifts.
-- **No index file.** Scoping is purely directory-based, so the ancestor walk *is* the lookup — nothing like `CONTEXT-MAP.md` is needed.
+- **No index file.** Scoping is purely directory-based, so the ancestor walk *is* the lookup — nothing like `/domain-modeling`'s `CONTEXT-MAP.md` is needed.
 
 A reviewer facing a diff that spans scopes collects the governing set per file and applies each file's own standards to it — one app's rules never judge another app's code.
 
@@ -42,11 +42,11 @@ A reviewer facing a diff that spans scopes collects the governing set per file a
 
 ## Where rules come from
 
-Written by hand any time — and grown by the review loop: when `/diff-review` or `/ship` escalates a **pervasive pattern** and the user answers *adopt as rule*, the pattern parks as a standalone cleanup ticket whose task list includes **appending the rule to the governing `CONVENTIONS.md`** — the scope nearest the pattern, root when it's repo-wide. That is the loop's self-improvement path: a judgement call the review keeps rediscovering becomes a documented standard the next round enforces mechanically. `CONVENTIONS.md` is the only file review ever appends rules to.
+Written by hand any time — and grown by the review loop: when `/diff-review` or `/ship` escalates a **pervasive pattern** — one of the question classes of `/finding-pipeline`'s code gates, which defines the *adopt as rule* option — and the user answers *adopt as rule*, the pattern parks as a standalone cleanup ticket whose task list includes **appending the rule to the governing `CONVENTIONS.md`** — the scope nearest the pattern, root when it's repo-wide. That is the loop's self-improvement path: a judgement call the review keeps rediscovering becomes a documented standard the next round enforces mechanically. `CONVENTIONS.md` is the only file review ever appends rules to.
 
 ## CLAUDE.md points, never duplicates
 
-Standards live here; `CLAUDE.md` may link to this file so coding agents follow the rules while writing, but never restates them. A rule living in both copies drifts, and "the repo overrides the baseline" turns ambiguous about which copy is the repo's word.
+Standards live in `CONVENTIONS.md`; `CLAUDE.md` may link to it so coding agents follow the rules while writing, but never restates them. A rule living in both copies drifts, and "the repo overrides the baseline" turns ambiguous about which copy is the repo's word.
 
 ## Fallback
 

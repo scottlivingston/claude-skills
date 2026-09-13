@@ -67,7 +67,7 @@ The whole map at low resolution, loaded once per session. Open tickets are **not
 
 ### Tickets
 
-Each ticket is a **child issue** of the map; the tracker's issue id is its identity. Its body is the question, sized to one 100K token agent session:
+Each ticket is a **child issue** of the map; the tracker's issue id is its identity. Its body is the question, sized to one agent session:
 
 ```markdown
 ## Question
@@ -89,7 +89,7 @@ Every ticket is either **HITL** — human in the loop, worked *with* a human who
 
 - **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases. Creates a markdown summary as a linked asset. Use when knowledge outside the current working directory is required.
 - **Prototype** (HITL): Raise the fidelity of the discussion by making a cheap, rough, concrete artifact to react to — an outline, a rough take, a stub, or UI/logic code via the /prototype skill. Links the prototype as an asset. Use when "how should it look" or "how should it behave" is the key question.
-- **Grilling** (HITL): Conversation via the /grilling and /domain-modeling skills, worked round-by-round. The default case.
+- **Grilling** (HITL): Conversation via the /grilling and /domain-modeling skills, worked one decision at a time. The default case.
 - **Design** (HITL): Decide the shape of the code before it's built — module boundaries, interfaces and function signatures, data shapes, and the seams tests will live at — via the /design skill. Resolutions carry decision-encoding snippets (interface stubs, type shapes) that flow into the spec, and the agreed seams feed the spec's Seams-under-test list. Use when the question is "what structure should power this" rather than "what should it do".
 - **Task** (HITL or AFK): Manual work that must happen before a *decision* can be made — nothing to decide, prototype, or research, but the discussion is blocked until it's done. Signing up for a service so its API can be judged, provisioning access, moving data so its shape can be seen. This is the one type that *does* rather than decides — and it earns its place by unblocking a decision, not by delivering the destination. The agent drives it alone where it can (AFK); otherwise it hands the human a precise checklist (HITL). Resolved when the work is done; the answer records what was done and any resulting facts (credentials location, new URLs, row counts) later tickets depend on.
 
@@ -179,7 +179,7 @@ User invokes with a loose idea.
 1. **Name the destination.** Run a `/grilling` and `/domain-modeling` session to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Grill again, **breadth-first** this time: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear, the whole journey small enough for one session — you don't need a map. Stop and ask the user how they'd like to proceed.
 3. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first so the markers exist): Destination and Notes filled in, Decisions-so-far empty, the fog sketched into **Not yet specified**.
-4. **Create the tickets you can specify now** as child issues of the map — then wire blocking edges in a **second pass** (issues need ids before they can reference each other). Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
+4. **Create the tickets you can specify now** as child issues of the map — then wire blocking edges in a **second pass** — **create-then-wire**, because issues need ids before they can reference each other. Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
 
    Chart any **slice** you can already state the same way (create-then-wire; slices block each other in ship order). Most maps can't name one this early — the partition shows up in the resolutions, not the questions — and that is the normal case, not a gap.
 5. Stop — charting the map is one session's work; do not also resolve tickets.

@@ -14,7 +14,7 @@ export const meta = {
 
 // Template for the /diff-review pipeline workflow — SKILL.md steps 4–5 hold the
 // reviewer briefs this file encodes, and /finding-pipeline (code gates included)
-// holds the invariants; keep them in sync when any changes.
+// holds the invariants.
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
 // `script`. An unfilled slot throws "FILL is not defined" at launch — loud,
@@ -33,7 +33,7 @@ const SPEC = FILL                 // full spec contents reassembled per the trac
 const SPEC_SOURCE = FILL          // where the spec came from, one line ("issue #42", "docs/prd.md") — "" when SPEC is null
 const SPEC_SCOPE = FILL           // one line: which part of the spec this diff was meant to deliver ("the ticket-DAG walk, not the tracker adapters") — null when the diff is meant to deliver the whole spec
 const SPEC_KERNEL = FILL          // WIDE + Decision Index only: kernel body incl. the index; else null → reviewers get full SPEC
-const SPEC_DECISIONS = FILL       // WIDE + Decision Index only: { "D-3": "full decision text", ... }; else null
+const SPEC_DECISIONS = FILL       // WIDE + Decision Index only: { "D3": "full decision text", ... }; else null
 const TRACKER_READ_OP = FILL      // one-liner: how an agent fetches a spec decision by ID (the tracker doc's read), or ""
 const STANDARDS_SOURCES = FILL    // [{ path: "CONVENTIONS.md", scope: "repo root" }, ...] — reviewers read the files themselves; [] when nothing documented
 const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open `review-finding` tickets: [{ ref: "#12", title: "...", body: "..." }] — [] if none
@@ -75,7 +75,7 @@ const j = lines => lines.filter(s => s !== null && s !== undefined && s !== '').
 
 // The contract's scope rule, stated once here and folded into the block every review-side
 // stage shares, so reviewers, labelers, and validators read the same words. Canonical
-// wording: /finding-pipeline, "The diff is the material" — edit there first, then here.
+// wording: /finding-pipeline, "The diff is the material".
 const SCOPE_RULE = 'SCOPE — the diff is the material. A finding must name something the diff DID: a line it added, changed, or removed. Code the diff never touched is out of scope however wrong it is, and whether or not a ticket already covers it. You will legitimately see far more code than you may report on — diff context lines, the repo grep behind a repo-wide flag, the files you open to check a rule — and none of it is reportable on its own. Two cases are in scope and only look like exceptions: a requirement this change was meant to deliver and did not (an absence has no anchor), and the repo-wide counts, which are evidence about a pattern the diff instantiates, never findings about the untouched instances.'
 
 const COMMON = j([
@@ -771,7 +771,7 @@ const digest = {
   autoApplied: apply.applied, autoTicketed: tickets,
   ticketPendingManager: all.filter(f => f.status === 'ticket-pending-manager').map(f => f.id),
 }
-let ledger = { posted: false, marker: escalations.length ? 'no tracker spec issue — run the question loop from this return, in-session' : 'no escalations — no pending-questions comment needed' }
+let ledger = { posted: false, marker: escalations.length ? 'no durable gate (no tracker spec issue, or no tracker mechanics) — run the question loop from this return, in-session' : 'no escalations — no pending-questions comment needed' }
 if (escalations.length && SPEC_ISSUE_REF && TICKET_MECHANICS) {
   ledger = (await agent(ledgerPrompt(escalations, digest), { ...tier('decider'), schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
     { posted: false, marker: 'ledger agent died — POST THE PENDING-QUESTIONS COMMENT FROM THE MANAGER before anything else' }

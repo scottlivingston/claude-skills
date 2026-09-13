@@ -32,7 +32,7 @@ The kinds overlap by design — a copied block that drifted from its source is a
 4. **Sweep** the document against the defect list with the resolved referents in hand. Several documents fan out as one agent per document on the **decider tier** per `/model-policy`, each running steps 2–4 and returning its findings with proofs; a single document is swept inline.
 5. **Repair.** The bar is the one document gates hold in `/finding-pipeline`: a repair lands only when it is **provably derivable** — the proof is a lookup anyone can rerun. Each landed repair is one line: what changed, in the document's own terms, and the proof. What no lookup settles — a broken pointer to material that lives nowhere, a contradiction whose halves both stand, a name that might resolve outside the repo — is held as a question.
 6. **Re-read cold.** Take the repaired document from the seat once more. Done when every referent resolves, every term is defined in reach, and every sentence describes the present state.
-7. **Report and ask.** The change list first, written as the commit body it will become — one line per repair, proof trailing. Then the held questions, one per turn, per `/hitl-questions`. Edits stay in the working tree for the user to diff and commit.
+7. **Report and ask.** The change list first, written as the commit body it will become — one line per repair, proof trailing. Then the held questions, one per turn, each presented per `/hitl-questions`. Edits stay in the working tree for the user to diff and commit.
 
 ## Rules
 
