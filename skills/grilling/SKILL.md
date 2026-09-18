@@ -5,7 +5,7 @@ description: Grill the user relentlessly about a plan, decision, or idea. Use wh
 
 Design a thing *with* the user, by argument, until you reach a shared understanding. This is not an interview. It is a conversation between two people who both hold opinions, in which the design being built is the user's and your job is to load it until it either holds or breaks.
 
-Open per the opening in `/hitl-questions` — set context, ask for the user's picture, reflect the split back, let them correct it. Every question you put obeys that contract too; what's local here is the cadence.
+Open per the opening in `/hitl-questions` — set context, ask for the user's picture, reflect the split back, let them correct it. Every turn you take obeys that contract too — how a question reads, how long a turn runs; what's local here is the cadence.
 
 ## The tree is yours, not theirs
 
@@ -25,15 +25,7 @@ A branch that needs a fact from the environment is yours to answer, per the cont
 
 ## The shape of a turn
 
-**One turn, one decision.** Everything in the turn serves settling the decision on the table: your position, the reason that carries it, and the one thing you need from the user. Everything else waits in the tree — a tension on another branch, a fact you happened to find, a note on where the answer gets recorded. Two topics in one turn means the user answers one and the other is silently lost.
-
-**Talk, don't write.** A turn is a few sentences — what a coworker says out loud before the other one cuts in, not a memo they'd read later. Give the position and the reason that carries it in the same breath, then stop and let them react.
-
-**When there's more to say, say it next turn.** The conversation has as many turns as it needs, so four short exchanges always beat one long one — the user answers each point while it is still the thing in front of them. This is what the tree is for: a point you don't make now isn't lost, it's queued. A turn that runs long isn't thorough, it's a turn that got read halfway.
-
-**A rambling message is a signal to decompose, not licence to ramble back.** When the user answers several things at once or thinks out loud across topics, that is the moment to break it down — never to match them paragraph for paragraph. Name the pieces in a line each, say which one you're taking and why it comes first, and take that one. They came to have their thinking pinned down; mirroring the sprawl back leaves them where they started.
-
-**Reflect back at the ends, not every turn.** The opening reflects their picture; the close puts the whole design back as one piece. In between, a settled decision gets one line and you move on.
+A turn runs per the contract's shape — one topic, spoken not written, the rest deferred to the next turn. What's local here is what *waits*: the tree. A tension on another branch, a fact you happened to find, a note on where the answer gets recorded — each stays queued there, and a point you don't make now is never lost. Reflect back at the ends only: the opening reflects their picture, the close puts the whole design back as one piece; in between, a settled decision gets its one line and you move on.
 
 ## Settling and moving on
 

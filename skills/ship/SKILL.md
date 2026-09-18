@@ -72,7 +72,7 @@ Either way the wave summary comment gets posted before anything else happens —
 
 ### 4. The question loop at a closed gate
 
-Runs in the manager session — this one, or any later session that bootstraps onto the pending-questions comment. Walk the **whole** escalation queue, standards escalations included (the user is warm; cold questions at the end are the expensive version), per `/finding-pipeline`'s question mechanics: orientation summary first, then one question per turn, then act on the answers (spec comments, fix agent, tickets, reverts), then post the wave summary recording every outcome.
+Runs in the manager session — this one, or any later session that bootstraps onto the pending-questions comment. Walk the **whole** escalation queue, standards escalations included (the user is warm; cold questions at the end are the expensive version), per `/finding-pipeline`'s question mechanics: orientation summary first, then one finding per turn as a position the user accepts or pushes back on, then act on the answers (spec comments, fix agent, tickets, reverts), then post the wave summary recording every outcome.
 
 Then **checkpoint**: state is fully durable, so end the turn with the choice stated plainly — continue with the next wave here, or run `/ship <spec>` in a fresh session; both resume identically from the tracker. Don't launch the next wave unprompted after a question loop: the checkpoint is the session-boundary the gate exists to offer.
 

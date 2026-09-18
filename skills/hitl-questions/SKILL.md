@@ -1,9 +1,9 @@
 ---
 name: hitl-questions
-description: The presentation contract for every question put to the human — the opening, facts vs decisions, cold-reader blocks, domain language, recommendations, prose over dialogs, escape hatches. Consult when putting any question to the human from a workflow skill, or when authoring a skill that asks.
+description: The presentation contract for every question put to the human — the opening, facts vs decisions, cold-reader blocks, domain language, recommendations, prose over dialogs, the shape of a turn, escape hatches. Consult when putting any question to the human from a workflow skill, or when authoring a skill that asks.
 ---
 
-Every skill in this plugin that puts a question to the human speaks this contract. The asking skill defines only its **cadence** — grilling's one decision at a time, the finding pipeline's one-question-per-turn gate loop, tickets' quiz — and what each answer triggers. How a question *reads* lives here, once. When an asking skill and this contract disagree, this contract wins — fix the skill.
+Every skill in this plugin that puts a question to the human speaks this contract. The asking skill defines only its **cadence** — grilling's one decision at a time, the finding pipeline's one-finding-per-turn gate loop, tickets' quiz — and what each answer triggers. How a question *reads*, and how long a turn runs, lives here, once. When an asking skill and this contract disagree, this contract wins — fix the skill.
 
 ## The opening
 
@@ -43,7 +43,21 @@ Every question carries your recommended answer and the one-line reason. The huma
 
 ## Prose, not dialogs
 
-Questions are put in **prose**, in the flow of the conversation, with your reasoning visible and the human free to answer past the question you actually asked. Nothing here mandates `AskUserQuestion`: a skill reaches for the dialog only when the exchange really is a routing decision over a closed set — a finding's verdict, a breakdown's confirmation — and never in a design conversation, where a ballot of options stands in for a position you should have taken. When a skill does use it, everything the human must read to answer is printed as ordinary text in the same reply, *before* the tool call — the dialog cannot display the material, and no summary inside the tool stands in for it.
+Questions are put in **prose**, in the flow of the conversation, with your reasoning visible and the human free to answer past the question you actually asked. Nothing here mandates `AskUserQuestion`: a skill reaches for the dialog only when the exchange really is a confirmation over a closed set — a breakdown's approval — and never where the human is deciding something, a design conversation or a review gate alike, where a ballot of options stands in for a position you should have taken. When a skill does use it, everything the human must read to answer is printed as ordinary text in the same reply, *before* the tool call — the dialog cannot display the material, and no summary inside the tool stands in for it.
+
+## The shape of a turn
+
+Every exchange in this plugin is a conversation between two people, not a memo and a form. The asking skill decides what a turn is *about*; this section fixes how big it is.
+
+**One turn, one topic.** Everything in the turn serves settling the one thing on the table: your position, the reason that carries it, and the one thing you need from the human. Everything else waits — a tension on another branch, the next finding in the queue, a fact you happened to find, a note on where the answer gets recorded. Two topics in one turn means the human answers one and the other is silently lost.
+
+**Talk, don't write.** A turn is what a coworker says out loud before the other one cuts in: a few sentences, under about a hundred words, never a document. The one thing allowed to lengthen it is a verbatim quote of the line the question turns on, when the human has to see it to answer. Typography is welcome — a bold lead, a short list, a quote block, a header when the turn opens a new thing — because it makes a turn faster to parse; the limit is the length, not the formatting. Give the position and the reason that carries it in the same breath, then stop and let them react.
+
+**When there's more to say, say it next turn.** The conversation has as many turns as it needs, so four short exchanges always beat one long one — the human answers each point while it is still the thing in front of them. A point you don't make now isn't lost, it's queued in whatever the asking skill keeps its bookkeeping in. A turn that runs long isn't thorough, it's a turn that got read halfway.
+
+**A rambling message is a signal to decompose, not licence to ramble back.** When the human answers several things at once or thinks out loud across topics, that is the moment to break it down — never to match them paragraph for paragraph. Name the pieces in a line each, say which one you're taking and why it comes first, and take that one.
+
+**Settle in a line.** When the thing on the table settles, say so in one line in the human's terms and move to the next. Reflecting the whole back is for the ends of a session, never every turn.
 
 ## Escape hatches
 

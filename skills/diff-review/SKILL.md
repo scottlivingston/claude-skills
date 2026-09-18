@@ -125,7 +125,7 @@ Labeling, dedup, adversarial validation, proposals, fix validation, routing, and
 
 When the spec is a tracker issue, the workflow's final stage posts `<!-- diff-review pending-questions -->` on it — the question blocks plus the audit digest — and the gate goes AFK per the contract: notify, end the turn, and any session resumes the loop from the comment — `/next` routes a spec carrying one to it. With no tracker issue there is nowhere durable to post: the queue lives in the workflow's return, and the loop runs now, in this session.
 
-Open with the contract's orientation summary — with one local line when step 3 found no documented standards at any scope: the smell baseline was the only Standards source this round, and the axis sharpens as rules get written; each pervasive-pattern *adopt as rule* ticket is the mechanism. Then walk the escalations one question per turn, per the contract's question mechanics and the five question classes.
+Open with the contract's orientation summary — with one local line when step 3 found no documented standards at any scope: the smell baseline was the only Standards source this round, and the axis sharpens as rules get written; each pervasive-pattern *adopt as rule* ticket is the mechanism. Then walk the escalations one finding per turn as a position, per the contract's question mechanics and the five question classes.
 
 ### 7. Act on the collected answers
 

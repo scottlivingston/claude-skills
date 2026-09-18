@@ -52,7 +52,7 @@ A finding routed *joined* — its fix waits on another escalation's answer — r
 
 All gate state lives as comments on the issue the stage operates on, each opening with a machine-findable marker named for the skill (scoped where the skill runs repeatedly, as ship's `wave-<n>` is):
 
-- `<!-- <skill> pending-questions -->` — posted by the **workflow's final stage**, not the manager, so the queue is durable even if the session dies the moment the workflow returns. Carries the full question blocks plus the audit digest of auto-actions.
+- `<!-- <skill> pending-questions -->` — posted by the **workflow's final stage**, not the manager, so the queue is durable even if the session dies the moment the workflow returns. Carries the full question blocks plus the audit digest of auto-actions — the notes the question loop talks from, never the script it reads out.
 - `<!-- <skill> summary -->` — posted after adjudication: **every** finding ID with its terminal outcome — auto-applied, auto-ticketed, refuted (one-line reason), `no-repair-needed`, answered (verdict and what it triggered), reverted, left as-is, unanswered. Completeness here is what makes the loop converge; an outcome not recorded will be re-found and re-asked.
 
 **A pending-questions comment with no matching summary is a resume point**: any session — this one or a later `/next` — bootstraps onto it and runs the question loop from the comment alone, never by re-running the pipeline.
@@ -61,11 +61,9 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 
 ## Question mechanics
 
-**Open with the orientation summary** — the audit digest first, stated as *done*, not proposed: the counts found and refuted, then one sentence per auto-applied or auto-ticketed action saying what changed in the project's terms — the behaviour, decision, or document line it touched — with the finding ID and the SHA or ticket link trailing in parentheses as the revert handle. The user overrides any of it by free text (`revert W2-STD-7`) and the manager reverts that commit, edit, or ticket. Then the escalation count by question class — never the question blocks themselves.
+**The comment is the record; the loop is a conversation.** The pending-questions comment carries the full material — the audit digest and one block per escalation, in the shape below — because a later session resumes from it alone and a cold reader must be able to answer from it. The loop that walks it is **not the comment read aloud**. It runs per `/hitl-questions` — the cold-reader rules, the domain language, the recommendation, prose over dialogs, the shape of a turn, the escape hatches — the way grilling runs: the blocks are the notes, and each turn is what you say from them. Every artifact in this chain is agent-written and the loop is often the user's first contact with the material, so the contract's cold-reader test bites hardest here.
 
-**Every block obeys the presentation contract in `/hitl-questions`** — the cold-reader rules, the domain language, the recommendation, prose over dialogs, the escape hatches. Every artifact in this chain is agent-written and the question loop is often the user's first contact with the material, so the contract's cold-reader test bites hardest here: someone who joined the project today must be able to pick an option from the block alone.
-
-**One question per turn**, in the order later work most likely builds on. Per escalation, print its block:
+The block the comment carries, per escalation:
 
 ```
 ### <plain title of what's being decided> — <i> of <n> (<ID>)
@@ -82,9 +80,15 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 <The option you'd pick, and the one-line why.>
 ```
 
-That shape is the contract's cold-reader rules made concrete: the quote is the finding's own source field printed rather than paraphrased, and the stakes line is the cost field stage 4 filled. Two bindings are local to a gate. An **absence** has no sentence to quote — say the material is silent and quote whatever was meant to cover it. And the question class is routing vocabulary: it surfaces in the orientation summary's counts and nowhere the user reads a block.
+That shape is the contract's cold-reader rules made concrete: the quote is the finding's own source field printed rather than paraphrased, and the stakes line is the cost field stage 4 filled. Two bindings are local to a gate. An **absence** has no sentence to quote — say the material is silent and quote whatever was meant to cover it. And the question class is routing vocabulary: it surfaces in the digest's counts and nowhere the user reads.
 
-Then ask with `AskUserQuestion` per the contract. The contract's escape hatches bind here as: `explain` gets its answer, then the same ID is re-asked; batched verdicts are taken as given; "stop" records every untouched ID as `unanswered` and goes to the wrap-up.
+**Open with the orientation summary**, stated as *done*, not proposed: the counts found and refuted in a line, then one line per auto-applied or auto-ticketed action saying what changed in the project's terms — the behaviour, decision, or document line it touched — with the finding ID and the SHA or ticket link trailing in parentheses as the revert handle. The user overrides any of it by free text (`revert W2-STD-7`) and the manager reverts that commit, edit, or ticket. Then how many findings are left to settle, and the first of them in the same turn — the digest is context, not a question, so it doesn't compete for the answer.
+
+**One finding per turn, as a position.** Take the escalation later work most likely builds on (at code gates, spec questions before standards questions) and put it the way grilling puts a decision: what part of the product it concerns, the line it turns on quoted verbatim where they have to see it to answer, the repair you'd land, and the one reason that carries it — then stop. The block's recommended option *is* the position; its other options are what the user can redirect to, never a ballot to read out. Name an alternative only when the user pushes back or asks, or when you genuinely have no lean — then put the two horns in a sentence each and ask which. Everything else the block holds — the draft spec comment, where the verdict gets recorded, a joined finding riding along — waits for the verdict, or is one trailing line at most. The user argues back, redirects, or settles it, exactly as in grilling; push back once where their answer breaks something the block's stakes line names, then take their call.
+
+**Settle in a line and move on.** The reply is free text. Map it to the verdict the gate skill's list admits, state the settled verdict in one line in the user's terms, and take the next finding. A reply that doesn't map to a verdict gets the one question that disambiguates, never the block again. `AskUserQuestion` has no place in this loop: the verdict is inferred from what the user said, and a dialog would turn the conversation back into the form.
+
+The contract's escape hatches bind here as: `explain` gets its answer, then the same finding is re-put; batched verdicts are taken as given — reflect what they settled in a line each and carry on from what's still open; "stop" records every untouched ID as `unanswered` and goes to the wrap-up.
 
 **Act on the collected answers after the loop, none mid-loop**: post the source amendments the verdicts chose, run one serial fix agent for repairs the answers unlocked (re-grounding each proposal against the current state by its quoted snippet), file the tickets called for, revert what the audit overrode. Then post the summary comment.
 
