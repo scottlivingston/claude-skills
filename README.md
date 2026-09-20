@@ -21,10 +21,10 @@ Every ticket carries a type and a mode — **HITL** (worked live with the human)
 | **Grilling** | HITL | `/grilling` + `/domain-modeling` | The default: you say how you picture it, then one decision at a time gets argued out until "what should it do?" is recorded decisions |
 | **Design** | HITL | `/design` | The shape of code before it's built — module boundaries, interfaces, data shapes, the seams tests will live at |
 | **Prototype** | HITL | `/prototype` | "How should it look / behave?" — cheap throwaway code or artifacts to react to |
-| **Research** | AFK | `/research` | Questions answerable from documentation and primary sources; lands as a cited markdown file |
+| **Research** | AFK | `/research` | Questions of fact answerable from documentation and primary sources; lands as a cited markdown file that feeds a HITL decision |
 | **Task** | either | — | Manual work that must happen before a decision *can* be made (provision access, move data) |
 
-One support runs through all of this: **`/drain`** works the AFK frontier in parallel background agents while you sit only in the HITL conversations. Human time goes only where a human is needed.
+One support runs through all of this: **`/drain`** works the AFK frontier in parallel background agents while you sit only in the HITL conversations. Draining gathers evidence and unblocks decisions; it never makes one. Human time goes only where a human is needed.
 
 Each session resolves **one ticket**: the answer is recorded on the ticket, the ticket is closed, newly visible questions become new tickets, fog that just became specifiable graduates, and the resolution is filed into the slice it will ship in (next section). The map is complete when no tickets remain, the fog is empty, and every decision is filed — every implementation-relevant decision recorded, and its place in the delivery order known.
 
@@ -62,7 +62,7 @@ When no tickets remain, a closing pass re-reads the **whole branch diff** — hu
 
 ## Driving it: `/next`
 
-You don't memorize the chain. Start an effort with `/wayfinder <idea>`; after that, invoke **`/next`** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — exactly one unit of work per invocation, then it stops and says `/next` again. While the map is live it also drains the AFK frontier in the background while you sit in a HITL ticket, and it folds in any results a previous session didn't.
+You don't memorize the chain. Start an effort with `/wayfinder <idea>`; after that, invoke **`/next`** each session. Because all state lives on the tracker, `/next` queries where the effort stands, announces the stage, and runs that stage's skill — exactly one unit of work per invocation, then it stops and says `/next` again. While the map is live it also drains the AFK frontier in the background while you sit in a HITL ticket, and it folds in any decisions a previous session didn't.
 
 **`/next auto <effort> [merge]`** conducts instead: from the first sealed slice onward it rolls map-review → spec → spec-review → tickets → ship → closing end to end — one slice at a time, in ship order — pausing only where a gate genuinely needs you — every pause posted durably to the tracker and push-notified, answerable in that session or any later one. The conductor delegates all heavy lifting (workflow fills, synthesis stages) to fresh subagents and holds only routing state, so one session can conduct an arbitrarily long run. Include the word `merge` and a clean closing pass ends with the PR squash-merged; without it, the run ends by offering the PR. A clean effort goes from sealed slice to merged spec with a handful of batched questions.
 
@@ -80,7 +80,7 @@ You can also enter partway: `/specify` with no argument specs the current conver
 
 **Everything is sized to a context window.** Each ticket — planning or implementation — is sized to one fresh agent session. Wayfinder resolves at most one ticket per invocation; ship never gives two tickets to one agent. Fresh context per unit of work is the point, not an inconvenience.
 
-**Human time goes only where a human is needed.** Every planning ticket is typed HITL or AFK. `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — and an agent must never stand in for the human's side of a HITL ticket. A grilling agent that answers its own questions has broken the workflow.
+**Human time goes only where a human is needed.** Every planning ticket is typed HITL or AFK. `/drain` runs the AFK frontier in parallel background agents while the human sits only in the live conversations — AFK tickets gather evidence, every decision is a HITL ticket, and an agent must never stand in for the human's side of one. A grilling agent that answers its own questions has broken the workflow.
 
 **HITL questions speak the domain language.** A human engages with capabilities and concepts — the project's ubiquitous language (`CONTEXT.md`) — not with file paths; prose dense with code references pushes them out of the decision instead of into it. Reading the code is the agent's job; the human gets the digest. When they ask to see the source, it arrives as verified `path:line` references they can open in their editor.
 

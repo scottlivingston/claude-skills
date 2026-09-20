@@ -24,7 +24,7 @@ A **closed map** isn't a dead end: `/specify` links each spec before the map clo
 
 Background agents and parallel sessions may have finished work no one folded in. Before choosing anything, heal the record:
 
-- **Map**: any closed child ticket missing from Decisions so far → fold it now (append the pointer, graduate fog it made specifiable, rule out-of-scope what it exposed, **file it into a slice or Map-wide decisions**), per the wayfinder skill. This session is the map's single writer.
+- **Map**: any closed **deciding** (`hitl`) ticket missing from Decisions so far → fold it now (append the pointer, graduate fog it made specifiable, rule out-of-scope what it exposed, **file it into a slice or Map-wide decisions**), per the wayfinder skill. Closed `afk` tickets are evidence and are never folded — the decision they fed indexes them. This session is the map's single writer.
 - **Stale claims**: an open ticket labelled `in-progress` may be live in another session — never steal it silently. If the user says it's abandoned, unclaim it.
 
 ## Route
@@ -62,9 +62,9 @@ Sealed slices are checked **before** the map rows: a sealed slice is committed w
 The one stage `/next` composes rather than delegates whole, because the frontier splits by mode:
 
 1. **Query the frontier**: open, unblocked, unclaimed **ticket** children — slices are excluded by construction (per `/issue-tracker`).
-2. **Drain the AFK frontier in the background.** Claim every frontier ticket labelled `afk`, then spawn one background agent per ticket, exactly per the `/drain` skill (its selection, claiming, and agent-brief rules apply verbatim). Fire and forget — the agents post resolutions and close their tickets; do not wait on them.
-3. **Sit in the first HITL frontier ticket.** Claim it, then resolve it with the human per the wayfinder skill — one ticket, this invocation, never more. If the frontier has no HITL ticket, this session is the drain coordinator instead: fold results as agents finish, loop the AFK frontier until it's dry, then report the HITL queue.
-4. **Fold as you go.** When a drain agent finishes mid-conversation, fold its result into the map between questions — a single map writer beats a parallel drain session racing this one. Results still pending when the session ends are caught by the next invocation's reconcile step.
+2. **Drain the AFK frontier in the background.** Claim every frontier ticket labelled `afk`, then spawn one background agent per ticket, exactly per the `/drain` skill (its selection, claiming, and agent-brief rules apply verbatim). Fire and forget — the agents post findings and close their tickets, which unblocks HITL tickets; do not wait on them.
+3. **Sit in the first HITL frontier ticket.** Claim it, then resolve it with the human per the wayfinder skill — one ticket, this invocation, never more. If the frontier has no HITL ticket, this session is the drain coordinator instead: check results as agents finish, loop the AFK frontier until it's dry, then report the HITL queue — per `/drain`, without touching the map body.
+4. **Check results as you go.** When a drain agent finishes mid-conversation, note between questions what it found and which HITL tickets it unblocked; nothing lands on the map body, because evidence has no pointer. If a finding bears on the ticket being worked, bring it in as a fact per `/hitl-questions`. Agents still running when the session ends finish on their own; the next invocation's frontier query sees what they unblocked.
 
 ## Auto mode
 

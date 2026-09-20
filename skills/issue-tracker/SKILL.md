@@ -63,7 +63,7 @@ A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed
 
 - **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed — a verifiable checkpoint (e.g. `/ship` refuses to spawn implementers until every frontier ticket passes it).
 - **Frontier query**: a parent's open **ticket** children, minus any with an open blocker, minus any claimed; first in parent order wins. On a map, ticket children are the `wayfinder:<type>`-labelled ones — slices are children too and are never on the frontier.
-- **Resolve** (wayfinding): comment the answer on the ticket, close it, remove the claim, then append a context pointer (gist + link) to the map's Decisions so far.
+- **Resolve** (wayfinding): comment the answer on the ticket, close it, remove the claim, then — for a `hitl` ticket only — append a context pointer (gist + link) to the map's Decisions so far. An `afk` ticket's findings are never indexed on the map (per `/wayfinder`).
 
 ## GitHub implementation (default)
 
@@ -120,7 +120,7 @@ One **issue comment per decision** on the spec issue, posted in index order imme
 
 - **Claim** / **unclaim**: `gh issue edit <n> --add-label in-progress` / `--remove-label in-progress`. **Claim check**: `gh issue list --label in-progress`.
 - **Frontier query**: list the parent's open children (`gh issue list --state open`, scoped to the parent's sub-issues / task list); on a map, keep only the `wayfinder:<type>`-labelled ones, so slices never appear. Drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or the `in-progress` label; first in parent order wins.
-- **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>` and remove the `in-progress` label, then append a context pointer (gist + link) to the map's Decisions so far.
+- **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>` and remove the `in-progress` label, then (for a `hitl` ticket) append a context pointer (gist + link) to the map's Decisions so far.
 
 ### Wayfinding specifics
 
@@ -151,7 +151,7 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 - **Claim**: set `Status: in-progress` and save before any work; unclaim by reverting it. **Claim check**: read the `Status:` lines.
 - **Frontier query**: scan the parent's ticket directory — `map/` for a map, `issues/` for a spec — for files that are open, unblocked, and unclaimed; first by number wins. `slices/` is never scanned, which is what keeps slices off the frontier.
-- **Resolve**: append the answer under an `## Answer` heading, then Close (`Status: closed`), then append a context pointer (gist + link) to the map's Decisions so far in `map.md`.
+- **Resolve**: append the answer under an `## Answer` heading, then Close (`Status: closed`), then (for `Mode: hitl`) append a context pointer (gist + link) to the map's Decisions so far in `map.md`.
 
 ### Wayfinding specifics
 
