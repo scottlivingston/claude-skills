@@ -39,6 +39,8 @@ Look for the originating spec, in this order:
 3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** reviewer stage will skip and report "no spec available".
 
+Then locate the **gate home** (step 6). If it holds a `<!-- diff-review pending-questions -->` with no summary after it, this is a resume: go straight to step 6's loop from that material — never re-run the pipeline.
+
 When the spec is a tracker issue, "the spec contents" means the kernel body plus its **addressable decisions**, reassembled in index order per the tracker doc's spec-decision convention — the decision marker is also what separates spec content from this skill's own round-summary comments on the same issue. A spec with no Decision Index is just its body.
 
 ### 3. Identify the standards sources
@@ -76,8 +78,9 @@ The slots — the workflow has no conversation context:
 - the diff command and the commit list with full messages, plus the `WIDE` flag judged from step 1's `--stat`,
 - the spec contents (or "no spec"), and `SPEC_SCOPE` — one line naming which part of the spec this diff was meant to deliver, or null when it was meant to deliver all of it. **Fill it whenever the diff is partial** — a work-in-progress branch, one ticket of a DAG, the first half of a migration. Unbounded, the Spec reviewer reads every requirement the diff hasn't reached yet as a missing one, and the review comes back mostly noise about work that isn't due,
 - the standards sources with the directory scope each binds (the smell baseline itself is embedded in the template — step 3's text and the template's `SMELL_BASELINE` const are the same words, kept in sync),
-- the dedup inputs — the open `review-finding` tickets and the spec issue's prior `<!-- diff-review summary -->` comments, fetched **before** launching (the summaries also feed the validators as the binding answer record),
-- the tracker inputs — the spec issue's ref when the spec is a tracker issue, and the tracker's create/label/parent/comment operations per `/issue-tracker` (null → auto-ticket findings and the pending-questions post come back for the manager, step 7),
+- the dedup inputs — the open `review-finding` tickets and the gate home's prior `<!-- diff-review summary -->` records, fetched **before** launching (the summaries also feed the validators as the binding answer record),
+- the tracker inputs — the spec issue's ref when the spec is a tracker issue, and the tracker's create/label/parent/comment operations per `/issue-tracker` (null → auto-ticket findings come back for the manager, step 7),
+- `GATE_FILE` — the gate file's absolute path when the gate home is one (step 6), else null,
 - the user's default-branch OK from step 1, when given,
 - the three model slots, resolved per `/model-policy` (`inherit` fills as `null`) — say which models the tiers resolved to in one line before launching.
 
@@ -118,20 +121,22 @@ Labeling, dedup, adversarial validation, proposals, fix validation, routing, and
 
 - **IDs** are `STD-<i>` / `SPEC-<i>`, numbered in report order, per run — a re-run renumbers. When the reviews were partitioned, the labeling stage also dedups across group boundaries: the cross-cutting sweeper and a chunk reviewer may report the same hunk.
 - **Smells** enter labelled as hypotheses ("possible Feature Envy"); for a validated smell, the baseline's "→ how to fix" is the proposer's starting point, grounded in the actual hunk.
-- **Adjudication memory** is the spec issue's `<!-- diff-review summary -->` comments (step 7 posts one per round); an answered verdict there, and any spec comment it posted, is binding spec text.
+- **Adjudication memory** is the gate home's `<!-- diff-review summary -->` records (step 7 posts one per round); an answered verdict there, and any spec comment it posted, is binding spec text.
 - **Auto-tickets** parent to the spec issue when it is a tracker issue; with no tracker spec they publish standalone, and with no tracker mechanics at all they come back *ticket-pending* for step 7.
 
 ### 6. The gate and the question loop
 
-When the spec is a tracker issue, the workflow's final stage posts `<!-- diff-review pending-questions -->` on it — the question blocks plus the audit digest — and the gate goes AFK per the contract: notify, end the turn, and any session resumes the loop from the comment — `/next` routes a spec carrying one to it. With no tracker issue there is nowhere durable to post: the queue lives in the workflow's return, and the loop runs now, in this session.
+The **gate home** is where this review's gate state lives. When the spec is a tracker issue, it is that issue. Otherwise it is a **gate file**: the path the caller named; else, for a spec file, `<spec file's stem>.review.md` beside it; else, with no spec, `.scratch/diff-review-<branch>.md`. A gate file holds the same records a spec issue would, as sections appended in order — the latest pending-questions with no summary after it is the resume point.
+
+The workflow's final stage posts `<!-- diff-review pending-questions -->` to the gate home — the question blocks plus the audit digest — and the gate goes AFK per the contract: notify, end the turn, and any session resumes the loop from it. `/next` routes a spec issue carrying one; `/diff-review` invoked on the same spec finds either kind (step 2).
 
 Open with the contract's orientation summary — with one local line when step 3 found no documented standards at any scope: the smell baseline was the only Standards source this round, and the axis sharpens as rules get written; each pervasive-pattern *adopt as rule* ticket is the mechanism. Then walk the escalations one finding per turn as a position, per the contract's question mechanics and the five question classes.
 
 ### 7. Act on the collected answers
 
-Per the contract, after the loop and none of it mid-loop: post the chosen spec comments; run the post-answer fix agent for the fixes the answers unlocked; file the tickets the answers called for (*adopt as rule* tickets standalone) and any findings the workflow returned *ticket-pending*; `git revert` anything the audit overrode — done by you in the main session, and if later fix commits conflict with the revert, hand-apply the inverse instead.
+Per the contract, after the loop and none of it mid-loop: post the chosen spec comments — on the spec issue, or, for a spec file, as amendments where the caller named (else appended to the spec file under `## Review answers`), so the spec itself carries the answer the next round reads; run the post-answer fix agent for the fixes the answers unlocked; file the tickets the answers called for (*adopt as rule* tickets standalone) and any findings the workflow returned *ticket-pending*; `git revert` anything the audit overrode — done by you in the main session, and if later fix commits conflict with the revert, hand-apply the inverse instead.
 
-Close with a wrap-up recap — one line per ID and its terminal outcome — the first and only time the whole set appears together. Then post the round's `<!-- diff-review summary -->` on the spec issue: every finding ID with its terminal outcome, refutations, reverts, and left-as-is calls included, plus the tickets created. The next round dedups against it — an outcome not recorded here will be re-found and re-asked.
+Close with a wrap-up recap — one line per ID and its terminal outcome — the first and only time the whole set appears together. Then post the round's `<!-- diff-review summary -->` to the gate home: every finding ID with its terminal outcome, refutations, reverts, and left-as-is calls included, plus the tickets created. The next round dedups against it — an outcome not recorded here will be re-found and re-asked.
 
 ### 8. Offer the merge (when the spec is a tracker issue)
 

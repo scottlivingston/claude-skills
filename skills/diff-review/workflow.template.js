@@ -37,10 +37,11 @@ const SPEC_DECISIONS = FILL       // WIDE + Decision Index only: { "D3": "full d
 const TRACKER_READ_OP = FILL      // one-liner: how an agent fetches a spec decision by ID (the tracker doc's read), or ""
 const STANDARDS_SOURCES = FILL    // [{ path: "CONVENTIONS.md", scope: "repo root" }, ...] — reviewers read the files themselves; [] when nothing documented
 const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open `review-finding` tickets: [{ ref: "#12", title: "...", body: "..." }] — [] if none
-const PRIOR_ROUND_SUMMARIES = FILL// pre-fetched prior-round summary comments from the spec issue: ["..."] — [] if none
+const PRIOR_ROUND_SUMMARIES = FILL// pre-fetched prior-round summaries from the gate home (the spec issue's summary comments, or the gate file's summary sections): ["..."] — [] if none
 const DEFAULT_BRANCH_OK = FILL    // false, or the user's exact words OKing commits on the default branch — travels only in the fix agent's brief
 const SPEC_ISSUE_REF = FILL       // tracker ref of the spec issue ("#42") when the spec IS a tracker issue, else null — auto-tickets parent to it
-const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent/comment operations per /issue-tracker (exact commands), or null → auto-ticket findings and the pending-questions post come back for the manager (step 7)
+const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent/comment operations per /issue-tracker (exact commands), or null → auto-ticket findings come back for the manager (step 7)
+const GATE_FILE = FILL            // absolute path of the gate file (SKILL.md step 6) when the gate home is not the spec issue, else null — the pending-questions section is appended there
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model ('sonnet'), or null to inherit the session model
 const DECIDER_MODEL = FILL     // per /model-policy: the decider tier's resolved model ('opus'), or null to inherit — never leave a fan-out on the session's model by accident
@@ -251,7 +252,7 @@ const LEDGER_SCHEMA = {
   type: 'object', required: ['posted', 'marker'],
   properties: {
     posted: { type: 'boolean' },
-    marker: { type: 'string', description: 'the comment marker used, or the failure reason when posted=false' },
+    marker: { type: 'string', description: 'the marker used, or the failure reason when posted=false' },
   },
 }
 
@@ -442,10 +443,13 @@ function ticketAgentPrompt(batch) {
 function ledgerPrompt(escalations, digest) {
   const marker = '<!-- diff-review pending-questions -->'
   return j([
-    'You are the final stage of a diff review, and a fresh assembler: you hold nothing but the structured findings below. Post ONE comment on spec issue ' + SPEC_ISSUE_REF + ' opening with the marker ' + marker + ' — durable gate state a later session resumes the question loop from, so completeness beats brevity.',
-    'Tracker operations:',
-    TICKET_MECHANICS,
-    'The comment body, in order:',
+    'You are the final stage of a diff review, and a fresh assembler: you hold nothing but the structured findings below. ' +
+      (GATE_FILE
+        ? 'Append ONE section to the gate file ' + GATE_FILE + ' (create it if missing; never edit what is already there), opening with the marker ' + marker + ' on its own line'
+        : 'Post ONE comment on spec issue ' + SPEC_ISSUE_REF + ' opening with the marker ' + marker) +
+      ' — durable gate state a later session resumes the question loop from, so completeness beats brevity.',
+    GATE_FILE ? null : 'Tracker operations:\n' + TICKET_MECHANICS,
+    'The ' + (GATE_FILE ? 'section' : 'comment') + ' body, in order:',
     '1. The audit digest of this round\'s auto-actions, stated as done: ' + JSON.stringify(digest),
     '2. One question block per escalation below, written for a COLD READER — someone who joined the project today and has not read the spec, the diff, or this review must be able to pick an option from the block alone. Speak the domain: behaviors, cases, consequences — not functions, paths, or line numbers. Name every cited decision, rule, or smell by what it decided or requires (from its title, gist, and quote), never by its ID alone; the finding ID appears once, trailing in parentheses in the header. Anything you cannot explain from the fields you hold, expand from the cited source text the finding carries. Format each:',
     '### <plain title of what is being decided> — <i> of <n> (<ID>)\n',
@@ -763,18 +767,19 @@ const escalations = escalated.map(f => ({
 }))
 
 // Pending-questions post — by the workflow, not the manager, so the gate is durable
-// even if the session dies the moment the workflow returns. Only when the spec is a
-// tracker issue and the tracker mechanics were passed: otherwise there is nowhere to
-// post, and the manager runs the loop from this return value in-session.
+// even if the session dies the moment the workflow returns. It lands in the gate home:
+// a comment on the spec issue, or a section appended to the gate file.
 const digest = {
   refuted: std.refuted.concat(spec.refuted).map(f => ({ id: f.id, reason: f.findingReason })),
   autoApplied: apply.applied, autoTicketed: tickets,
   ticketPendingManager: all.filter(f => f.status === 'ticket-pending-manager').map(f => f.id),
 }
-let ledger = { posted: false, marker: escalations.length ? 'no durable gate (no tracker spec issue, or no tracker mechanics) — run the question loop from this return, in-session' : 'no escalations — no pending-questions comment needed' }
-if (escalations.length && SPEC_ISSUE_REF && TICKET_MECHANICS) {
-  ledger = (await agent(ledgerPrompt(escalations, digest), { ...tier('decider'), schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
-    { posted: false, marker: 'ledger agent died — POST THE PENDING-QUESTIONS COMMENT FROM THE MANAGER before anything else' }
+let ledger = { posted: false, marker: 'no escalations — no pending-questions post needed' }
+if (escalations.length) {
+  ledger = (GATE_FILE || (SPEC_ISSUE_REF && TICKET_MECHANICS))
+    ? (await agent(ledgerPrompt(escalations, digest), { ...tier('decider'), schema: LEDGER_SCHEMA, label: 'ledger:pending-questions', phase: 'Resolve' })) ||
+      { posted: false, marker: 'ledger agent died — POST THE PENDING-QUESTIONS ' + (GATE_FILE ? 'SECTION TO ' + GATE_FILE : 'COMMENT') + ' FROM THE MANAGER before anything else' }
+    : { posted: false, marker: 'no gate home filled (spec issue without tracker mechanics, and no GATE_FILE) — post the pending-questions from the manager before the loop' }
 }
 
 log('Routing: ' + apply.applied.length + ' auto-applied, ' +

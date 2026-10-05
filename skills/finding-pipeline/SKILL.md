@@ -50,7 +50,7 @@ A finding routed *joined* — its fix waits on another escalation's answer — r
 
 ## The gate
 
-All gate state lives as comments on the issue the stage operates on, each opening with a machine-findable marker named for the skill (scoped where the skill runs repeatedly, as ship's `wave-<n>` is):
+All gate state lives as comments on the issue the stage operates on, each opening with a machine-findable marker named for the skill (scoped where the skill runs repeatedly, as ship's `wave-<n>` is). A code gate whose spec is no tracker issue keeps the same records as sections appended in order to a **gate file** its skill names — "comment" below reads as "section", and every rule holds unchanged:
 
 - `<!-- <skill> pending-questions -->` — posted by the **workflow's final stage**, not the manager, so the queue is durable even if the session dies the moment the workflow returns. Carries the full question blocks plus the audit digest of auto-actions — the notes the question loop talks from, never the script it reads out.
 - `<!-- <skill> summary -->` — posted after adjudication: **every** finding ID with its terminal outcome — auto-applied, auto-ticketed, refuted (one-line reason), `no-repair-needed`, answered (verdict and what it triggered), reverted, left as-is, unanswered. Completeness here is what makes the loop converge; an outcome not recorded will be re-found and re-asked.
