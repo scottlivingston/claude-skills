@@ -68,6 +68,20 @@ You don't memorize the chain. Start an effort with `/wayfinder <idea>`; after th
 
 You can also enter partway: `/specify` with no argument specs the current conversation — and `/spec-review` is what catches the defects that skipping the map would otherwise leave in it. `/tickets` can break down any plan, and `/diff-review` reviews any branch or diff since a fixed point.
 
+## The other way: `/iterate`
+
+The chain above settles every decision before code exists, which earns its cost on a big, risky effort and suffocates a feature you'd rather grow. `/iterate` is the iterative spine beside it: decisions are made **just in time**, one slice at a time, and the next slice is chosen from what the last one taught.
+
+`/iterate <idea>` kicks off an effort: a short conversation that stops once what you want fits in a confirmed **Destination** paragraph, with early detail parked in a **Fog** list instead of settled. After that, each `/iterate` runs one slice:
+
+1. **Choose** — the agent proposes the next slice and you push back; it's the smallest step that moves toward the destination or teaches how to build it, and the first is a tracer bullet. A slice is a *build*, a *spike* (`/prototype`, for when you know what but not how), or *research*.
+2. **Shape** — grill only the decisions this slice's build needs; anything a later slice needs goes to the Fog. Ends in a short brief: what it delivers, how you'll know it's done, what's left out.
+3. **Build** — one background agent in an isolated worktree builds the brief test-first, so the grilling session never holds the implementation; the result merges onto the effort branch.
+4. **Review** — `/diff-review` against the slice's brief, its questions saved to a gate file beside the log and its answers landing as decisions on the slice.
+5. **Reflect** — you look at it running; what you learned rewrites the log's picture of where things stand and reshapes the Fog.
+
+The memory is an **effort log**, one markdown file in the repo (`docs/efforts/<slug>.md` by default) written the moment anything settles and committed before every build, so a lost session costs at most the exchange in flight and `/iterate` resumes from whatever stage the last slice reached. The opinions below are the map chain's; `/iterate` keeps the tracker out of the loop and trades the up-front map for a slice at a time.
+
 ## The opinions
 
 **The tracker is the memory, not the chat.** A big effort outlives any one context window, so all durable state — the map, decisions, the spec, tickets, blocking edges, claims — lives on the issue tracker. Any session (or any teammate) can pick up from the tracker alone; conversations are disposable. Claims are just an `in-progress` label, so concurrent sessions don't collide, and blocking uses the tracker's native dependency links so the frontier is visible in the tracker's own UI.
