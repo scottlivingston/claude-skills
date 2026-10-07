@@ -24,7 +24,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Scan `docs/adr/` for the highest existing number and increment by one.
+Scan the `docs/adr/` the ADR goes in for the highest existing number and increment by one — each context's directory numbers its own.
 
 ## When to offer an ADR
 

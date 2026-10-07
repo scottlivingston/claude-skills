@@ -9,7 +9,7 @@ Actively build and sharpen the project's domain model as you design. This is the
 
 ## File structure
 
-Most repos have a single context:
+Most repos have a single context — a bounded context, the part of the system within which each term has one meaning:
 
 ```
 /

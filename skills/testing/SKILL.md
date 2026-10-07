@@ -20,8 +20,8 @@ Fixed headings, each optional, that the consuming skills quote **verbatim** into
 - `## Typecheck` — the type-check invocation(s), if the language has one separate from the test run.
 - `## Unit` — how to run unit tests: whole tree, one package, one file, one test by name.
 - `## Integration` — how to run integration tests, and anything they need up first (a database, a container, an env file).
-- `## Scoping to a change` — the load-bearing section. Given the set of files a change touches, which invocations are the **minimal set** that has to pass — the touched packages *and their reverse dependents* — and which touched paths force the **full suite** (lockfiles, root build config, shared test tooling, anything every package imports).
-- `## Green` — what must pass before a ticket closes and before a PR: the definition of green for the whole repo, typically the full suite plus typecheck, or the CI command that stands in for it.
+- `## Scoping to a change` — the load-bearing section. Given the set of files a change touches, which invocations are the **minimal set** that has to pass — the touched packages *and their reverse dependents* — and which touched paths force the **full suite** (lockfiles, root build config, shared test tooling, anything every package imports). `/ship` splits the set by kind: each implementer runs its unit invocations, each serial merge its integration invocations.
+- `## Green` — what must pass before a PR, and before a ticket closes under standalone `/implement` (a `/ship` ticket closes on its scoped set instead): the definition of green for the whole repo, typically the full suite plus typecheck, or the CI command that stands in for it.
 
 ## Monorepo scoping
 

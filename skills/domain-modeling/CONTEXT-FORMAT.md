@@ -10,7 +10,7 @@
 ## Language
 
 **Order**:
-{A one or two sentence description of the term}
+A customer's request to buy one or more products, from placement until it is fulfilled or cancelled.
 _Avoid_: Purchase, transaction
 
 **Invoice**:

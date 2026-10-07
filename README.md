@@ -50,7 +50,7 @@ The spec is the last artifact before code, and everything downstream trusts it a
 
 ### 7. Break it down — `/tickets`
 
-The spec is broken into **implementation tickets** — vertical tracer-bullet slices, each sized to one fresh agent session, with blocking edges forming a DAG cut for parallelism: shallow waves, and same-wave tickets claiming disjoint file territories so parallel agents don't collide at merge time. An adversarial **DAG critic** re-tests every edge and greps the territory claims before any human sees the breakdown. Then the approval gate: you review the breakdown in a quiz (under `/next auto`, a critic-passed breakdown is auto-approved instead). After this gate, downstream stages make no product decisions.
+The spec is broken into **implementation tickets** — vertical tracer-bullet slices, each sized to one fresh agent session, with blocking edges forming a DAG cut for parallelism: shallow waves, and same-wave tickets touching different files so parallel agents don't collide at merge time. An adversarial **DAG critic** re-tests every edge and checks which files each ticket will touch before any human sees the breakdown. Then the approval gate: you review the breakdown in a quiz (under `/next auto`, a critic-passed breakdown is auto-approved instead). After this gate, downstream stages make no product decisions.
 
 ### 8. Ship — `/ship`
 

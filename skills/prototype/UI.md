@@ -55,7 +55,7 @@ Variants must be **structurally different** — different layout, different info
 
 ### 3. Wire them together
 
-Create a single switcher component on the route:
+Create a single dispatcher component on the route — it renders the chosen variant plus the switcher bar:
 
 ```tsx
 // pseudo-code — adapt to the project's framework
@@ -70,11 +70,11 @@ return (
 );
 ```
 
-For sub-shape A (existing page): keep all the existing data fetching above the switcher; only the rendered subtree changes per variant.
+For sub-shape A (existing page): keep all the existing data fetching above the dispatcher; only the rendered subtree changes per variant.
 
-For sub-shape B (new page): the throwaway route mounts the same switcher.
+For sub-shape B (new page): the throwaway route mounts the same dispatcher.
 
-### 4. Build the floating switcher
+### 4. Build the switcher bar
 
 A small fixed-position bar at the bottom-centre of the screen with three pieces:
 
@@ -89,7 +89,7 @@ Behaviour:
 - Visually distinct from the page (e.g. high-contrast pill, subtle shadow) so it's obviously not part of the design being evaluated.
 - Hidden in production builds — gate on `process.env.NODE_ENV !== 'production'` or an equivalent check, so a stray prototype merge can't ship the bar to users.
 
-Put the switcher in a single shared component so both sub-shapes can reuse it. Locate it wherever shared UI lives in the project.
+Put the bar in a single shared component (`PrototypeSwitcher`) so both sub-shapes can reuse it. Locate it wherever shared UI lives in the project.
 
 ### 5. Hand it over
 
@@ -99,10 +99,10 @@ Surface the URL (and the `?variant=` keys). The user will flip through whenever 
 
 Once a variant has won, capture the answer — which variant and why — then capture the prototype the way the [SKILL](SKILL.md) describes. Fold the winner into the real code and move the rest onto the throwaway branch, not into main:
 
-- **Sub-shape A** — fold the winner into the existing page; drop the losing variants and the switcher from main.
-- **Sub-shape B** — promote the winning variant to a real route; drop the throwaway route and the switcher from main.
+- **Sub-shape A** — fold the winner into the existing page; drop the losing variants, the dispatcher, and the bar from main.
+- **Sub-shape B** — promote the winning variant to a real route; drop the throwaway route, the dispatcher, and the bar from main.
 
-The full set of variants is the primary source, so it lands on the throwaway branch, not the bin — variant components and the switcher left in the main branch rot fast and confuse the next reader.
+The full set of variants is the primary source, so it lands on the throwaway branch, not the bin — variant components, dispatcher, and bar left in the main branch rot fast and confuse the next reader.
 
 ## Anti-patterns
 

@@ -344,7 +344,7 @@ function implementerPrompt(t, plan, amendment) {
     plan.plan,
     amendment ? 'Collision-check amendment — build against this shared shape:\n' + amendment : null,
     'Discipline (/implement + /tdd): red–green at the spec\'s seams — red test first, then the code that greens it; typecheck regularly; run single test files regularly; commit in your worktree as you go.',
-    TEST_NOTES ? 'Test recipes (per /testing) — use the Scoping to a change rule against the files you touch for the set you run while working, and the Green set before you report done:\n' + TEST_NOTES : null,
+    TEST_NOTES ? 'Test recipes (per /testing) — use single test files while working; before you report done, run the UNIT invocations of the Scoping to a change rule applied to the files you touched (never the Green set — integration runs at merge):\n' + TEST_NOTES : null,
     'The plan is a map, not a contract: if the code contradicts it, deviate and note the deviation in a ticket comment — the territory wins. If you need an uncited decision, check the Decision Index and fetch it by ID, noting the missed routing in a ticket comment.',
     'If the ticket cannot be built — a decision the spec holds nowhere, work no listed seam covers — PARK: unclaim, comment what is missing on the ticket, comment the gap on spec issue ' + SPEC_ISSUE_REF + ', return status=parked.',
     'Tracker operations:',
@@ -357,7 +357,7 @@ function mergePrompt(t, branch, mergeNotes) {
   return j([
     'You are a merge agent of ship wave ' + WAVE + ', working in the MAIN checkout. Merge worktree branch ' + branch + ' (ticket ' + t.ref + ') into ' + SHIP_BRANCH + '. Verify you are on ' + SHIP_BRANCH + ' first.',
     mergeNotes.length ? 'Unreconciled collision notes from the plan stage — you inherit these tensions:\n' + mergeNotes.map(n => '- ' + n).join('\n') : null,
-    'On conflict, resolve preserving BOTH tickets\' intent, then re-test. After the merge run the scoped set: the Scoping to a change rule below applied to the merged files (full suite where the rule says so, or when no rule exists and the suite is cheap).',
+    'On conflict, resolve preserving BOTH tickets\' intent, then re-run the scoped unit invocations for the files you resolved. After the merge run the INTEGRATION invocations of the scoped set: the Scoping to a change rule below applied to the merged files (full suite where the rule says so; the whole scoped set when the recipes don\'t split unit from integration; the full suite when no rule exists and the suite is cheap).',
     TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
     'NEVER merge on red: a branch that cannot come green is parked — abort/revert the merge so ' + SHIP_BRANCH + ' stays green, comment the failure on the ticket, return status=parked.',
     'On green: close the ticket with a comment linking its commits, remove in-progress. Tracker operations:',

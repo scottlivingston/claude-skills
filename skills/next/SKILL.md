@@ -16,7 +16,7 @@ The argument, if given, is a **map**, **slice**, or **spec** issue (URL or numbe
 - Several → ask the user which (by name, per wayfinder's refer-by-name rule).
 - None → `/next` has nothing to advance. Charting needs the loose idea, which lives in the human's head, not the tracker — point at `/wayfinder <idea>` and stop.
 
-A **closed map** isn't a dead end: `/specify` links each spec before the map closes — commented on the map in map mode; in slice mode, commented on the slice and added to its line in the map's Slices section. Follow those links and route on the specs. Likewise a spec's stage depends on its `impl` sub-issues, fetched fresh each invocation.
+A **closed map** isn't a dead end: `/specify` links each spec before the map closes — commented on the map in unsliced-map mode; in slice mode, commented on the slice and added to its line in the map's Slices section. Follow those links and route on the specs. Likewise a spec's stage depends on its `impl` sub-issues, fetched fresh each invocation.
 
 **A sliced map has more than one live spec**, one per slice, in different stages at once. Load the map's `wayfinder:slice` children and take them **in ship order** (the blocking edges between them); the first slice with outstanding work is the one this invocation advances. A slice whose spec is closed is done and skipped. When two slices are genuinely takeable, say which you took and what else was available — the human may want the other.
 
@@ -84,5 +84,5 @@ The one stage `/next` composes rather than delegates whole, because the frontier
 
 - **One stage per invocation.** Never compress two stages into one session — finishing `/specify` does not mean starting `/tickets`. The sizing is the point; end by saying `/next`. (Auto mode is the sanctioned exception: it chains invocations, one stage each, and pauses only at gates.)
 - **Re-invocation in a live session is fine — make the budget call out loud.** One ticket per invocation is the unit; one ticket per *context window* is not a rule. When the human says `/next` again in the same session, don't balk and don't re-read skill files already in context — just route again. After each ticket, state the posture: a light ticket with plenty of room → invite another `/next` here; a heavy one → say so and recommend `/clear` first.
-- **Never jump a gate.** Route *into* the `/tickets` quiz, never past it; never resolve a HITL ticket without the human; never auto-approve on the human's behalf.
+- **Never jump a gate.** Never resolve a HITL ticket without the human. Outside auto mode, route *into* the `/tickets` quiz, never past it, and never auto-approve on the human's behalf — auto mode's skipped quiz is the one approval the human delegated by asking for it.
 - **Announce the stage before acting** — "the map has 4 open tickets, 2 AFK; draining those and sitting with you on <ticket name>" — so the human always knows where the effort stands without reading the tracker.

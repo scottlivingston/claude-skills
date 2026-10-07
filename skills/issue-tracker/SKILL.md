@@ -5,7 +5,7 @@ description: The issue-tracker contract every workflow skill speaks — vocabula
 
 # Issue tracker
 
-Shared tracker wiring for the wayfinder → drain → slice → map-review → specify → spec-review → tickets → ship (or implement) → review workflow. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
+Shared tracker wiring for every workflow skill in this plugin. Skills speak in the **contract** below — its vocabulary and operations; how each operation is performed depends on which implementation is in effect.
 
 ## Which tracker?
 
@@ -130,12 +130,13 @@ Each **slice** is also a sub-issue of the map, labelled `wayfinder:slice` and ca
 
 ## Local markdown implementation (fallback)
 
-Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`impl`, `review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children. Standalone tickets — e.g. `/diff-review`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
+Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children, and being there is what makes a ticket `impl`. Standalone tickets — e.g. `/diff-review`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
 
 ### Ticket operations
 
 - One feature per directory: `.scratch/<feature-slug>/`; the spec is `.scratch/<feature-slug>/spec.md`.
 - **Create**: a new file under `.scratch/<feature-slug>/`. Implementation tickets are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` — never a single combined tickets file.
+- **Read / List**: read the file; list by globbing the directory and filtering on the `Status:` and `Labels:` lines.
 - **Mark / unmark**: edit the `Status:` line (triage roles, `in-progress`) or the `Labels:` line (everything else).
 - **Close**: set `Status: closed`, optionally appending a closing comment under `## Comments`.
 - **Comment**: append under a `## Comments` heading.

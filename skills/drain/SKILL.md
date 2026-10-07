@@ -11,7 +11,7 @@ The user invokes with a map (URL or number). Read the wayfinder skill in this pl
 
 ## Process
 
-1. **Load the map** — Destination, Notes, Decisions so far. Query the frontier: open, unblocked, unclaimed ticket children.
+1. **Load the map** — its low-res view, per `/wayfinder`. Query the frontier: open, unblocked, unclaimed ticket children.
 2. **Select the AFK subset**: every frontier ticket labelled `afk`. A ticket missing its mode label gets one now — infer it from the type (research → `afk`, prototype/grilling/design → `hitl`); a task ticket with no mode label and no clear answer stays untouched — mis-claiming a HITL ticket wastes the claim. **Check each question is a question of fact.** One that asks for a choice ("which queue should we use?") is a decision wearing an `afk` label: swap it to `hitl`, leave it for the human, and say so in the report.
 3. **Claim first, then spawn.** Claim each selected ticket (label it `in-progress`) before any work, then spawn one background agent per ticket, in parallel, on the **decider tier** per `/model-policy` (weighing sources is judgment) — pass `model` when the tier is pinned, and state the resolved model once before spawning. Each agent gets: the map's Destination and Notes, its ticket body, the names of the HITL tickets it blocks (so it knows what its findings will be used for), and the brief below.
 4. **Check results as agents finish.** Confirm each finished ticket is closed with its findings comment, and note which HITL tickets it unblocked. The map body is not edited.
