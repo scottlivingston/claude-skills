@@ -154,6 +154,7 @@ const FIX_VERDICT_FIELDS = {
   id: { type: 'string' },
   verdict: { enum: ['validated', 'fix-rejected', 'needs-human'] },
   reason: { type: 'string' },
+  rejectKind: { enum: ['text', 'substance'], description: 'required when verdict=fix-rejected, omitted otherwise: text = the repair is right but its own wording is wrong (a name that does not exist, a misquote, an anchor at the wrong line, or an addition to strip) and the reason states the correction; substance = the repair itself is wrong' },
   docOnly: { type: 'boolean', description: 'confirm or clear the proposal\'s claim — final word; true only when the fix touches no executable code' },
   repoWide: { type: 'boolean' },
   instancesInDiff: { type: 'integer' },
@@ -163,7 +164,14 @@ const FIX_VERDICT_FIELDS = {
 }
 const FIX_VERDICTS_SCHEMA = {
   type: 'object', required: ['verdicts'],
-  properties: { verdicts: { type: 'array', items: { type: 'object', required: Object.keys(FIX_VERDICT_FIELDS), properties: FIX_VERDICT_FIELDS } } },
+  properties: {
+    verdicts: {
+      type: 'array',
+      items: {
+        type: 'object', required: Object.keys(FIX_VERDICT_FIELDS).filter(k => k !== 'rejectKind'), properties: FIX_VERDICT_FIELDS,
+      },
+    },
+  },
 }
 
 const PAIR_SCHEMA = {
@@ -380,17 +388,29 @@ function proposerPrompt(axisName, survivors) {
   ])
 }
 
+function reproposerPrompt(axisName, items) {
+  return j([
+    'You are a fresh ' + axisName + ' fix proposer of a two-axis review. Each finding below is validated, and each carries a proposed fix that a fix validator rejected for an error in its own text — a wrong name, a misquote, an anchor at the wrong code — not for what it does. Redraft each fix once, with the validator\'s correction applied.',
+    COMMON,
+    AXIS_INPUTS,
+    'Findings, each with its rejected proposal and the validator\'s correction:',
+    JSON.stringify(items.map(f => ({ id: f.id, kind: f.kind, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, rejectedFix: f.proposal, rejectedSketch: f.sketch, correction: f.fixReason }))),
+    'Check the correction against the code yourself, then return the same repair with its text made right — anchored by file plus a short quoted snippet, never a bare line number. Do not widen or rethink the repair. Size and docOnly as the fix fields say. Keep each proposal under 100 words.',
+  ])
+}
+
 function fixValidatorPrompt(axisName, items, roster) {
   return j([
     'You are a fresh adversarial fix validator in a two-axis review — not the proposer, and not the finding validator. Your job is to try to REFUTE each fix.',
     COMMON,
     AXIS_INPUTS,
     'Proposals to validate (axis: ' + axisName + '; each with its finding and the finding-validator\'s reasoning):',
-    JSON.stringify(items.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, findingReasoning: f.findingReason, proposal: f.proposal, sketch: f.sketch, size: f.size, repoWide: f.repoWide, repoWideEvidence: f.repoWideEvidence }))),
+    JSON.stringify(items.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, findingReasoning: f.findingReason, proposal: f.proposal, sketch: f.sketch, size: f.size, repoWide: f.repoWide, repoWideEvidence: f.repoWideEvidence, priorRejection: f.redraft ? f.redraft.rejection : undefined }))),
     'Every finding in this axis, for the edge fields below — dependsOn / invalidatedBy may name IDs outside your batch:',
     roster,
     'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself, then drop every instance the cited rule does not actually govern — apply the rule\'s own scope and any grandfather clause (a rule binding only new-and-edited files never counts untouched files) — and fill instancesInDiff / instancesOutsideDiff with the GOVERNED counts only; the flag holds only when instancesOutsideDiff > 0; a pattern whose every governed instance sits inside the diff is this change\'s own duplication, fixable here. Your call on the flag is final downstream. (5) confirm or clear docOnly — final word: true only when the fix touches no executable code. A validated docOnly quick-fix on a spec-suspect finding auto-applies instead of escalating, so confirm it only when the code\'s current behaviour is right and only the record about it is wrong. (6) new rules: a fix that adds a prohibition, constraint, house rule, or new decision beyond the correction the finding forces is fix-rejected on that addition — say what to strip; new rules are the owner\'s to ask for.',
     'Verdict per proposal: validated, fix-rejected (with the reason), or needs-human (a genuine trade-off the user must call). The finding\'s reality is NOT on the table — that was settled upstream; record any lingering doubt about the premise inside a fix-rejected reason.',
+    'On fix-rejected, set rejectKind. text: the repair is right but its own text is wrong — a name or path that does not exist, a misquoted snippet, an anchor that points at the wrong code, or a check-(6) addition whose forced correction stands without it — and your reason states the correction (the right name, the exact quote, the right anchor, what to strip). substance: the repair itself is wrong — it does not resolve the finding, is disproportionate, breaks the other axis, is incoherent without its added rule, or rests on a premise you doubt. When unsure, substance. A proposal carrying priorRejection is a redraft of one rejected for its text — judge the redraft on its own merits.',
     'Fill the edge fields instead of burying edges in prose: dependsOn = IDs whose fixes must land for this one to work (say, it reads a const another fix introduces); invalidatedBy = IDs whose accepted fix makes this proposal\'s premise or wording false.',
   ])
 }
@@ -469,6 +489,47 @@ function chunk(arr, n) {
   return out
 }
 
+// Fold a proposer's return onto its findings. A missing proposal defaults to a
+// session-sized placeholder — except on a redraft (keepOnMissing), where the rejected
+// proposal stands. Returns the findings that got a proposal.
+function takeProposals(items, props, keepOnMissing) {
+  const byId = new Map(((props && props.proposals) || []).map(p => [p.id, p]))
+  const got = []
+  for (const f of items) {
+    const p = byId.get(f.id)
+    if (p) got.push(f)
+    if (!p && keepOnMissing) continue
+    f.proposal = p ? p.fix : 'proposal missing'
+    f.sketch = p ? p.sketch : ''
+    f.size = p ? p.size : 'needs-a-session'
+    f.docOnly = p ? !!p.docOnly : false
+  }
+  return got
+}
+
+// Fold a fix validator's return onto its findings. A missing verdict fails toward less
+// action: needs-human on a first validation, fix-rejected (missingVerdict) on a redraft's.
+function takeFixVerdicts(items, r, missingVerdict) {
+  const fvs = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
+  for (const f of items) {
+    const v = fvs.get(f.id)
+    f.fixVerdictMissing = !v
+    f.fixVerdict = v ? v.verdict : (missingVerdict || 'needs-human')
+    f.fixReason = v ? v.reason : (f.redraft ? f.redraft.rejection + ' (redraft never validated — fix-validator result missing)' : 'fix-validator result missing')
+    // A rejection with no kind is substance — only a named text error earns a redraft.
+    f.rejectKind = v && v.verdict === 'fix-rejected' ? (v.rejectKind === 'text' ? 'text' : 'substance') : null
+    // This stage has the last word on repo-wide and docOnly — the routing step reads both from here.
+    if (v) {
+      f.docOnly = !!v.docOnly
+      f.repoWide = v.repoWide && v.instancesOutsideDiff > 0
+      f.instancesInDiff = v.instancesInDiff
+      f.instancesOutsideDiff = v.instancesOutsideDiff
+    }
+    f.dependsOn = v ? v.dependsOn : []
+    f.invalidatedBy = v ? v.invalidatedBy : []
+  }
+}
+
 // One axis, labeled findings → validated, proposed, fix-validated queue, in
 // independent chunk chains. Shelved findings (already-ticketed / already-adjudicated)
 // skip everything: no proposal, no validator, no route.
@@ -505,34 +566,34 @@ async function runAxis(axisName, labeled) {
       if (!survivors.length) return survivors
       const props = await agent(proposerPrompt(axisName, survivors),
         { ...tier('decider'), schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'propose:' + axisName + ':' + (i + 1) })
-      const byId = new Map(((props && props.proposals) || []).map(p => [p.id, p]))
-      for (const f of survivors) {
-        const p = byId.get(f.id)
-        f.proposal = p ? p.fix : 'proposal missing'
-        f.sketch = p ? p.sketch : ''
-        f.size = p ? p.size : 'needs-a-session'
-        f.docOnly = p ? !!p.docOnly : false
-      }
+      takeProposals(survivors, props)
       return survivors
     },
     async (survivors, _, i) => {
       if (!survivors.length) return survivors
       const r = await agent(fixValidatorPrompt(axisName, survivors, roster),
         { ...tier('decider'), schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'validate-fix:' + axisName + ':' + (i + 1) })
-      const fvs = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
-      for (const f of survivors) {
-        const v = fvs.get(f.id)
-        f.fixVerdict = v ? v.verdict : 'needs-human'
-        f.fixReason = v ? v.reason : 'fix-validator result missing'
-        // This stage has the last word on repo-wide and docOnly — the routing step reads both from here.
-        if (v) {
-          f.docOnly = !!v.docOnly
-          f.repoWide = v.repoWide && v.instancesOutsideDiff > 0
-          f.instancesInDiff = v.instancesInDiff
-          f.instancesOutsideDiff = v.instancesOutsideDiff
-        }
-        f.dependsOn = v ? v.dependsOn : []
-        f.invalidatedBy = v ? v.invalidatedBy : []
+      takeFixVerdicts(survivors, r)
+
+      // A repair rejected for its own text gets one redraft with the correction attached,
+      // then a fresh fix validator; a second rejection of any kind is no working fix.
+      const redraft = survivors.filter(f => f.fixVerdict === 'fix-rejected' && f.rejectKind === 'text')
+      if (!redraft.length) return survivors
+      for (const f of redraft) f.redraft = { rejection: f.fixReason, outcome: 'pending' }
+      const props = await agent(reproposerPrompt(axisName, redraft),
+        { ...tier('decider'), schema: PROPOSALS_SCHEMA, phase: 'Propose', label: 'repropose:' + axisName + ':' + (i + 1) })
+      const redrafted = takeProposals(redraft, props, true)
+      // A redraft that never came back leaves its rejection standing — no working fix.
+      for (const f of redraft) {
+        if (!redrafted.includes(f)) { f.redraft.outcome = 'reproposer-died'; f.fixReason = f.redraft.rejection + ' (redraft never returned)' }
+      }
+      if (!redrafted.length) return survivors
+      const r2 = await agent(fixValidatorPrompt(axisName, redrafted, roster),
+        { ...tier('decider'), schema: FIX_VERDICTS_SCHEMA, phase: 'Validate fixes', label: 'revalidate-fix:' + axisName + ':' + (i + 1) })
+      takeFixVerdicts(redrafted, r2, 'fix-rejected')
+      for (const f of redrafted) {
+        f.redraft.outcome = f.fixVerdictMissing ? 'revalidator-died' : f.fixVerdict
+        if (f.fixVerdict === 'fix-rejected') f.rejectKind = 'substance' // the one redraft is spent
       }
       return survivors
     })
@@ -742,16 +803,21 @@ const escalations = escalated.map(f => ({
   questionClass: f.questionClass, joinedTo: f.joinedTo || null,
   crossAxisPair: f.crossAxisPair || null, pairResolution: f.pairResolution || null, pairReason: f.pairReason || null,
   specClassification: f.specClassification, proposal: f.proposal, sketch: f.sketch, size: f.size,
-  fixVerdict: f.fixVerdict, fixReason: f.fixReason,
+  fixVerdict: f.fixVerdict, fixReason: f.fixReason, redraft: f.redraft || null,
   repoWide: !!f.repoWide, repoWideEvidence: f.repoWideEvidence || '',
   instancesInDiff: f.instancesInDiff || 0, instancesOutsideDiff: f.instancesOutsideDiff || 0,
   demotedReason: f.demotedReason || null,
 }))
 
+// Repairs re-drafted after a text-error rejection, with the redraft's fate — the audit
+// trail keeps them beside the refutations.
+const redrafted = all.filter(f => f.redraft).map(f => ({ id: f.id, rejection: f.redraft.rejection, outcome: f.redraft.outcome }))
+
 // Pending-questions post — by the workflow, per /finding-pipeline's The gate — to the
 // gate home: a comment on the spec issue, or a section appended to the gate file.
 const digest = {
   refuted: std.refuted.concat(spec.refuted).map(f => ({ id: f.id, reason: f.findingReason })),
+  redrafted: redrafted,
   autoApplied: apply.applied, autoTicketed: tickets,
   ticketPendingManager: all.filter(f => f.status === 'ticket-pending-manager').map(f => f.id),
 }
@@ -774,6 +840,7 @@ return {
   spec: { skipped: !!spec.skipped, queue: spec.survivors, refuted: spec.refuted, shelved: spec.shelved },
   autoApplied: apply.applied,
   autoTicketed: tickets,
+  redrafted: redrafted,
   ticketPendingManager: all.filter(f => f.status === 'ticket-pending-manager').map(f => f.id),
   escalations: escalations,
   ledger: ledger,
