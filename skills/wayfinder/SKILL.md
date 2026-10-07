@@ -15,7 +15,7 @@ Wayfinder is **planning**: each HITL ticket resolves a decision, each AFK ticket
 
 ## Refer by name
 
-Every map and ticket is an issue, so it has a **name** — its title. In everything the human reads — narration, the map's Decisions so far — refer to it by that name, never by a bare id, number, or slug. A wall of `#42, #43, #44` is illegible; names read at a glance. The id and URL don't vanish — a name wraps its link — but they ride *inside* the name, never stand in for it.
+In everything the human reads — narration, the map's Decisions so far — refer to a map, slice, or ticket by its title, wrapping its link, never by a bare id, number, or slug.
 
 ## The Map
 
@@ -79,17 +79,17 @@ Each ticket carries a `wayfinder:<type>` label — one of `research`, `prototype
 
 A session **claims** a ticket by labelling it `in-progress`, **first**, before any work, so concurrent sessions skip it. That label _is_ the claim: an open ticket without `in-progress` is unclaimed, and abandoning a ticket means removing the label.
 
-Blocking uses the tracker's **native** dependency relationship — essential because it renders the frontier _visually_ in the tracker's own UI, so the human sees what's takeable without opening the map. Only a tracker that lacks native blocking falls back to a body convention. A ticket is **unblocked** when every ticket blocking it is closed; the **frontier** is the open, unblocked, unclaimed **ticket** children — the edge of the known. The map's other children are slices (below), which are never resolved and never on the frontier, so the frontier query filters on the `wayfinder:<type>` labels rather than on child-ness.
+Blocking uses the tracker's dependency relationship (per `/issue-tracker`), so the human sees what's takeable in the tracker's own UI without opening the map. A ticket is **unblocked** when every ticket blocking it is closed; the **frontier** is the open, unblocked, unclaimed **ticket** children — the edge of the known. The map's other children are slices (below), which are never resolved and never on the frontier, so the frontier query filters on the `wayfinder:<type>` labels rather than on child-ness.
 
 The answer isn't part of the body — it's recorded on resolution (see [Work through the map](#work-through-the-map)). Assets created while resolving a ticket are linked from the issue, not pasted in.
 
 ## Ticket Types
 
-Every ticket is either **HITL** — human in the loop, worked *with* a human who speaks for themselves — or **AFK**, driven by the agent alone. The mode is recorded as a `hitl` or `afk` label at creation (research is always `afk`; prototype, grilling, and design always `hitl`; task is decided per ticket). A HITL ticket only resolves through that live exchange; the agent never stands in for the human's side of it (a grilling agent that answers its own questions has broken this). Every HITL exchange follows the presentation contract in `/hitl-questions` — the project's domain language, cold-reader questions, facts looked up rather than asked.
+Every ticket is either **HITL** — human in the loop, worked *with* a human who speaks for themselves — or **AFK**, driven by the agent alone. The mode is recorded as a `hitl` or `afk` label at creation (research is always `afk`; prototype, grilling, and design always `hitl`; task is decided per ticket). A HITL ticket only resolves through that live exchange; the agent never stands in for the human's side of it. Every HITL exchange follows the presentation contract in `/hitl-questions` — the project's domain language, cold-reader questions, facts looked up rather than asked.
 
 **Decisions are HITL; AFK tickets gather evidence.** Every decision on the map is made with the human, in a HITL ticket. An AFK ticket exists to feed one: its question is a question of *fact* — what an API supports, what the data looks like, what a service costs — and its resolution is **findings**, cited, plus the options those findings leave open. It may end with a recommendation, labelled as one, but the call belongs to the HITL ticket it blocks. Chart the pair together — the research ticket blocking the decision it informs — so the evidence has a consumer and the frontier shows where the human is needed next; a research question whose decision you can't yet name is a sign that decision is still fog. An AFK ticket whose question asks for a *choice* ("which library should we use?") is a HITL ticket mislabelled: relabel it, and split the fact-finding out as its own research ticket in a live session.
 
-- **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases. Creates a markdown summary in the repo, linked from the ticket. Resolves to findings and the options they leave open, never to the decision they inform — that is the HITL ticket it blocks. Use when knowledge outside the current working directory is required.
+- **Research** (AFK): Reading documentation, third-party APIs, or local resources like knowledge bases. Creates a markdown summary in the repo, linked from the ticket. Use when knowledge outside the current working directory is required.
 - **Prototype** (HITL): Raise the fidelity of the discussion by making a cheap, rough, concrete artifact to react to — an outline, a rough take, a stub, or UI/logic code via the /prototype skill. Links the prototype as an asset. Use when "how should it look" or "how should it behave" is the key question.
 - **Grilling** (HITL): Conversation via the /grilling and /domain-modeling skills, worked one decision at a time. The default case.
 - **Design** (HITL): Decide the shape of the code before it's built — module boundaries, interfaces and function signatures, data shapes, and the seams tests will live at — via the /design skill. Resolutions carry decision-encoding snippets (interface stubs, type shapes) that flow into the spec, and the agreed seams feed the spec's Seams-under-test list. Use when the question is "what structure should power this" rather than "what should it do".
@@ -99,7 +99,7 @@ Every ticket is either **HITL** — human in the loop, worked *with* a human who
 
 The map is _deliberately_ incomplete: don't chart what you can't yet see. Beyond the live tickets lies the **fog of war** — the dim view of decisions and investigations you can tell are coming but can't yet pin down, because they hang on questions still open. Resolving a ticket clears the fog ahead of it, graduating whatever's now specifiable into fresh tickets — one at a time, until the way to the destination is clear and no tickets remain.
 
-The map's **Not yet specified** section is where that dim view is written down: the suspected question, the area to revisit later. It's the undiscovered frontier _toward_ the destination — everything here is in scope, just not sharp enough to ticket. Write as loosely or as fully as the view allows; it doubles as a signpost for collaborators reading where the effort is headed.
+The map's **Not yet specified** section is where that dim view is written down: the suspected question, the area to revisit later. It's the undiscovered frontier _toward_ the destination — everything here is in scope, just not sharp enough to ticket. Write as loosely or as fully as the view allows.
 
 **Fog or ticket?** The test is whether you can state the question precisely now — _not_ whether you can answer it now.
 
@@ -130,7 +130,7 @@ A slice is a **child issue of the map** labelled `wayfinder:slice` — never a t
 
 **Slices are fog-shaped.** Chart one only when you can state what it ships and what it needs first — the same test the fog uses, one altitude up. Before that, the decisions it will claim sit unfiled, which is not a defect. Don't pre-slice the map into a partition you can't defend yet: ship order becomes visible in the *resolutions* ("the read path can land before the schema change"), never in the question order.
 
-**Every closed deciding ticket ends up in exactly one place** — a slice's Decisions list, the map's **Map-wide decisions** section, or unfiled while the partition is still dim. Evidence tickets are never filed: they reach the spec through the decision that cites them. Map-wide is for the resolutions that bind every slice (the error model, the vocabulary, cross-cutting contracts); every spec's kernel inherits them, so they are never duplicated into slices. Filing is a **link, never a copy**: the gist stays in Decisions so far, the resolution stays on its ticket, and nothing here can go stale when a later ticket supersedes an earlier one.
+**Every closed deciding ticket ends up in exactly one place** — a slice's Decisions list, the map's **Map-wide decisions** section, or unfiled while the partition is still dim. Evidence tickets are never filed: they reach the spec through the decision that cites them. Map-wide is for the resolutions that bind every slice (the error model, the vocabulary, cross-cutting contracts); every spec's kernel inherits them, so they are never duplicated into slices. Filing is a **link, never a copy**: the gist stays in Decisions so far and the resolution on its ticket, so nothing here goes stale when a later ticket supersedes an earlier one.
 
 ### Sealing a slice
 
@@ -140,12 +140,12 @@ Sealing is not derivable: fog is prose, and no query proves a fog patch can't la
 
 A sealed slice can still be **breached** — a later resolution turns out to belong to it. Route by how far the slice has gone:
 
-- **Not yet shipping** (its spec exists, or doesn't yet): reopen the slice, file the decision into it, and re-seal it at once — reopening removed `slice-reviewed`, so `/next` routes it back through `/map-review` and the late decision is cross-read with the rest. If its spec exists, amend the spec with the decision and remove its `spec-reviewed` marker so it goes back through `/spec-review`; if not, `/specify` writes it once the slice is re-reviewed.
-- **Already shipping or shipped**: leave the slice sealed and publish the decision as an `impl` ticket on its spec (create-then-wire), so ship's frontier picks it up as follow-up work. Note the breach on the slice.
+- **Not yet shipping** (its spec exists, or doesn't yet): reopen the slice, file the decision into it, and re-seal it at once — reopening removed `slice-reviewed`, so the late decision is cross-read with the rest by `/map-review`. If its spec exists, amend the spec with the decision and remove its `spec-reviewed` marker so it goes back through `/spec-review`; if not, `/specify` writes it once the slice is re-reviewed.
+- **Already shipping or shipped**: leave the slice sealed and publish the decision as an `impl` ticket on its spec (create it, then add its links), so it lands as follow-up work. Note the breach on the slice.
 
 ## Out of scope
 
-Fog only ever gathers _toward_ the destination. The destination fixes the scope, so work beyond it is **out of scope** — it isn't fog, and it doesn't belong in **Not yet specified**. It gets its own **Out of scope** section on the map: work you've consciously ruled out of _this_ effort. Scope, not sharpness, lands it here.
+The destination fixes the scope, so work beyond it is **out of scope** — not fog, and never in **Not yet specified**. It gets its own **Out of scope** section on the map: work you've consciously ruled out of _this_ effort.
 
 Out-of-scope work never graduates — the frontier stops at the destination — so it returns only if the destination is redrawn, and then as a fresh effort, not a resumption.
 
@@ -162,11 +162,11 @@ Handoff is **per slice**, and it starts before the map is done — that is what 
 5. `/ship <spec>` — implement the ticket DAG in parallel, fresh agent per ticket.
 6. Ship's closing pass re-reads the whole branch and, once it comes back clean, offers the PR that closes the spec issue.
 
-The **map** is complete when the frontier is empty, no tickets remain open, **Not yet specified** is empty, every closed deciding ticket is filed, and every slice is sealed. Say so explicitly, then run `/map-review <map>` once more: the whole-map pass is the only read that holds every slice at once, and the only one that can catch partition-level drift — two slices that decided the same thing differently. By then some slices have shipped, so its findings land as amendments and follow-up tickets rather than repairs. That is the price of shipping early, paid knowingly. The map closes once every slice has a published spec — on a map with no slices, once its one spec publishes.
+The **map** is complete when the frontier is empty, no tickets remain open, **Not yet specified** is empty, every closed deciding ticket is filed, and every slice is sealed. Say so explicitly, then run `/map-review <map>` once more: the whole-map pass is the only read that holds every slice at once, and the only one that can catch partition-level drift — two slices that decided the same thing differently. By then some slices have shipped, so its findings land as amendments and follow-up tickets rather than repairs. The map closes once every slice has a published spec — on a map with no slices, once its one spec publishes.
 
-**A map with no slices still works.** If the effort never grew big enough to partition — or the partition never became statable — the map completes as one unit and `/map-review <map>` then `/specify <map>` treat the whole thing as a single slice. Slicing is a pressure valve, not a required ceremony.
+**A map with no slices still works.** If the effort never grew big enough to partition — or the partition never became statable — the map completes as one unit and `/map-review <map>` then `/specify <map>` treat the whole thing as a single slice.
 
-While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets. Draining gathers evidence and unblocks HITL tickets; it never makes a decision and never changes the map's shape.
+While charting is still underway, `/drain <map>` works the AFK frontier tickets (research, AFK tasks) in parallel background agents so the human only sits in HITL tickets.
 
 `/next <map>` routes to whichever of these steps the tracker says is current — the human can drive the whole chain by invoking it each session.
 
@@ -181,24 +181,24 @@ User invokes with a loose idea.
 1. **Name the destination.** Run a `/grilling` and `/domain-modeling` session to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Grill again, **breadth-first** this time: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear, the whole journey small enough for one session — you don't need a map. Stop and ask the user how they'd like to proceed.
 3. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first so the markers exist): Destination and Notes filled in, Decisions so far empty, the fog sketched into **Not yet specified**.
-4. **Create the tickets you can specify now** as child issues of the map — then wire blocking edges in a **second pass** — **create-then-wire**, because issues need ids before they can reference each other. Wiring sorts them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
+4. **Create the tickets you can specify now** as child issues of the map, then add the blocking edges in a second pass, since issues need ids before they can reference each other. The edges sort them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
 
-   Chart any **slice** you can already state the same way (create-then-wire; slices block each other in ship order). Most maps can't name one this early — the partition shows up in the resolutions, not the questions — and that is the normal case, not a gap.
+   Chart any **slice** you can already state the same way (create every slice, then add the links; slices block each other in ship order). Most maps can't name one this early — the partition shows up in the resolutions, not the questions — and that is the normal case, not a gap.
 5. Stop — charting the map is one session's work; do not also resolve tickets.
 
 ### Work through the map
 
 User invokes with a map (URL or number). A ticket is **optional** — without one, you pick the next decision, not the user.
 
-1. Load the **map** — the low-res view, not every ticket body. **If the map is already complete** (no open tickets, empty Not yet specified), don't hunt for work: say so and point at [Completion and handoff](#completion-and-handoff).
+1. Load the **map** body, not every ticket body. **If the map is already complete** (per [Completion and handoff](#completion-and-handoff)), don't hunt for work: say so and point at [Completion and handoff](#completion-and-handoff).
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: label it `in-progress` before any work.
 3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand; invoke the skills the `## Notes` block names. If in doubt, use `/grilling` and `/domain-modeling`. An AFK ticket taken by hand follows the `/drain` agent brief: findings, not a decision.
-4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and — for a deciding ticket — **append a context pointer** to the map's Decisions so far. An evidence ticket stops at close: the decision it feeds indexes it, not the map. A decision's resolution comment links the evidence tickets it drew on.
-5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals a ticket — this one or another — sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
-6. **File the resolution** — into a slice's Decisions list, into **Map-wide decisions**, or leave it unfiled if the partition is still too dim to place it. If the answer made a new slice statable, chart it now (create-then-wire, ship order as blocking edges). See [Slices](#slices).
+4. Record the resolution per `/issue-tracker`'s Resolve operation. A decision's resolution comment links the evidence tickets it drew on.
+5. Add newly-surfaced tickets (create every issue, then add the links); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals a ticket — this one or another — sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
+6. **File the resolution** — into a slice's Decisions list, into **Map-wide decisions**, or leave it unfiled if the partition is still too dim to place it. If the answer made a new slice statable, chart it now (create it, then add its links; ship order as blocking edges). See [Slices](#slices).
 7. **If this closed a slice's last open ticket, propose the seal** — see [Sealing a slice](#sealing-a-slice). Don't start the sealed slice's handoff in this session.
 8. If this resolution completed the map (see [Completion and handoff](#completion-and-handoff)), say so and point at the handoff — don't start it in this session.
 
-Steps 5–8 reshape the map, and they run only in a live session with the human, off a *decision*. Closing an evidence ticket — by `/drain`, by a background agent from `/next`, or by hand — triggers none of them; what its findings suggest about the map's shape is reported for the next live session to act on.
+Steps 5–8 reshape the map, and they run only in a live session with the human, off a *decision*. **Evidence never reshapes the map**: closing an evidence ticket — by a background agent or by hand — triggers none of them; what its findings suggest about the map's shape is reported for the next live session to act on.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the tracker concurrently.

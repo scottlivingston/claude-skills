@@ -7,7 +7,7 @@ description: Generate an interactive bash wizard that walks a human through step
 
 A **wizard** is a bash script that walks a human, step by step, through a manual procedure that's tedious to do by hand and tedious to re-explain to an AI every time. It opens each URL, says exactly what to click and copy, captures the values, writes them where they belong (`.env`, GitHub secrets), confirms before anything irreversible, and shows how much is left. It might configure third-party services, run a one-off migration, or move the project from one state to another.
 
-The delightful UX is already solved by [template.sh](template.sh) — progress with time-remaining, confirmation gates, cross-platform URL opening (including WSL), hidden secret entry, idempotent `.env` upserts, `gh secret`/`gh variable` writes, and a closing summary. **Your job is only to scope the procedure and author its stages.** The library above the `STAGES` marker is identical in every wizard; that consistency is the point — never hand-edit it.
+[template.sh](template.sh) supplies the UX; author only the stages. The library above its `STAGES` marker is identical in every wizard — never hand-edit it.
 
 A wizard is ephemeral by default — built for one run, saved to a scratch or `scripts/` path, deleted when the job's done. Commit it only when the user wants a repeatable setup path that should live in the repo.
 
@@ -38,7 +38,6 @@ Hold the bar the template sets: open the URL before asking for its value, use `a
 
 ### 4. Verify and hand off
 
-- `bash -n <script>`; run `shellcheck` if available.
-- `chmod +x <script>`.
+- Make sure it parses, lints clean, and is executable.
 - Don't run it end-to-end yourself — it opens browsers and blocks on human input. Trace it statically instead: every value from *Scope the procedure* is captured and lands where that section said, and every `set_secret` name exactly matches a `secrets.*` reference in CI.
 - Tell the user how to run it. If it's a repeatable setup path, commit it and link it from the README so the next person runs the script instead of asking an AI.

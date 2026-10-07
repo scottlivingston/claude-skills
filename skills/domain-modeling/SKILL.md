@@ -5,7 +5,7 @@ description: Build and sharpen a project's domain model. Use when the user wants
 
 # Domain Modeling
 
-Actively build and sharpen the project's domain model as you design. This is the *active* discipline — challenging terms, inventing edge-case scenarios, and writing the glossary and decisions down the moment they crystallise. (Merely *reading* `CONTEXT.md` for vocabulary is not this skill — that's a one-line habit any skill can do. This skill is for when you're changing the model, not just consuming it.)
+Build and sharpen the project's domain model as you design: challenge terms, probe edge cases, and write the glossary and decisions down the moment they settle. Merely reading `CONTEXT.md` for vocabulary doesn't need this skill.
 
 ## File structure
 
@@ -21,7 +21,7 @@ Most repos have a single context — a bounded context, the part of the system w
 └── src/
 ```
 
-If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
+If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts and the map points to where each one lives; work in the context the topic belongs to, and ask if that's unclear:
 
 ```
 /
@@ -41,28 +41,18 @@ Create files lazily — only when you have something to write. If no `CONTEXT.md
 
 ## During the session
 
-### Challenge against the glossary
+### Challenge the language
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
-
-### Sharpen fuzzy language
-
-When the user uses vague or overloaded terms, propose a precise canonical term. "You're saying 'account' — do you mean the Customer or the User? Those are different things."
-
-### Discuss concrete scenarios
-
-When domain relationships are being discussed, stress-test them with specific scenarios. Invent scenarios that probe edge cases and force the user to be precise about the boundaries between concepts.
+Call out a term that conflicts with `CONTEXT.md` the moment it's used, propose a precise canonical term for a vague or overloaded one, and invent edge-case scenarios that force precision about where concepts divide.
 
 ### Cross-reference with code
 
-When the user states how something works, check whether the code agrees. If you find a contradiction, surface it in domain language: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?" Keep the disagreeing line's `path:line` ready for when the user asks to see it.
+When the user states how something works, check whether the code agrees, and surface a contradiction in domain language ("Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"). Keep the disagreeing line's `path:line` ready for when the user asks to see it.
 
 ### Update CONTEXT.md inline
 
-When a term is resolved, update `CONTEXT.md` right there. Don't batch these up — capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
-
-`CONTEXT.md` should be totally devoid of implementation details. Do not treat `CONTEXT.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
+When a term is resolved, update `CONTEXT.md` right there, not in a batch later, in the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md). It is a glossary and nothing else — no implementation details, specs, or scratch notes.
 
 ### Offer ADRs sparingly
 
-Offer an ADR only when the three-part test in [ADR-FORMAT.md](./ADR-FORMAT.md) passes — hard to reverse, surprising without context, a real trade-off; if any is missing, skip it. The format lives there too.
+Offer an ADR only when the three-part test in [ADR-FORMAT.md](./ADR-FORMAT.md) passes. The format lives there too.

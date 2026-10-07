@@ -17,9 +17,9 @@ This is planning, not building: the output is **decisions**, recorded on the tic
 
 3. **Work one decision at a time**, per `/grilling`: hold a position on the decision that most constrains the rest — the shape you'd take, what it costs, where their picture is underspecified — and settle it before opening another. Work top-down — modules before interfaces, interfaces before signatures. For each interface agreed, also agree its **seam**: is this a place tests observe behaviour at, and what behaviour is observable there? Prefer existing seams to new ones; the ideal number of new seams is the smallest that serves the destination.
 
-4. **Capture decisions as contracts.** Where a snippet states the decision more precisely than prose — a type shape, an interface stub, a function signature, a state shape — write the snippet, trimmed to the decision-rich parts. These are the decision-encoding snippets `/specify` inlines and review later validates against.
+4. **Capture decisions as contracts.** Where a snippet states the decision more precisely than prose — a type shape, an interface stub, a function signature, a state shape — write the snippet, trimmed to the decision-rich parts.
 
-5. **Record the resolution**: the decisions, their contract snippets, and the **seams under test** they imply — this is where the spec's Seams-under-test list comes from. On a wayfinder ticket, resolve per the wayfinder skill. Offer an ADR only when `/domain-modeling`'s three-part test passes.
+5. **Record the resolution**: the decisions, their contract snippets, and the **seams under test** they imply. On a wayfinder ticket, resolve per the wayfinder skill. Offer an ADR only when `/domain-modeling`'s three-part test passes.
 
 ## Rules
 

@@ -14,10 +14,10 @@ export const meta = {
   ],
 }
 
-// Template for the /ship wave workflow — SKILL.md's "The wave workflow" and "What
-// is local to this gate" hold the stage briefs this file encodes, and
-// /finding-pipeline (code gates included) holds the invariants. The same file
-// runs the closing pass (set CLOSING).
+// Template for the /ship wave workflow. This file owns every stage's prompt
+// wording; SKILL.md says what each stage is for, and /finding-pipeline (code
+// gates included) holds the invariants. The same file runs the closing pass
+// (set CLOSING).
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
 // `script`. An unfilled slot throws "FILL is not defined" at launch — loud,
@@ -39,7 +39,7 @@ const DECISIONS = FILL            // { "D3": "full decision text", ... } — uni
 const TRACKER_READ_OP = FILL      // one-liner: how an agent fetches a spec decision by ID, or ""
 const STANDARDS_SOURCES = FILL    // [{ path: "CONVENTIONS.md", scope: "repo root" }, ...] — [] omits the standards axis entirely ("standards axis idle")
 const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open review-finding tickets: [{ ref, title, body }] — [] if none
-const PRIOR_LEDGER_SUMMARIES = FILL // pre-fetched prior wave/closing summary comments (adjudication memory): ["..."] — [] if none
+const PRIOR_LEDGER_SUMMARIES = FILL // pre-fetched prior wave/closing summary comments: ["..."] — [] if none
 const PRIOR_ANSWERS = FILL        // pre-fetched answer record — the answered entries in prior wave/closing summaries and the spec comments their verdicts posted, verbatim: ["..."] — [] if none; binding spec text for classification
 const TRACKER_MECHANICS = FILL    // prose: the tracker's claim/unclaim/close/comment/create/label/parent operations per /issue-tracker (exact commands)
 const WIDE = FILL                 // true past ~15 files / ~1,500 changed lines expected → partitioned review
@@ -345,7 +345,7 @@ function implementerPrompt(t, plan, amendment) {
     amendment ? 'Collision-check amendment — build against this shared shape:\n' + amendment : null,
     'Discipline (/implement + /tdd): red–green at the spec\'s seams — red test first, then the code that greens it; typecheck regularly; run single test files regularly; commit in your worktree as you go.',
     TEST_NOTES ? 'Test recipes (per /testing) — use single test files while working; before you report done, run the UNIT invocations of the Scoping to a change rule applied to the files you touched (never the Green set — integration runs at merge):\n' + TEST_NOTES : null,
-    'The plan is a map, not a contract: if the code contradicts it, deviate and note the deviation in a ticket comment — the territory wins. If you need an uncited decision, check the Decision Index and fetch it by ID, noting the missed routing in a ticket comment.',
+    'If the code contradicts the plan, follow the code and note the deviation in a ticket comment. If you need an uncited decision, check the Decision Index and fetch it by ID, noting the missed routing in a ticket comment.',
     'If the ticket cannot be built — a decision the spec holds nowhere, work no listed seam covers — PARK: unclaim, comment what is missing on the ticket, comment the gap on spec issue ' + SPEC_ISSUE_REF + ', return status=parked.',
     'Tracker operations:',
     TRACKER_MECHANICS,
@@ -462,7 +462,7 @@ function labelPrompt(axisPrefix, axisName, reports) {
     '- Subject predates this diff (visible in context, not introduced by the change) and matches an open ticket → dedup=already-ticketed, dedupRef=#N. An unticketed pre-existing subject is not yours to shelve — carry it; the finding validator refutes it on scope.',
     '- Introduced by this diff but matches a ticketed pattern → dedup=instance-of-open, dedupRef=#N (stays in — new instances of a known pattern are new debt).',
     '- Uncertain match → dedup=possibly-duplicates, dedupRef=#N (stays in). A visible duplicate is recoverable; a silent suppression is not.',
-    'Dedup against the run\'s adjudication memory — every finding adjudicated in one of these ledger summaries (auto-applied, auto-ticketed, answered, deferred, refuted, reverted, or left as-is) is already decided → dedup=already-adjudicated, dedupRef=the prior outcome:',
+    'Dedup against the run\'s prior summaries — every finding adjudicated in one of these ledger summaries (auto-applied, auto-ticketed, answered, deferred, refuted, reverted, or left as-is) is already decided → dedup=already-adjudicated, dedupRef=the prior outcome:',
     JSON.stringify(PRIOR_LEDGER_SUMMARIES),
   ])
 }
@@ -493,7 +493,7 @@ function proposerPrompt(axisName, survivors) {
     AXIS_INPUTS,
     'Validated findings, each with its validator\'s reasoning:',
     JSON.stringify(survivors.map(f => ({ id: f.id, kind: f.kind, file: f.file, lineStart: f.lineStart, lineEnd: f.lineEnd, description: f.description, citedSource: f.citedSource, specClassification: f.specClassification, validatorReasoning: f.findingReason }))),
-    'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchor by file plus a short quoted snippet of the code being changed, not a bare line number (lines drift once fixes start landing) — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits) or needs-a-session (a fresh context window\'s worth of work). Set docOnly=true only where the ENTIRE fix lives in comments, docs, or headers — no executable code changes. Keep each proposal under 100 words.',
+    'For each finding, propose the smallest concrete fix that resolves it: what to change, where — anchored as the fix field says — and a short sketch of the changed code — a sketch, not a full patch. Size each fix: quick-fix (a few edits) or needs-a-session (a fresh context window\'s worth of work). Set docOnly=true only where the ENTIRE fix lives in comments, docs, or headers — no executable code changes. Keep each proposal under 100 words.',
     axisName === 'Spec' ? 'A spec-suspect finding gets a fix sketch per plausible reading where that is cheap — the user\'s answer will pick one.' : null,
   ])
 }
@@ -507,7 +507,7 @@ function fixValidatorPrompt(axisName, items, roster) {
     JSON.stringify(items.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, findingReasoning: f.findingReason, proposal: f.proposal, sketch: f.sketch, size: f.size, repoWide: f.repoWide, repoWideEvidence: f.repoWideEvidence }))),
     'Every finding in this axis, for the edge fields below — dependsOn / invalidatedBy may name IDs outside your batch:',
     roster,
-    'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself, then drop every instance the cited rule does not actually govern — apply the rule\'s own scope and any grandfather clause (a rule binding only new-and-edited files never counts untouched files) — and fill instancesInDiff / instancesOutsideDiff with the GOVERNED counts only; the flag holds only when instancesOutsideDiff > 0. Your call on the flag is final downstream. (5) confirm or clear docOnly — final word: true only when the fix touches no executable code. A validated docOnly quick-fix on a spec-suspect finding auto-applies instead of escalating, so confirm it only when the code\'s current behaviour is right and only the record about it is wrong.',
+    'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself, then drop every instance the cited rule does not actually govern — apply the rule\'s own scope and any grandfather clause (a rule binding only new-and-edited files never counts untouched files) — and fill instancesInDiff / instancesOutsideDiff with the GOVERNED counts only; the flag holds only when instancesOutsideDiff > 0. Your call on the flag is final downstream. (5) confirm or clear docOnly — final word: true only when the fix touches no executable code. A validated docOnly quick-fix on a spec-suspect finding auto-applies instead of escalating, so confirm it only when the code\'s current behaviour is right and only the record about it is wrong. (6) new rules: a fix that adds a prohibition, constraint, house rule, or new decision beyond the correction the finding forces is fix-rejected on that addition — say what to strip; new rules are the owner\'s to ask for.',
     'Verdict per proposal: validated, fix-rejected (with the reason), or needs-human (a genuine trade-off the user must call). The finding\'s reality is NOT on the table — that was settled upstream; record any lingering doubt inside a fix-rejected reason.',
     'Fill the edge fields instead of burying edges in prose: dependsOn = IDs whose fixes must land for this one to work; invalidatedBy = IDs whose accepted fix makes this proposal\'s premise or wording false.',
   ])
@@ -526,11 +526,8 @@ function pairPrompt(a, b) {
 function fixAgentPrompt(batch) {
   return j([
     'You are the auto-apply fix agent of a ship wave — working alone in the MAIN checkout on branch ' + SHIP_BRANCH + '. Apply the batch below IN ORDER, one commit per finding ID, message format: review: <ID> — <one-liner>. An agreeing cross-axis pair (pairWith set on both members) applies as ONE commit covering both IDs — review: <ID>+<ID> — <one-liner>: when you reach the first member, apply both together and skip the partner when its turn comes.',
-    'FIRST ACT — re-derive both preconditions yourself; never trust values threaded through this prompt:',
-    '- git status --porcelain → if the tree is dirty, apply NOTHING: demote every finding, kind=preconditions, reason "demoted: dirty tree". Never commit around uncommitted work.',
-    '- git rev-parse --abbrev-ref HEAD → if HEAD is not ' + SHIP_BRANCH + ', apply NOTHING: demote everything, kind=preconditions, reason "demoted: not on the ship branch".',
-    '- If a precondition cannot be verified at all, demote with kind=preconditions, reason "demoted: couldn\'t verify preconditions" — the distinct wording matters; only that one is a bug to chase.',
-    'Anchor each edit by the proposal\'s quoted snippet, never by line number. A finding whose staleAfter lists earlier IDs: those fixes may have invalidated this proposal\'s premise — re-ground it against the code as it now stands before applying; if it no longer holds, demote it, kind=other, saying why.',
+    'FIRST ACT — check for yourself, never trusting this prompt, that the tree is clean and HEAD is ' + SHIP_BRANCH + '. If either fails, apply NOTHING: demote every finding, kind=preconditions, with a reason naming the failed check ("demoted: dirty tree" / "demoted: not on the ship branch"), or "demoted: couldn\'t verify preconditions" when a check could not run.',
+    'Anchor each edit by the proposal\'s quoted snippet. A finding whose staleAfter lists earlier IDs: those fixes may have invalidated this proposal\'s premise — re-ground it against the code as it now stands before applying; if it no longer holds, demote it, kind=other, saying why.',
     'After the whole batch: run the Green set once (the full test suite when no recipe names one); revert any finding-commit that breaks it and demote that finding, kind=test-failure, with the failure attached.',
     TEST_NOTES ? 'Test recipes (per /testing) — the Green section is the set to run:\n' + TEST_NOTES : null,
     'Batch:',
@@ -545,7 +542,7 @@ function ticketAgentPrompt(batch) {
     TRACKER_MECHANICS,
     'Make each ticket a child of spec issue ' + SPEC_ISSUE_REF + ', labels: impl + ready-for-agent + review-finding — the next frontier computation picks these up, so review rework rides the next wave without anyone asking.',
     'Cluster by file: findings touching the same file(s) become ONE ticket while the combined work still fits a single fresh session; past that cap, split into independent tickets with NO blocking edges — file overlap is not a blocker.',
-    'Each ticket body: the findings, why they matter (cited source), the validated proposals, anchors by file + short quoted snippet — never bare line numbers (they go stale).',
+    'Each ticket body: the findings, why they matter (cited source), the validated proposals, anchors by file + short quoted snippet.',
     'Batch:',
     JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, proposal: f.proposal, sketch: f.sketch, demotedReason: f.demotedReason || '' }))),
     'Return every ticket you created with the finding IDs it covers.',

@@ -12,16 +12,13 @@ export const meta = {
   ],
 }
 
-// Template for the /diff-review pipeline workflow — SKILL.md steps 4–5 hold the
-// reviewer briefs this file encodes, and /finding-pipeline (code gates included)
-// holds the invariants.
+// Template for the /diff-review pipeline workflow. This file owns the reviewer
+// briefs, the smell baseline, and every stage prompt; /finding-pipeline (code
+// gates included) owns the invariants.
 //
-// USAGE: fill every FILL slot below, then launch the result as the Workflow
-// `script`. An unfilled slot throws "FILL is not defined" at launch — loud,
-// before any agent spawns. Fill prose slots as JSON string literals (double
-// quotes, \n escapes): mechanical to produce, and immune to the backticks and
-// apostrophes that terminate template literals and single-quoted strings.
-// Nothing goes through `args` — ever.
+// USAGE: fill every FILL slot below per /finding-pipeline's Workflow authoring
+// invariants, then launch the result as the Workflow `script`. An unfilled slot
+// throws "FILL is not defined" at launch, before any agent spawns.
 
 // ══════════════════ DATA SLOTS — fill every FILL before launching ══════════════════
 
@@ -74,9 +71,8 @@ const SMELL_BASELINE = [
 
 const j = lines => lines.filter(s => s !== null && s !== undefined && s !== '').join('\n')
 
-// The contract's scope rule, stated once here and folded into the block every review-side
-// stage shares, so reviewers, labelers, and validators read the same words. Canonical
-// wording: /finding-pipeline, "The diff is the material".
+// The contract's scope rule (/finding-pipeline, "The diff is the material"), folded
+// into the block every review-side stage shares.
 const SCOPE_RULE = 'SCOPE — the diff is the material. A finding must name something the diff DID: a line it added, changed, or removed. Code the diff never touched is out of scope however wrong it is, and whether or not a ticket already covers it. You will legitimately see far more code than you may report on — diff context lines, the repo grep behind a repo-wide flag, the files you open to check a rule — and none of it is reportable on its own. Two cases are in scope and only look like exceptions: a requirement this change was meant to deliver and did not (an absence has no anchor), and the repo-wide counts, which are evidence about a pattern the diff instantiates, never findings about the untouched instances.'
 
 const COMMON = j([
@@ -393,7 +389,7 @@ function fixValidatorPrompt(axisName, items, roster) {
     JSON.stringify(items.map(f => ({ id: f.id, file: f.file, description: f.description, citedSource: f.citedSource, findingReasoning: f.findingReason, proposal: f.proposal, sketch: f.sketch, size: f.size, repoWide: f.repoWide, repoWideEvidence: f.repoWideEvidence }))),
     'Every finding in this axis, for the edge fields below — dependsOn / invalidatedBy may name IDs outside your batch:',
     roster,
-    'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself, then drop every instance the cited rule does not actually govern — apply the rule\'s own scope and any grandfather clause (a rule binding only new-and-edited files never counts untouched files) — and fill instancesInDiff / instancesOutsideDiff with the GOVERNED counts only; the flag holds only when instancesOutsideDiff > 0; a pattern whose every governed instance sits inside the diff is this change\'s own duplication, fixable here. Your call on the flag is final downstream. (5) confirm or clear docOnly — final word: true only when the fix touches no executable code. A validated docOnly quick-fix on a spec-suspect finding auto-applies instead of escalating, so confirm it only when the code\'s current behaviour is right and only the record about it is wrong.',
+    'Per proposal, check: (1) does the fix actually resolve the finding? (2) is it proportionate — the minimal change that clears the finding, no speculative rewrites? (3) cross-axis: a fix for a Spec finding must not introduce a Standards violation, and a Standards fix must not change behaviour the spec asked for. (4) re-settle the repo-wide flag: run the grep yourself, then drop every instance the cited rule does not actually govern — apply the rule\'s own scope and any grandfather clause (a rule binding only new-and-edited files never counts untouched files) — and fill instancesInDiff / instancesOutsideDiff with the GOVERNED counts only; the flag holds only when instancesOutsideDiff > 0; a pattern whose every governed instance sits inside the diff is this change\'s own duplication, fixable here. Your call on the flag is final downstream. (5) confirm or clear docOnly — final word: true only when the fix touches no executable code. A validated docOnly quick-fix on a spec-suspect finding auto-applies instead of escalating, so confirm it only when the code\'s current behaviour is right and only the record about it is wrong. (6) new rules: a fix that adds a prohibition, constraint, house rule, or new decision beyond the correction the finding forces is fix-rejected on that addition — say what to strip; new rules are the owner\'s to ask for.',
     'Verdict per proposal: validated, fix-rejected (with the reason), or needs-human (a genuine trade-off the user must call). The finding\'s reality is NOT on the table — that was settled upstream; record any lingering doubt about the premise inside a fix-rejected reason.',
     'Fill the edge fields instead of burying edges in prose: dependsOn = IDs whose fixes must land for this one to work (say, it reads a const another fix introduces); invalidatedBy = IDs whose accepted fix makes this proposal\'s premise or wording false.',
   ])
@@ -412,10 +408,10 @@ function pairPrompt(a, b) {
 function fixAgentPrompt(batch) {
   return j([
     'You are the serial fix agent of a review pipeline — working alone in the MAIN checkout. Apply the batch below IN ORDER, one commit per finding ID, message format: review: <ID> — <one-liner>. An agreeing cross-axis pair (pairWith set on both members) applies as ONE commit covering both IDs — review: <ID>+<ID> — <one-liner>: when you reach the first member, apply both together and skip the partner when its turn comes.',
-    'FIRST ACT — re-derive both preconditions yourself; never trust values threaded through this prompt:',
-    '- git status --porcelain → if the tree is dirty, apply NOTHING: demote every finding, kind=preconditions, reason "demoted: dirty tree". Never commit around a user\'s uncommitted work.',
-    '- git rev-parse --abbrev-ref HEAD → if HEAD is the repo\'s default branch and no user OK is quoted below, apply NOTHING: demote everything, kind=preconditions, reason "demoted: on default branch without OK".',
-    '- If a precondition cannot be verified at all, demote with kind=preconditions, reason "demoted: couldn\'t verify preconditions" — the distinct wording matters; only that one is a bug to chase.',
+    'FIRST ACT — check both preconditions yourself; never trust values threaded through this prompt:',
+    '- If the working tree is dirty, apply NOTHING: demote every finding, kind=preconditions, reason "demoted: dirty tree". Never commit around a user\'s uncommitted work.',
+    '- If HEAD is the repo\'s default branch and no user OK is quoted below, apply NOTHING: demote everything, kind=preconditions, reason "demoted: on default branch without OK".',
+    '- If a precondition cannot be verified at all, demote with kind=preconditions, reason "demoted: couldn\'t verify preconditions".',
     DEFAULT_BRANCH_OK ? 'User\'s default-branch OK, verbatim: ' + JSON.stringify(DEFAULT_BRANCH_OK) : 'The user gave NO default-branch OK.',
     'Anchor each edit by the proposal\'s quoted snippet, never by line number. A finding whose staleAfter lists earlier IDs: those fixes may have invalidated this proposal\'s premise or wording — re-ground it against the code as it now stands before applying; if it no longer holds after those fixes, demote it, kind=other, saying why.',
     'After the whole batch: run the full test suite once; revert any finding-commit that breaks it and demote that finding, kind=test-failure, with the failure attached.',
@@ -430,7 +426,7 @@ function ticketAgentPrompt(batch) {
     'Tracker operations:',
     TICKET_MECHANICS,
     SPEC_ISSUE_REF
-      ? 'Make each ticket a child of spec issue ' + SPEC_ISSUE_REF + ', labels: impl + ready-for-agent + review-finding — the ship frontier picks these up with no extra wiring.'
+      ? 'Make each ticket a child of spec issue ' + SPEC_ISSUE_REF + ', labels: impl + ready-for-agent + review-finding.'
       : 'No tracker spec issue — publish standalone tickets, labels: ready-for-agent + review-finding.',
     'Cluster by file: findings touching the same file(s) become ONE ticket while the combined work still fits a single fresh session; past that cap, split into independent tickets with NO blocking edges — file overlap is not a blocker.',
     'Each ticket body: the findings, why they matter (cited source), the validated proposals, anchors by file + short quoted snippet — never bare line numbers (they go stale).',
@@ -473,13 +469,9 @@ function chunk(arr, n) {
   return out
 }
 
-// One axis, labeled findings → validated, proposed, fix-validated queue.
-// Shelved findings (already-ticketed / already-adjudicated) skip everything: no proposal, no validator, no route.
-// The axis's findings run in chunks of CHUNK_SIZE, each chunk an independent
-// validate → propose → validate-fix pipeline chain — no cross-chunk barriers, so
-// wall-clock is the slowest chunk's chain, not the sum of each stage's slowest.
-// One agent per chunk per stage: validators stay fresh and adversarial, and the
-// proposer keeps cross-finding coherence within its chunk.
+// One axis, labeled findings → validated, proposed, fix-validated queue, in
+// independent chunk chains. Shelved findings (already-ticketed / already-adjudicated)
+// skip everything: no proposal, no validator, no route.
 async function runAxis(axisName, labeled) {
   const shelved = labeled.filter(f => f.dedup === 'already-ticketed' || f.dedup === 'already-adjudicated')
   const inQueue = labeled.filter(f => f.dedup !== 'already-ticketed' && f.dedup !== 'already-adjudicated')
@@ -494,15 +486,12 @@ async function runAxis(axisName, labeled) {
       const verdicts = new Map(((r && r.verdicts) || []).map(v => [v.id, v]))
       for (const f of c) {
         const v = verdicts.get(f.id)
-        // A validator that died keeps its finding — but the keeping is only half the
-        // conservatism: unvalidated is carried as a flag so routing can refuse to
-        // auto-apply it. Failing toward MORE action is the thing to avoid here.
+        // A dead validator keeps its finding, flagged so routing won't auto-apply it.
         f.unvalidated = !v
         f.findingVerdict = v ? v.verdict : 'finding-validated'
         f.findingReason = v ? v.reason : 'validator result missing — kept unvalidated'
         f.specClassification = v ? v.specClassification : 'n/a'
-        // Scope is settled before merits, by the script and not the prompt: a finding
-        // anchored to code the diff never touched leaves here, however real it is.
+        // Scope is enforced by the script, not the prompt.
         f.scope = v && v.scope ? v.scope : 'introduced-by-diff'
         if (f.scope === 'pre-existing') {
           f.findingVerdict = 'finding-refuted'
@@ -606,10 +595,7 @@ if (WIDE) {
   }
 }
 
-// The two axes run as independent chains — a Standards finding needn't wait for
-// the Spec reviewer — and within an axis, chunks of findings flow through
-// validate → propose → validate-fix as independent pipeline chains. The
-// deliberate barriers all live below: routing, the serial fix agent, the ticket agent.
+// The two axes run as independent chains; the deliberate barriers all live below.
 const axes = await parallel([() => standardsAxis(groups), () => specAxis(groups, requirements)])
 const std = axes[0] || { survivors: [], refuted: [], shelved: [] }
 const spec = axes[1] || { skipped: !SPEC, survivors: [], refuted: [], shelved: [] }
@@ -633,7 +619,6 @@ if (pairList.length) {
     agent(pairPrompt(a, b), { ...tier('decider'), schema: PAIR_SCHEMA, phase: 'Validate fixes', label: 'pair:' + a.id + '+' + b.id })))
   pairList.forEach(([a, b], i) => {
     const r = settled[i]
-    // A dead pair agent escalates the pair — conservative, and visible.
     a.pairResolution = b.pairResolution = r ? r.resolution : 'competing'
     a.pairReason = b.pairReason = r ? r.reason : 'pair-resolution agent died'
   })
@@ -645,8 +630,7 @@ const all = std.survivors.concat(spec.survivors)
 const byId = new Map(all.map(f => [f.id, f]))
 
 for (const f of all) {
-  // A validated doc-only quick-fix on a spec-suspect finding auto-applies: the code's
-  // behaviour was deemed right, only the record was wrong — no intent question remains.
+  // A validated doc-only quick-fix on a spec-suspect finding auto-applies (the contract's narrowing).
   const docOnlyResolved = f.fixVerdict === 'validated' && f.size === 'quick-fix' && f.docOnly
   if (f.specClassification === 'spec-suspect' && !docOnlyResolved) { f.route = 'escalate'; f.questionClass = 'spec-unclear' }
   else if (f.crossAxisPair && f.pairResolution === 'competing') { f.route = 'escalate'; f.questionClass = 'competing-fixes' }
@@ -657,9 +641,7 @@ for (const f of all) {
   else { f.route = 'auto-ticket' }
 }
 
-// A stage agent that dies must fail toward LESS action, never more — the pair agent
-// escalates and the fix validator returns needs-human on death. A finding whose own
-// validator never returned is kept, but it is never committed unasked.
+// Dead agents fail toward less action (/finding-pipeline): an unvalidated finding never auto-applies.
 for (const f of all) {
   if (f.unvalidated && f.route === 'auto-apply') {
     f.route = 'auto-ticket'
@@ -766,9 +748,8 @@ const escalations = escalated.map(f => ({
   demotedReason: f.demotedReason || null,
 }))
 
-// Pending-questions post — by the workflow, not the manager, so the gate is durable
-// even if the session dies the moment the workflow returns. It lands in the gate home:
-// a comment on the spec issue, or a section appended to the gate file.
+// Pending-questions post — by the workflow, per /finding-pipeline's The gate — to the
+// gate home: a comment on the spec issue, or a section appended to the gate file.
 const digest = {
   refuted: std.refuted.concat(spec.refuted).map(f => ({ id: f.id, reason: f.findingReason })),
   autoApplied: apply.applied, autoTicketed: tickets,

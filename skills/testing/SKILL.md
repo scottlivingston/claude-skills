@@ -5,7 +5,7 @@ description: Where a repo's test recipes live — TESTING.md at root, per-direct
 
 # Testing
 
-Shared convention for where a repo's test recipes live and how skills find them. The implementing skills — `/implement`, `/tdd`, and every agent a `/ship` wave spawns — run whatever the repo documents; this doc fixes *where* that documentation canonically lives, so a cold agent finds the minimal set that has to pass for its change instead of running the whole suite on every merge.
+Shared convention for where a repo's test recipes live and how an agent finds them, so a cold agent runs the minimal set its change has to pass instead of the whole suite every time.
 
 ## The file
 
@@ -15,13 +15,13 @@ Create it lazily — when the suite first grows past "run everything" being chea
 
 ## Sections
 
-Fixed headings, each optional, that the consuming skills quote **verbatim** into agent briefs — so write each as a recipe a stranger can follow, not a discussion:
+Fixed headings, each optional, quoted **verbatim** into agent briefs — so write each as a recipe a stranger can follow, not a discussion:
 
 - `## Typecheck` — the type-check invocation(s), if the language has one separate from the test run.
 - `## Unit` — how to run unit tests: whole tree, one package, one file, one test by name.
 - `## Integration` — how to run integration tests, and anything they need up first (a database, a container, an env file).
-- `## Scoping to a change` — the load-bearing section. Given the set of files a change touches, which invocations are the **minimal set** that has to pass — the touched packages *and their reverse dependents* — and which touched paths force the **full suite** (lockfiles, root build config, shared test tooling, anything every package imports). `/ship` splits the set by kind: each implementer runs its unit invocations, each serial merge its integration invocations.
-- `## Green` — what must pass before a PR, and before a ticket closes under standalone `/implement` (a `/ship` ticket closes on its scoped set instead): the definition of green for the whole repo, typically the full suite plus typecheck, or the CI command that stands in for it.
+- `## Scoping to a change` — the load-bearing section. Given the set of files a change touches, which invocations are the **minimal set** that has to pass — the touched packages *and their reverse dependents* — and which touched paths force the **full suite** (lockfiles, root build config, shared test tooling, anything every package imports).
+- `## Green` — what must pass before a PR: the definition of green for the whole repo, typically the full suite plus typecheck, or the CI command that stands in for it.
 
 ## Monorepo scoping
 
@@ -61,4 +61,4 @@ Resolve once per change, from the set of files it touches:
 
 ## Fallback
 
-A repo without `TESTING.md` still ships and implements: agents fall through the resolution order and discover commands themselves. The gap stays visible — a `/ship` ledger's wave summary, or an `/implement` report, says **"no TESTING.md — agents discovered test commands"** so the next person can decide whether writing one is worth it.
+A repo without `TESTING.md` still ships and implements: agents fall through the resolution order and discover commands themselves. The gap stays visible — the report of the work says **"no TESTING.md — agents discovered test commands"** so the next person can decide whether writing one is worth it.

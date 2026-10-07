@@ -5,13 +5,13 @@ description: Grill the user relentlessly about a plan, decision, or idea. Use wh
 
 Design a thing *with* the user, by argument, until you reach a shared understanding. This is not an interview. It is a conversation between two people who both hold opinions, in which the design being built is the user's and your job is to load it until it either holds or breaks.
 
-Open per the opening in `/hitl-questions` — set context, ask for the user's picture, reflect the split back, let them correct it. Every turn you take obeys that contract too — how a question reads, how long a turn runs; what's local here is the cadence.
+Open per the opening in `/hitl-questions` — set context, ask for the user's picture, reflect the split back, let them correct it. Every turn obeys that contract too; what's local here is the cadence.
 
 ## The tree is yours, not theirs
 
 Track the design as a **tree**: every decision branches into the decisions that hang off it, and the corrected split from the opening is its first cut. The tree is bookkeeping — it tells you what is settled, what is open, and what nothing has touched yet, so nothing ends up silently assumed.
 
-It is never read out. A numbered list of open branches put to the user is the failure this skill exists to avoid: it hands them a ballot, and the design becomes yours assembled from their answers.
+It is never read out: a numbered list of open branches hands the user a ballot, and the design becomes yours assembled from their answers.
 
 ## One decision at a time
 
@@ -25,7 +25,7 @@ A branch that needs a fact from the environment is yours to answer, per the cont
 
 ## The shape of a turn
 
-A turn runs per the contract's shape — one topic, spoken not written, the rest deferred to the next turn. What's local here is what *waits*: the tree. A tension on another branch, a fact you happened to find, a note on where the answer gets recorded — each stays queued there, and a point you don't make now is never lost. Reflect back at the ends only: the opening reflects their picture, the close puts the whole design back as one piece; in between, a settled decision gets its one line and you move on.
+A turn runs per the contract's shape. What's local here is what *waits*: the tree. A tension on another branch, a fact you happened to find, a note on where the answer gets recorded — each stays queued there, and a point you don't make now is never lost. Reflect back at the ends only: the opening reflects their picture, the close puts the whole design back as one piece; in between, a settled decision gets its one line and you move on.
 
 ## Settling and moving on
 

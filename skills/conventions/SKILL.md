@@ -5,7 +5,7 @@ description: Where a repo's reviewable coding standards live — CONVENTIONS.md 
 
 # Conventions
 
-Shared convention for where a repo's coding standards live and how skills find them. The reviewing skills — `/diff-review`'s Standards axis and `/ship`'s wave verification — enforce whatever the repo documents; this doc fixes *where* that documentation canonically lives, so review finds it deterministically and rules discovered during review have exactly one place to land.
+Where a repo's coding standards live and how skills find them, so review finds them deterministically and rules discovered during review have one place to land.
 
 ## The file
 
@@ -29,7 +29,6 @@ Any directory may carry its own `CONVENTIONS.md`, binding everything beneath it:
 
 - **Nearest ancestor wins.** The standards governing a file are every `CONVENTIONS.md` on its ancestor path, root included; where two rules conflict, the nearer file's rule wins.
 - **Scoped files are deltas.** Write them as differences over the root — "as root, except…" plus additions — never as full copies; a copy forks and drifts.
-- **No index file.** Scoping is purely directory-based, so the ancestor walk *is* the lookup — nothing like `/domain-modeling`'s `CONTEXT-MAP.md` is needed.
 
 A reviewer facing a diff that spans scopes collects the governing set per file and applies each file's own standards to it — one app's rules never judge another app's code.
 
@@ -37,16 +36,16 @@ A reviewer facing a diff that spans scopes collects the governing set per file a
 
 - **A rule must be checkable against a diff.** State it so a reviewer can cite it (file + rule) and point at the violating hunk. "Prefer clarity" isn't checkable; "errors cross module boundaries as `Result`, never as thrown exceptions" is.
 - **Skip anything tooling enforces.** Formatters and linters own that layer; a rule belongs here only if review is the thing that catches it.
-- **One rule per bullet**, naming the preferred alternative where one exists — reviewers propose fixes from these, so "don't X" is half a rule; "don't X, do Y" is whole.
+- **One rule per bullet**, naming the preferred alternative where one exists: "don't X, do Y", since fixes are proposed from it.
 - **A documented rule overrides the review smell baseline.** Where a rule endorses something the baseline would flag, the reviewer suppresses the smell — so document deliberate deviations rather than re-arguing them every round.
 
 ## Where rules come from
 
-Written by hand any time — and grown by the review loop: when `/diff-review` or `/ship` escalates a **pervasive pattern** — one of the question classes of `/finding-pipeline`'s code gates, which defines the *adopt as rule* option — and the user answers *adopt as rule*, the pattern parks as a standalone cleanup ticket whose task list includes **appending the rule to the governing `CONVENTIONS.md`** — the scope nearest the pattern, root when it's repo-wide. That is the loop's self-improvement path: a judgement call the review keeps rediscovering becomes a documented standard the next round enforces mechanically. `CONVENTIONS.md` is the only file review ever appends rules to.
+Written by hand any time, and grown by review: an *adopt as rule* answer at a code gate (per `/finding-pipeline`) appends the rule to the governing `CONVENTIONS.md` nearest the pattern — root when it's repo-wide. `CONVENTIONS.md` is the only file review ever appends rules to.
 
 ## CLAUDE.md points, never duplicates
 
-Standards live in `CONVENTIONS.md`; `CLAUDE.md` may link to it so coding agents follow the rules while writing, but never restates them. A rule living in both copies drifts, and "the repo overrides the baseline" turns ambiguous about which copy is the repo's word.
+Standards live in `CONVENTIONS.md`; `CLAUDE.md` may link to it so coding agents follow the rules while writing, but never restates them, since two copies drift.
 
 ## Fallback
 

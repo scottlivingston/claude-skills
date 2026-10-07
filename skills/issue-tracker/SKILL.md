@@ -28,10 +28,10 @@ Triage roles: `needs-triage` (maintainer must evaluate), `needs-info` (waiting o
 Workflow roles:
 
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
-- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the whole-map cross-read. `/next` routes a completed map without it to `/map-review`, with it to `/specify`. Reopening any child ticket removes it.
-- `slice-reviewed` — the same marker one altitude down: applied to a **sealed slice** by `/map-review` when that slice's decisions survive their cross-read. `/next` routes a sealed slice without it to `/map-review`, with it to `/specify`. Reopening the slice removes it.
+- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the whole-map cross-read. Reopening any child ticket removes it.
+- `slice-reviewed` — the same marker one altitude down: applied to a **sealed slice** by `/map-review` when that slice's decisions survive their cross-read. Reopening the slice removes it.
 - `spec` — a spec issue published by `/specify`.
-- `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding. `/next` routes a spec without it to `/spec-review`, with it to `/tickets`.
+- `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding.
 - `impl` — an implementation ticket published by `/tickets` (a child of its spec).
 - `review-finding` — a ticket published from a review-gate finding (per `/finding-pipeline`): carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
@@ -50,7 +50,7 @@ Workflow roles:
 ### Structure operations
 
 - **Parent/child**: link a ticket as a child of a parent — implementation tickets under their spec, wayfinder tickets and slices under their map.
-- **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Prefer the tracker's native dependency relationship — it renders the frontier visually in the tracker's own UI — and fall back to a body convention only where none exists.
+- **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Use the tracker's native dependency relationship (per `/wayfinder`, it shows the frontier in the tracker's UI), falling back to a body convention only where none exists.
 
 ### Spec decisions
 
@@ -61,26 +61,17 @@ A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed
 
 ### Workflow operations
 
-- **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed — a verifiable checkpoint (e.g. `/ship` refuses to spawn implementers until every frontier ticket passes it).
+- **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed.
 - **Frontier query**: a parent's open **ticket** children, minus any with an open blocker, minus any claimed; first in parent order wins. On a map, ticket children are the `wayfinder:<type>`-labelled ones — slices are children too and are never on the frontier.
-- **Resolve** (wayfinding): comment the answer on the ticket, close it, remove the claim, then — for a `hitl` ticket only — append a context pointer (gist + link) to the map's Decisions so far. An `afk` ticket's findings are never indexed on the map (per `/wayfinder`).
+- **Resolve** (wayfinding): comment the answer on the ticket, close it, remove the claim, then — for a `hitl` ticket only — append a pointer (title-wrapped link + one-line gist) to the map's Decisions so far. An `afk` ticket is never indexed on the map (per `/wayfinder`).
 
 ## GitHub implementation (default)
 
-Every vocabulary role is a GitHub **label** with the same string, on the current repo's issues.
-
-### Ticket operations
-
-- **Create**: `gh issue create --title "..." --body "..."` (heredoc for multi-line bodies), `--label` for markers.
-- **Read**: `gh issue view <number> --comments`.
-- **List**: `gh issue list --state open --json number,title,body,labels,comments` with appropriate `--label` and `--state` filters.
-- **Comment**: `gh issue comment <number> --body "..."`
-- **Mark / unmark**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`
+Every vocabulary role is a GitHub **label** with the same string, on the current repo's issues; ticket operations, marking, and claiming are ordinary `gh issue` work.
 
 ### Bootstrap
 
-`gh issue create --label X` and `gh issue edit --add-label X` both fail if the label doesn't exist in the repo, so before the first labeled create **or** edit in a repo, ensure the set exists (idempotent — `--force` updates in place):
+Labeling with a label the repo lacks fails, on create and edit alike, so before the first labeled create **or** edit in a repo, ensure the set exists (idempotent — `--force` updates in place):
 
 ```sh
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
@@ -114,19 +105,17 @@ gh label create ready-for-human    --force -c "#f9d0c4" -d "Requires human imple
 
 ### Spec decisions
 
-One **issue comment per decision** on the spec issue, posted in index order immediately after the issue is created. Each opens with the marker line `<!-- spec-decision D<n> -->`, then the decision's `### D<n>: <title>` heading and body. The marker is the separator between spec content and process comments — a comment without it is never spec content, and no process comment (wave summary, review round summary, spec-gap note) ever carries it. Read a spec in full with `gh issue view <n> --comments`, taking the body plus the marked comments in ID order. The convention is also what keeps a spec clear of GitHub's 65,536-character cap on any single body or comment: the kernel and each decision sit far below the cap individually, so nothing is ever trimmed to fit.
+One **issue comment per decision** on the spec issue, posted in index order immediately after the issue is created. Each opens with the marker line `<!-- spec-decision D<n> -->`, then the decision's `### D<n>: <title>` heading and body. The marker is the separator between spec content and process comments — a comment without it is never spec content, and no process comment (wave summary, review round summary, spec-gap note) ever carries it. Read a spec in full as the body plus the marked comments in ID order. One comment per decision also keeps each piece far below GitHub's 65,536-character cap on a single body or comment.
 
 ### Workflow operations
 
-- **Claim** / **unclaim**: `gh issue edit <n> --add-label in-progress` / `--remove-label in-progress`. **Claim check**: `gh issue list --label in-progress`.
-- **Frontier query**: list the parent's open children (`gh issue list --state open`, scoped to the parent's sub-issues / task list); on a map, keep only the `wayfinder:<type>`-labelled ones, so slices never appear. Drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or the `in-progress` label; first in parent order wins.
-- **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>` and remove the `in-progress` label, then (for a `hitl` ticket) append a context pointer (gist + link) to the map's Decisions so far.
+- **Frontier query**: the parent's open sub-issues (or task-list children); an open blocker shows as `issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line.
 
 ### Wayfinding specifics
 
 The **map** is a single issue labelled `wayfinder:map`, holding the map body per `/wayfinder`. Each **child ticket** is a sub-issue of the map, labelled `wayfinder:<type>` plus its mode, `hitl` or `afk`.
 
-Each **slice** is also a sub-issue of the map, labelled `wayfinder:slice` and carrying no type or mode label — that absence is what keeps it off the frontier. Ship order between slices uses the same native dependency edges as ticket blocking. A slice is **sealed** by closing it (`gh issue close`), and `slice-reviewed` is applied after it closes; a breach reopens it (`gh issue reopen`), which removes the marker.
+Each **slice** is also a sub-issue of the map, labelled `wayfinder:slice` and carrying no type or mode label — that absence is what keeps it off the frontier. Ship order between slices uses the same native dependency edges as ticket blocking. A slice is **sealed** by closing it, and `slice-reviewed` is applied after it closes; a breach reopens it and removes the marker.
 
 ## Local markdown implementation (fallback)
 
@@ -152,7 +141,7 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 - **Claim**: set `Status: in-progress` and save before any work; unclaim by reverting it. **Claim check**: read the `Status:` lines.
 - **Frontier query**: scan the parent's ticket directory — `map/` for a map, `issues/` for a spec — for files that are open, unblocked, and unclaimed; first by number wins. `slices/` is never scanned, which is what keeps slices off the frontier.
-- **Resolve**: append the answer under an `## Answer` heading, then Close (`Status: closed`), then (for `Mode: hitl`) append a context pointer (gist + link) to the map's Decisions so far in `map.md`.
+- **Resolve**: the answer goes under an `## Answer` heading; the map's Decisions so far lives in `map.md`.
 
 ### Wayfinding specifics
 

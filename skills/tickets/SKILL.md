@@ -54,13 +54,13 @@ When B needs only A's **interface**, not its implementation, pull the contract (
 **Cut for the wave structure.** The DAG's shape is what `/ship` executes: wave 1 is every ticket with no blockers, wave 2 everything unblocked once wave 1 lands, and so on. Two properties make a breakdown fast, and they pull against each other — optimize both while drafting:
 
 - **Shallow** — every edge cut per the edge test flattens the DAG by one; a chain is a queue of idle agents.
-- **Disjoint files** — same-wave tickets run as parallel agents whose branches merge serially; two of them reshaping the same files means conflict agents and re-tests on the critical path. Note the files each ticket expects to touch and cut slices so dependency-free tickets touch different ones, preferring cuts that follow file boundaries. Those notes are for the critic below only, never published ticket content (paths go stale; the ticket body stays path-free per the note in step 6).
+- **Disjoint files** — same-wave tickets run as parallel agents whose branches merge serially; two of them reshaping the same files means conflict agents and re-tests on the critical path. Note the files each ticket expects to touch and cut slices so dependency-free tickets touch different ones, preferring cuts that follow file boundaries. Those notes are for the critic below only, never published ticket content.
 
 File overlap is still never an edge — the fix for two same-wave tickets touching the same files is a different cut, not a fake dependency.
 
-**Route the spec's decisions.** When the source is a spec with a Decision Index, each ticket **cites the decision IDs it implements** — the routing is what lets `/ship` hand each agent only the decisions its ticket needs instead of the whole log. Route while drafting, then check **coverage**: every decision must be cited by at least one ticket. An orphaned decision is a finding for the quiz, never something to silently absorb — it means either a missing ticket or a decision that decided nothing.
+**Route the spec's decisions.** When the source is a spec with a Decision Index, each ticket **cites the decision IDs it implements**, so its implementer gets only the decisions it needs. Route while drafting, then check **coverage**: every decision must be cited by at least one ticket. An orphaned decision is a finding for the quiz, never something to silently absorb — it means either a missing ticket or a decision that decided nothing.
 
-**Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change — rename a column, retype a shared symbol — whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket — green is promised only there.
+**Wide mechanical refactors** no slice can land green (rename a column, retype a shared symbol): expand, migrate in batches, contract — each batch its own ticket. When even the batches can't stay green alone, let them share an integration branch that blocks a final integrate-and-verify ticket.
 
 ### 4. The DAG critic
 
@@ -81,7 +81,7 @@ Present the proposed breakdown **as plain markdown text in your reply** — a nu
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
 - **What it delivers**: the end-to-end behaviour this ticket makes work
-- **Decisions**: the decision IDs this ticket cites (spec sources only) — the agent implementing it will receive exactly these in full
+- **Decisions**: the decision IDs this ticket cites (spec sources only)
 - **Where it lands**: the module or subsystem this slice touches, named in the project's own vocabulary — one plain phrase, so the user can judge the breakdown at the concept level. Code references (`path:line`) on request. (The published tickets still avoid file paths, per the note below.)
 
 For a spec source, follow the wave structure with the **coverage check's result**: any decision no ticket cites, listed by ID — each is either a missing ticket or a dead decision, the user's call.
@@ -93,7 +93,7 @@ Only after the full breakdown is on screen as message text, ask the user:
 - Is the decision routing right — each ticket citing the decisions it genuinely needs, and what should happen to any orphaned decision?
 - Should any tickets be merged or split further?
 
-Asking follows `/hitl-questions`' AskUserQuestion mechanics — here that means the breakdown MUST already have been printed as ordinary text in the same reply, before any tool call; never inside the tool's question or option text.
+Ask per `/hitl-questions`.
 
 Iterate until the user approves the breakdown.
 
@@ -102,7 +102,7 @@ Iterate until the user approves the breakdown.
 Publish the approved tickets. **How** depends on the configured tracker (see `/issue-tracker`) — the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below — one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. When the source is a spec issue, make each ticket a **child of the spec** (the tracker doc's parent/child operation; on GitHub, the sub-issues endpoint), so the spec issue is the single parent the eventual PR closes. Use the platform's native blocking relationship for edges between tickets; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `impl` label plus the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction. (If the markers don't exist yet, run the tracker doc's bootstrap first.)
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. When the source is a spec issue, make each ticket a **child of the spec** (the tracker doc's parent/child operation), so the spec issue is the single parent the eventual PR closes. Use the platform's native blocking relationship for edges between tickets; otherwise set each ticket's "Blocked by" to the blocking issues. Apply the `impl` label plus the `ready-for-agent` triage label unless instructed otherwise — the tickets are agent-grabbable by construction. (If the markers don't exist yet, run the tracker doc's bootstrap first.)
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
@@ -150,6 +150,6 @@ The spec decision IDs this ticket implements (`D3, D7`) — omit this section wh
 
 </issue-template>
 
-In either form, tickets don't duplicate what the spec already holds: when the source spec has addressable decisions, a ticket **cites decision IDs rather than copying their snippets** — `/ship` hands each agent the cited decisions' full text, so a copy could only drift. Tickets from a plan or conversation (no addressable decisions) still carry **decision-encoding snippets** as first-class content: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — inlined, trimmed to the decision-rich parts with its origin noted, part of what review validates the implementation against. Either way, what tickets avoid is *speculative* implementation code — sketches of how to build things no decision has settled — and specific file paths or line numbers, which go stale fast. (Review-finding tickets published by `/diff-review` are the one exception on paths: a finding is about existing code, so it anchors by file + quoted snippet.)
+In either form, tickets don't duplicate what the spec already holds: when the source spec has addressable decisions, a ticket **cites decision IDs rather than copying their snippets**, since a copy could only drift. Tickets from a plan or conversation (no addressable decisions) still carry **decision-encoding snippets** as first-class content: a state machine, reducer, schema, type shape, or API contract — especially one a prototype or design ticket validated — inlined, trimmed to the decision-rich parts with its origin noted, part of what review validates the implementation against. Either way, what tickets avoid is *speculative* implementation code — sketches of how to build things no decision has settled — and specific file paths or line numbers, which go stale fast. (Review-finding tickets published by `/diff-review` are the one exception on paths: a finding is about existing code, so it anchors by file + quoted snippet.)
 
 End by pointing the user at the next step: `/ship <spec>` drives the whole DAG — parallel fresh agents per ticket, reviewed and merged wave by wave. The manual alternative is `/implement`, one frontier ticket at a time, clearing context between tickets.
