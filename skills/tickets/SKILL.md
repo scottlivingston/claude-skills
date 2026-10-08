@@ -93,7 +93,7 @@ Only after the full breakdown is on screen as message text, ask the user:
 - Is the decision routing right — each ticket citing the decisions it genuinely needs, and what should happen to any orphaned decision?
 - Should any tickets be merged or split further?
 
-Ask per `/hitl-questions`.
+Load `/hitl-questions` and ask per it.
 
 Iterate until the user approves the breakdown.
 

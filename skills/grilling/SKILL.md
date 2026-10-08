@@ -5,7 +5,7 @@ description: Grill the user relentlessly about a plan, decision, or idea. Use wh
 
 Design a thing *with* the user, by argument, until you reach a shared understanding. This is not an interview. It is a conversation between two people who both hold opinions, in which the design being built is the user's and your job is to load it until it either holds or breaks.
 
-Open per the opening in `/hitl-questions` — set context, ask for the user's picture, reflect the split back, let them correct it. Every turn obeys that contract too; what's local here is the cadence.
+Load `/hitl-questions` and open per its opening — set context, ask for the user's picture, reflect the split back, let them correct it. Every turn obeys that contract too; what's local here is the cadence.
 
 ## The tree is yours, not theirs
 
@@ -21,7 +21,7 @@ A turn on that decision is a **position**, not a question block: where you would
 
 Push, and keep pushing. A grilling that agrees with the user's first picture has grilled nothing. Name the case the design doesn't handle, the assumption carrying the load, the thing that will be painful to change later, the simpler shape that would do. Concede when they're right and say so in a line; don't relitigate a decision they've reaffirmed.
 
-A branch that needs a fact from the environment is yours to answer, per the contract — look it up, or dispatch a sub-agent for the big ones (decider tier per `/model-policy`). A running exploration doesn't stall the conversation: carry on with a decision that doesn't depend on it.
+A branch that needs a fact from the environment is yours to answer, per the contract — look it up, or dispatch a sub-agent for the big ones (decider tier — load `/model-policy` to resolve it). A running exploration doesn't stall the conversation: carry on with a decision that doesn't depend on it.
 
 ## The shape of a turn
 

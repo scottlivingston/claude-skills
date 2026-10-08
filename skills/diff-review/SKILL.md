@@ -55,7 +55,7 @@ The workflow returns the full labeled queue — every finding with its flags, ve
 
 ### 5. What is local inside the pipeline
 
-Labeling, dedup, adversarial validation, proposals, fix validation, routing, and the fix and ticket agents run per `/finding-pipeline`'s stages and code-gate section. Local to this skill:
+Labeling, dedup, adversarial validation, proposals, fix validation, routing, and the fix and ticket agents run per `/finding-pipeline`'s stages and code-gate section — load it before filling the workflow, and again in a session that resumes at the gate. Local to this skill:
 
 - **IDs** are `STD-<i>` / `SPEC-<i>`, numbered in report order, per run — a re-run renumbers. When the reviews were partitioned, the labeling stage also dedups across group boundaries.
 - **Smells** enter labelled as hypotheses; for a validated smell, the baseline's fix is the proposer's starting point, grounded in the actual hunk.

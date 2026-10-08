@@ -136,7 +136,7 @@ A slice is a **child issue of the map** labelled `wayfinder:slice` — never a t
 
 A **sealed** slice is one declared safe to spec while the rest of the map is still foggy — the payoff of slicing, because it lets shipping start before charting finishes. **Closing the slice issue is the seal.**
 
-Sealing is not derivable: fog is prose, and no query proves a fog patch can't land in a slice. So it is the human's call, made on a drafted case, per `/hitl-questions`. When a resolution closes a slice's last open ticket, propose the seal in that same session — name what the slice ships, then walk the remaining **Not yet specified** patches one line each with why none of them lands here. On a yes, close the slice. On a no, say what it's waiting for and leave it open.
+Sealing is not derivable: fog is prose, and no query proves a fog patch can't land in a slice. So it is the human's call, made on a drafted case put per `/hitl-questions` (load it if this session hasn't). When a resolution closes a slice's last open ticket, propose the seal in that same session — name what the slice ships, then walk the remaining **Not yet specified** patches one line each with why none of them lands here. On a yes, close the slice. On a no, say what it's waiting for and leave it open.
 
 A sealed slice can still be **breached** — a later resolution turns out to belong to it. Route by how far the slice has gone:
 
@@ -178,7 +178,7 @@ Two modes. Either way, **resolve at most one ticket per invocation.** Fresh cont
 
 User invokes with a loose idea.
 
-1. **Name the destination.** Run a `/grilling` and `/domain-modeling` session to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
+1. **Name the destination.** Load `/grilling` and `/domain-modeling` and run a session with them to pin down what this map is finding its way to — the spec, decision, or change. The destination fixes the scope, so it's settled first.
 2. **Map the frontier.** Grill again, **breadth-first** this time: fan out across the whole space rather than deep on any one thread, surfacing the open decisions and the first steps takeable now. **If this surfaces no fog** — the way to the destination is already clear, the whole journey small enough for one session — you don't need a map. Stop and ask the user how they'd like to proceed.
 3. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first so the markers exist): Destination and Notes filled in, Decisions so far empty, the fog sketched into **Not yet specified**.
 4. **Create the tickets you can specify now** as child issues of the map, then add the blocking edges in a second pass, since issues need ids before they can reference each other. The edges sort them into the frontier and the blocked; everything you can't yet specify stays in the fog — the **Not yet specified** section.
@@ -192,7 +192,7 @@ User invokes with a map (URL or number). A ticket is **optional** — without on
 
 1. Load the **map** body, not every ticket body. **If the map is already complete** (per [Completion and handoff](#completion-and-handoff)), don't hunt for work: say so and point at [Completion and handoff](#completion-and-handoff).
 2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: label it `in-progress` before any work.
-3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand; invoke the skills the `## Notes` block names. If in doubt, use `/grilling` and `/domain-modeling`. An AFK ticket taken by hand follows the `/drain` agent brief: findings, not a decision.
+3. Resolve it — **zoom as needed**: fetch the full body of any related or closed ticket on demand; invoke the skills the `## Notes` block names. If in doubt, load `/grilling` and `/domain-modeling`. An AFK ticket taken by hand follows the `/drain` agent brief: findings, not a decision.
 4. Record the resolution per `/issue-tracker`'s Resolve operation. A decision's resolution comment links the evidence tickets it drew on.
 5. Add newly-surfaced tickets (create every issue, then add the links); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals a ticket — this one or another — sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
 6. **File the resolution** — into a slice's Decisions list, into **Map-wide decisions**, or leave it unfiled if the partition is still too dim to place it. If the answer made a new slice statable, chart it now (create it, then add its links; ship order as blocking edges). See [Slices](#slices).

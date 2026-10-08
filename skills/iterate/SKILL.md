@@ -29,7 +29,7 @@ Check out the effort's branch (the log's `Branch:` line), then route on the **la
 
 ## 1. Choose the next slice
 
-Read the Destination, Where it stands, the Fog, the last slice's Learned, and any open review tickets `/diff-review` filed for this effort. Then put **one position**, per `/grilling`'s cadence: the slice you'd take next and the one reason that carries it. The best next slice is the smallest step that either moves toward the destination or teaches how to build it. The first slice is a **tracer bullet** — the thinnest thing that runs end to end and can be seen.
+Read the Destination, Where it stands, the Fog, the last slice's Learned, and any open review tickets `/diff-review` filed for this effort. Then load `/grilling` and put **one position** per its cadence: the slice you'd take next and the one reason that carries it. The best next slice is the smallest step that either moves toward the destination or teaches how to build it. The first slice is a **tracer bullet** — the thinnest thing that runs end to end and can be seen.
 
 A slice has a **kind**:
 
@@ -43,7 +43,7 @@ When the destination looks reached, say so instead; on the human's agreement set
 
 ## 2. Shape the slice
 
-**Build slices.** Grill per `/grilling`, rooted at this slice: the tree holds only the decisions this slice's build needs. A question a later slice will need goes into the Fog as one line, and the conversation moves on. Ground terms per `/domain-modeling`. Reach for `/design` when the slice sets a structure later slices will build on, and `/prototype` when the human needs to see it before deciding. Append each decision to the slice's Decisions as it settles.
+**Build slices.** Load `/grilling` and grill, rooted at this slice: the tree holds only the decisions this slice's build needs. A question a later slice will need goes into the Fog as one line, and the conversation moves on. Load `/domain-modeling` to ground terms. Reach for `/design` when the slice sets a structure later slices will build on, and `/prototype` when the human needs to see it before deciding. Append each decision to the slice's Decisions as it settles.
 
 Shaping is done when the **brief** is written — *Delivers*, *Done when* (every check observable: a test, a command, something the human can see), and *Not in this slice* — and fits one build agent's session. A brief bigger than that splits: keep the first part, put the rest in the Fog. Put the brief back to the human as one piece; on their confirmation, go to Build.
 
@@ -52,15 +52,15 @@ Shaping is done when the **brief** is written — *Delivers*, *Done when* (every
 ## 3. Build
 
 1. Record **Base** (the effort branch's `HEAD`) and the **build branch** (`<effort branch>-slice-<n>`), set stage `building`, and commit the log — the build agent's worktree is cut from `HEAD`, so a log left uncommitted is a log it never sees.
-2. Launch **one background `Agent`** with `isolation: "worktree"`, on the **executor tier** per `/model-policy`, with the brief below.
+2. Launch **one background `Agent`** with `isolation: "worktree"`, on the **executor tier** (load `/model-policy` to resolve it), with the brief below.
 3. Tell the human the build is running and that the log holds everything — `/clear` now is safe, and `/iterate` resumes here.
-4. When the agent returns, record its report under Build. **Parked** → set stage `shaping` and sit with the human on the gap it names. **Done** → merge the build branch into the effort branch, run the change's scoped tests per `/testing` (never leave the effort branch red), record the merge, set stage `reviewing`, and go to Review.
+4. When the agent returns, record its report under Build. **Parked** → set stage `shaping` and sit with the human on the gap it names. **Done** → merge the build branch into the effort branch, load `/testing` and run the change's scoped tests (never leave the effort branch red), record the merge, set stage `reviewing`, and go to Review.
 
 **Resume rule.** Stage `building` with no Build report means the agent died with its session. Relaunch; if the build branch has commits, tell the agent to continue from them.
 
 The build agent's brief:
 
-> You are building one slice of a feature that is being grown iteratively. Read the effort log at `<log path>`: its Destination and Where it stands are context; **Slice <n>**'s Decisions and Brief are your spec. Work on a new branch, `<build branch>`. Build test-first per `/tdd`, at the seams the decisions name, with test recipes resolved per `/testing`. Stay inside the brief: a detail it leaves open that you need, take the smallest reversible option and note it as a deviation; something that would change what the slice delivers, stop and park. Leave the log untouched. Commit as you go. Report: status (`done` or `parked`), the branch, what was built, how to see it running, deviations — or, when parked, exactly what's missing.
+> You are building one slice of a feature that is being grown iteratively. Read the effort log at `<log path>`: its Destination and Where it stands are context; **Slice <n>**'s Decisions and Brief are your spec. Work on a new branch, `<build branch>`. Load `/tdd` and `/testing` first, then build test-first at the seams the decisions name, with test recipes resolved per `/testing`. Stay inside the brief: a detail it leaves open that you need, take the smallest reversible option and note it as a deviation; something that would change what the slice delivers, stop and park. Leave the log untouched. Commit as you go. Report: status (`done` or `parked`), the branch, what was built, how to see it running, deviations — or, when parked, exactly what's missing.
 
 ## 4. Review
 
@@ -80,4 +80,4 @@ Set stage `done` and commit the log. A finished slice is a natural PR point: ask
 ## Rules
 
 - **One slice per invocation, with the budget call made out loud.** After a slice, a light session invites another `/iterate` here; a heavy one recommends `/clear` first. Grilling and building never share a context: the build always goes to the agent.
-- **The human owns every decision**, put per `/hitl-questions`; facts come from the code, looked up by you.
+- **The human owns every decision**, put per `/hitl-questions` — loaded before the session's first question, whatever stage it resumes at; facts come from the code, looked up by you.

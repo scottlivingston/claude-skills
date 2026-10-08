@@ -15,6 +15,10 @@ Pick model-invocation only when the agent must reach the skill on its own, or an
 
 The invocation cut of splitting (the sequence cut lives in `SKILL.md`): split off a model-invoked skill when a distinct leading word you actually use in prompts should trigger it on its own, or another skill must reach it — worth the new description's context load only then.
 
+## Loading another skill
+
+A skill that needs the agent to follow another skill says **load** it — invoke it with the Skill tool, unless this session already has — at the first step that acts under it. Naming the skill (`per /grilling`) reads as a reference, and the session carries on without the text. Put the load at every entry point a session can start from (a resumable stage, a router's row), and in an agent's brief, since a spawned agent shares none of the session's loads. Once loaded, later mentions cite by name.
+
 ## Router skills
 
 When user-invoked skills multiply past what you can remember, that piled-up cognitive load is cured by a **router skill**: one user-invoked skill that names the others and when to reach for each, so the human has one skill to remember. It can only point the human at them, never fire them.

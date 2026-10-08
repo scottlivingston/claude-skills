@@ -61,7 +61,7 @@ When escalations exist, the gate goes **AFK**: send a push notification (load vi
 
 ## Question mechanics
 
-**The comment is the record; the loop is a conversation.** The pending-questions comment carries the full material — the audit digest and one block per escalation, in the shape below — because a later session resumes from it alone and a cold reader must be able to answer from it. The loop that walks it is **not the comment read aloud**. It runs per `/hitl-questions` the way grilling runs: the blocks are the notes, and each turn is what you say from them.
+**The comment is the record; the loop is a conversation.** The pending-questions comment carries the full material — the audit digest and one block per escalation, in the shape below — because a later session resumes from it alone and a cold reader must be able to answer from it. The loop that walks it is **not the comment read aloud**. Load `/hitl-questions`; the loop runs per it the way grilling runs: the blocks are the notes, and each turn is what you say from them.
 
 The block the comment carries, per escalation:
 

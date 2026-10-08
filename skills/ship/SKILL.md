@@ -11,7 +11,7 @@ Unanswered **spec-axis** questions close a gate: the next wave does not launch u
 
 The verification pipeline is the contract in `/finding-pipeline` — stages, adversarial discipline, routing, gate markers, question mechanics, and the code-gate specifics live there once, for this skill, `/diff-review`, and the document gates alike. What's local here is the wave machinery and what the contract delegates (see *What is local to this gate*).
 
-The user invokes with a **spec** (issue URL/number) whose implementation tickets already exist as its sub-issues. For the issue tracker, invoke `/issue-tracker`; for standards sources, `/conventions`; for test recipes, `/testing`.
+The user invokes with a **spec** (issue URL/number) whose implementation tickets already exist as its sub-issues. Load `/finding-pipeline` and `/issue-tracker` now, `/conventions` for standards sources, and `/testing` for test recipes.
 
 ## Guardrails
 
@@ -72,7 +72,7 @@ Either way the wave summary comment gets posted before anything else happens —
 
 ### 4. The question loop at a closed gate
 
-Runs in the manager session — this one, or any later session that bootstraps onto the pending-questions comment. Walk the **whole** escalation queue, standards escalations included (the user is warm; cold questions at the end are the expensive version), per `/finding-pipeline`'s question mechanics: orientation summary first, then one finding per turn as a position the user accepts or pushes back on, then act on the answers (spec comments, fix agent, tickets, reverts), then post the wave summary recording every outcome.
+Runs in the manager session — this one, or any later session that bootstraps onto the pending-questions comment. Walk the **whole** escalation queue, standards escalations included (the user is warm; cold questions at the end are the expensive version), per `/finding-pipeline`'s question mechanics (load it if this session hasn't): orientation summary first, then one finding per turn as a position the user accepts or pushes back on, then act on the answers (spec comments, fix agent, tickets, reverts), then post the wave summary recording every outcome.
 
 Then **checkpoint**: state is fully durable, so end the turn with the choice stated plainly — continue with the next wave here, or run `/ship <spec>` in a fresh session; both resume identically from the tracker. Don't launch the next wave unprompted after a question loop: the checkpoint is the session-boundary the gate exists to offer.
 
