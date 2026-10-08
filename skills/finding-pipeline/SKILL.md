@@ -68,6 +68,8 @@ The block the comment carries, per escalation:
 ```
 ### <plain title of what's being decided> — <i> of <n> (<ID>)
 
+**I'd pick:** <the option you'd pick> — <the one-line why>
+
 <One or two sentences: what part of the product this concerns, and what the question is.>
 
 > <the spec line, decision text, or code the question turns on — quoted, with its anchor>
@@ -76,8 +78,6 @@ The block the comment carries, per escalation:
 
 - **<option, as an outcome>** — <what it costs, what it triggers>
 - **<option, as an outcome>** — <what it costs, what it triggers>
-
-<The option you'd pick, and the one-line why.>
 ```
 
 The quote is the finding's own source field printed rather than paraphrased, and the stakes line is the cost field stage 4 filled. Two bindings are local to a gate. An **absence** has no sentence to quote — say the material is silent and quote whatever was meant to cover it. And the question class is routing vocabulary: it surfaces in the digest's counts and nowhere the user reads.

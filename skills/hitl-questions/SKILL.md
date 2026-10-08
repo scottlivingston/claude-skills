@@ -41,6 +41,8 @@ Questions speak the project's **domain language** — capabilities, behaviors, c
 
 Every question carries your recommended answer and the one-line reason; a question with no recommendation is usually a fact-lookup you skipped. The one exception is the opening above.
 
+**The recommendation leads.** The human skims: they read the bold lead naming the decision, jump to your pick, and read on only when they disagree. So the pick and its reason come straight after the lead — "**How to bump Bevy** — I'd give raidboss its own pin, because it keeps this slice about raidboss." — and the situation, the alternative, and its cost follow for the reader who wants them.
+
 ## Prose, not dialogs
 
 Questions are put in **prose**, in the flow of the conversation, with your reasoning visible and the human free to answer past the question you actually asked. Nothing here mandates `AskUserQuestion`: a skill reaches for the dialog only when the exchange really is a confirmation over a closed set — a breakdown's approval — and never where the human is deciding something, a design conversation or a review gate alike, where a ballot of options stands in for a position you should have taken. When a skill does use it, everything the human must read to answer is printed as ordinary text in the same reply, *before* the tool call — the dialog cannot display the material, and no summary inside the tool stands in for it.
