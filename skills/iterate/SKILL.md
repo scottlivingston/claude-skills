@@ -52,15 +52,11 @@ Shaping is done when the **brief** is written — *Delivers*, *Done when* (every
 ## 3. Build
 
 1. Record **Base** (the effort branch's `HEAD`) and a **build branch** per part (`<effort branch>-slice-<n>`, or `…-slice-<n>-<part>` when the brief has several), set stage `building`, and commit the log — every build agent's worktree is cut from `HEAD`, so a log left uncommitted is a log they never see.
-2. Load `/model-policy` for the tiers. **One part** → launch one background `Agent` with `isolation: "worktree"`, on the executor tier, with the brief below. **Several parts** → build them in the background as `/ship` builds a wave: a planner per part, a collision check over the plans, one executor-tier implementer per part in its own worktree with the brief below and its plan, and serial merges into the effort branch in completion order, never on red. The log stands in for `/ship`'s tracker — plans and parks come back in the agents' reports — and there is no verification stage: that is Review's.
+2. Run the build as **one background `Workflow`** (this skill is your authorization to use it). **Start from [build.template.js](build.template.js) — fill it, don't author from scratch**: every `FILL` slot per its comments, tiers resolved per `/model-policy` (load it), test notes per `/testing` (load it). The template owns every build agent's prompt. It runs `/ship`'s wave shape without the tracker or verification: a planner per part and a collision check over the plans (skipped for a one-part brief), one implementer per part in its own worktree, and merges into the effort branch in completion order, never on red.
 3. Tell the human the build is running and that the log holds everything — `/clear` now is safe, and `/iterate` resumes here.
-4. Record each part's report under Build as it returns. Once every part is in: any **parked** → set stage `shaping` and sit with the human on the gap it names, merged parts staying merged. All **done** → merge any branch not yet merged, load `/testing` and run the slice's scoped tests (never leave the effort branch red), record the merges, set stage `reviewing`, and go to Review.
+4. When the workflow returns, record each part's report under Build — what was built, how to see it, deviations, the merge sha. Any part **parked** → set stage `shaping` and sit with the human on the gap it names, merged parts staying merged. All **done** → run the slice's scoped tests per `/testing` on the effort branch (never leave it red), set stage `reviewing`, and go to Review.
 
-**Resume rule.** Stage `building` with a part missing its Build report means that part's agent died with its session. Relaunch it; if its build branch has commits, tell the agent to continue from them.
-
-The build agent's brief:
-
-> You are building one slice of a feature that is being grown iteratively. Read the effort log at `<log path>`: its Destination and Where it stands are context; **Slice <n>**'s Decisions and Brief are your spec. <When the brief has parts: You build Part <part> only; the other parts are built alongside you against the same Decisions, so hold to the contracts they pin. Your plan: <plan>.> Work on a new branch, `<build branch>`. Load `/tdd` and `/testing` first, then build test-first at the seams the decisions name, with test recipes resolved per `/testing`. Stay inside the brief: a detail it leaves open that you need, take the smallest reversible option and note it as a deviation; something that would change what the slice delivers, stop and park. Leave the log untouched. Commit as you go. Report: status (`done` or `parked`), the branch, what was built, how to see it running, deviations — or, when parked, exactly what's missing.
+**Resume rule.** Stage `building` with a part missing its Build report means the build died with its session. Fill the template again with only those parts, marking `resume` on any whose build branch has commits.
 
 ## 4. Review
 
@@ -79,5 +75,5 @@ Set stage `done` and commit the log. A finished slice is a natural PR point: ask
 
 ## Rules
 
-- **One slice per invocation, with the budget call made out loud.** After a slice, a light session invites another `/iterate` here; a heavy one recommends `/clear` first. Grilling and building never share a context: the build always goes to the agent.
+- **One slice per invocation, with the budget call made out loud.** After a slice, a light session invites another `/iterate` here; a heavy one recommends `/clear` first. Grilling and building never share a context: the build always goes to the workflow.
 - **The human owns every decision**, put per `/hitl-questions` — loaded before the session's first question, whatever stage it resumes at; facts come from the code, looked up by you.
