@@ -24,7 +24,7 @@ Branch: `<branch>` · PR per slice: <yes | no | not asked> · Status: active
 ### Slice 1 — <name> · <build | spike | research> · <stage>
 
 Why now: <one line>
-Base: `<sha>` · Build branch: `<branch>`
+Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts)
 
 **Decisions**
 - <one line each, in the human's terms, appended as they settle>
@@ -33,8 +33,9 @@ Base: `<sha>` · Build branch: `<branch>`
 - Delivers: <what the human will be able to see or do>
 - Done when: <observable checks>
 - Not in this slice: <what's deliberately left for later>
+- Parts (only when the work splits): <part> — <files it owns>; Done when: <its checks>
 
-**Build** — <agent report: what was built, how to see it, deviations; merge sha>
+**Build** — <agent report, one per part: what was built, how to see it, deviations; merge sha>
 
 **Review** — <fixes applied, tickets filed, answers given>
 

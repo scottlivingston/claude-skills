@@ -76,7 +76,7 @@ The chain above settles every decision before code exists, which earns its cost 
 
 1. **Choose** — the agent proposes the next slice and you push back; it's the smallest step that moves toward the destination or teaches how to build it, and the first is a tracer bullet. A slice is a *build*, a *spike* (`/prototype`, for when you know what but not how), or *research*.
 2. **Shape** — grill only the decisions this slice's build needs; anything a later slice needs goes to the Fog. Ends in a short brief: what it delivers, how you'll know it's done, what's left out.
-3. **Build** — one background agent in an isolated worktree builds the brief test-first, so the grilling session never holds the implementation; the result merges onto the effort branch.
+3. **Build** — background agents in isolated worktrees build the brief test-first, so the grilling session never holds the implementation: one agent for a brief that must happen in order, or one per independent part, built and merged the way `/ship` runs a wave. The result merges onto the effort branch.
 4. **Review** — `/diff-review` against the slice's brief, its questions saved to a gate file beside the log and its answers landing as decisions on the slice.
 5. **Reflect** — you look at it running; what you learned rewrites the log's picture of where things stand and reshapes the Fog.
 
