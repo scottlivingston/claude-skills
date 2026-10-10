@@ -80,7 +80,7 @@ The chain above settles every decision before code exists, which earns its cost 
 4. **Review** — `/diff-review` against the slice's brief, its questions saved to a gate file beside the log and its answers landing as decisions on the slice.
 5. **Reflect** — you look at it running; what you learned rewrites the log's picture of where things stand and reshapes the Fog.
 
-The memory is an **effort log**, one markdown file in the repo (`docs/efforts/<slug>.md` by default) written the moment anything settles and committed before every build, so a lost session costs at most the exchange in flight and `/iterate` resumes from whatever stage the last slice reached. The opinions below are the map chain's; `/iterate` keeps the tracker out of the loop and trades the up-front map for a slice at a time.
+The memory is an **effort log** in the repo (`docs/efforts/<slug>/` by default) — an index of the destination, the state and the fog, plus one file per slice, so a session reads only what the current slice needs — written the moment anything settles and committed before every build, so a lost session costs at most the exchange in flight and `/iterate` resumes from whatever stage the last slice reached. The opinions below are the map chain's; `/iterate` keeps the tracker out of the loop and trades the up-front map for a slice at a time.
 
 ## The opinions
 

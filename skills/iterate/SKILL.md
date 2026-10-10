@@ -8,15 +8,15 @@ The iterative spine, beside `/wayfinder` → `/next`. Where a map settles every 
 
 ## The log
 
-The **effort log** is the memory — one markdown file in the repo, format in [LOG-FORMAT.md](LOG-FORMAT.md). This session is its single writer, and it writes the moment something happens: a decision when it settles, a stage when it changes. A lost session costs at most the exchange in flight. The stage is never remembered — it is read off the log.
+The **effort log** is the memory — a directory in the repo, an index plus one file per slice, format in [LOG-FORMAT.md](LOG-FORMAT.md). Read the index and only the slice file the stage at hand names; earlier slices' files stay closed unless a question reaches back into them. This session is its single writer, and it writes the moment something happens: a decision when it settles, a stage when it changes. A lost session costs at most the exchange in flight. The stage is never remembered — it is read off the log.
 
 ## Find the effort
 
 - The argument is an idea and no log matches it → kick off, per [KICKOFF.md](KICKOFF.md).
 - The argument names an effort or a log path → that effort.
-- No argument → the logs with `Status: active` under the repo's effort-log directory (`docs/efforts/` unless KICKOFF chose otherwise). One → use it. Several → ask which, by name. None → ask for the idea and kick off.
+- No argument → the effort indexes with `Status: active` under the repo's effort-log directory (`docs/efforts/` unless KICKOFF chose otherwise). One → use it. Several → ask which, by name. None → ask for the idea and kick off.
 
-Check out the effort's branch (the log's `Branch:` line), then route on the **last slice's stage**, announcing it in one line ("Mood meter — slice 3 is mid-build; checking on it"):
+Check out the effort's branch (the index's `Branch:` line), then route on the **last slice's stage** from the index, announcing it in one line ("Mood meter — slice 3 is mid-build; checking on it"):
 
 | Last slice | Go to |
 | --- | --- |
@@ -29,7 +29,7 @@ Check out the effort's branch (the log's `Branch:` line), then route on the **la
 
 ## 1. Choose the next slice
 
-Read the Destination, Where it stands, the Fog, the last slice's Learned, and any open review tickets `/diff-review` filed for this effort. Then load `/grilling` and put **one position** per its cadence: the slice you'd take next and the one reason that carries it. The best next slice is the smallest step that either moves toward the destination or teaches how to build it. The first slice is a **tracer bullet** — the thinnest thing that runs end to end and can be seen.
+Read the index — Destination, Where it stands, the Fog — and the last slice file's Learned, and any open review tickets `/diff-review` filed for this effort. Then load `/grilling` and put **one position** per its cadence: the slice you'd take next and the one reason that carries it. The best next slice is the smallest step that either moves toward the destination or teaches how to build it. The first slice is a **tracer bullet** — the thinnest thing that runs end to end and can be seen.
 
 A slice has a **kind**:
 
@@ -37,7 +37,7 @@ A slice has a **kind**:
 - **spike** — the human knows what they want but not how to build it; `/prototype` answers that, and the answer is the slice.
 - **research** — a question of fact; `/research` answers it.
 
-The human argues, redirects, or picks another. Once agreed, append the slice heading (stage `shaping`, or `exploring` for a spike or research) with its Why now line.
+The human argues, redirects, or picks another. Once agreed, add the slice's line to the index (stage `shaping`, or `exploring` for a spike or research) and create its slice file with its Why now line.
 
 When the destination looks reached, say so instead; on the human's agreement set `Status: done` and stop.
 
@@ -60,18 +60,18 @@ Shaping is done when the **brief** is written — *Delivers*, *Done when* (every
 
 ## 4. Review
 
-Run `/diff-review` with **Base** as the fixed point, the log as the spec source, and Slice <n> as its spec scope. Its question loop is the human's part of this stage. Name Slice <n>'s Decisions as where its spec comments land: an answer to a "spec unclear" question becomes one more decision line, tagged `(review)`. Record the outcome under Review — fixes applied, tickets filed, the answers given — and set stage `reflecting`.
+Run `/diff-review` with **Base** as the fixed point, the slice file as the spec source, and Slice <n> as its spec scope. Its question loop is the human's part of this stage. Name Slice <n>'s Decisions as where its spec comments land: an answer to a "spec unclear" question becomes one more decision line, tagged `(review)`. Record the outcome under Review — fixes applied, tickets filed, the answers given — and set stage `reflecting`.
 
 ## 5. Reflect
 
-Show the human what landed and how to see it running — run it per `/run` when they want to look. Then ask what they make of it: this conversation is the input the next slice is chosen from. Record, in the log:
+Show the human what landed and how to see it running — run it per `/run` when they want to look. Then ask what they make of it: this conversation is the input the next slice is chosen from. Record **Learned** in the slice file and the rest in the index:
 
 - **Learned** — what surprised, and what it changes.
 - **Where it stands** — rewritten to describe the code as it is now.
 - **Fog** — lines this slice cleared or made shapeable, dropped or sharpened; new ones added.
 - **Destination** — edited only when the human's picture moved, with the reason in Learned.
 
-Set stage `done` and commit the log. A finished slice is a natural PR point: ask once per effort whether the human wants a PR per slice, and record the answer on the log's `Branch:` line.
+Set stage `done` and commit the log. A finished slice is a natural PR point: ask once per effort whether the human wants a PR per slice, and record the answer on the index's `Branch:` line.
 
 ## Rules
 

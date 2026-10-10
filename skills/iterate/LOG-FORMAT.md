@@ -1,6 +1,8 @@
 # Effort log format
 
-One file per effort, at `<effort-log dir>/<slug>.md`. Sections in this order; the slices accumulate at the bottom, newest last. The last slice's heading carries the effort's current stage — nowhere else does.
+One directory per effort, at `<effort-log dir>/<slug>/`: an **index** holding what every slice needs, and one file per slice holding what only that slice needs. The index's last slice line carries the effort's current stage — nowhere else does.
+
+## `index.md`
 
 ```markdown
 # <Effort name>
@@ -21,7 +23,15 @@ Branch: `<branch>` · PR per slice: <yes | no | not asked> · Status: active
 
 ## Slices
 
-### Slice 1 — <name> · <build | spike | research> · <stage>
+- [Slice 1 — <name>](slice-1.md) · <build | spike | research> · <stage>
+```
+
+One line per slice, newest last; a slice's stage changes on its line here.
+
+## `slice-<n>.md`
+
+```markdown
+# Slice <n> — <name>
 
 Why now: <one line>
 Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts)
@@ -45,3 +55,7 @@ Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts
 ## Stages
 
 `shaping` → `building` → `reviewing` → `reflecting` → `done` for a build slice; `exploring` → `reflecting` → `done` for a spike or research slice. Sections a slice hasn't reached yet are left out rather than written empty.
+
+## An old single-file log
+
+A log that is one `<slug>.md` with its slices inline is split into this layout the first time `/iterate` opens it — each slice's section moved verbatim into its own file, the stage moved to its index line — and the split committed before anything else.

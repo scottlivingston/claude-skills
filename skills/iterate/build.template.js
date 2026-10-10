@@ -22,8 +22,8 @@ export const meta = {
 // ══════════════════ DATA SLOTS — fill every FILL before launching ══════════════════
 
 const SLICE = FILL           // slice number n
-const LOG_PATH = FILL        // the effort log's repo path, e.g. "apps/raidboss/docs/efforts/raidboss-revival.md"
-const EFFORT_BRANCH = FILL   // the log's Branch: line — merges land here
+const LOG_DIR = FILL         // the effort log directory's repo path, e.g. "apps/raidboss/docs/efforts/raidboss-revival"
+const EFFORT_BRANCH = FILL   // the index's Branch: line — merges land here
 const PARTS = FILL           // [{ name: "dev-page", body: "the part's brief text verbatim, Done when included", branch: "<effort branch>-slice-<n>-dev-page", resume: false }]
                              // one entry for a brief without parts (name "", branch "<effort branch>-slice-<n>", body the whole brief);
                              // resume: true when the branch already holds commits from a dead build
@@ -42,7 +42,7 @@ const SPLIT = PARTS.length > 1
 const label = p => p.name || 'slice-' + SLICE
 
 const CONTEXT = j([
-  'You are working on one slice of a feature that is being grown iteratively. Read the effort log at ' + LOG_PATH + ' on branch ' + EFFORT_BRANCH + ': its Destination and Where it stands are context; Slice ' + SLICE + '\'s Decisions and Brief are your spec. Leave the log untouched — the session that launched you is its only writer.',
+  'You are working on one slice of a feature that is being grown iteratively. On branch ' + EFFORT_BRANCH + ', read ' + LOG_DIR + '/index.md for its Destination and Where it stands — your context — and ' + LOG_DIR + '/slice-' + SLICE + '.md, whose Decisions and Brief are your spec. Leave the log untouched — the session that launched you is its only writer.',
   SPLIT ? 'The brief is split into parts built in parallel by separate agents against the same Decisions: ' + PARTS.map(p => p.name).join(', ') + '. Hold to the contracts the Decisions pin between them.' : null,
 ])
 
