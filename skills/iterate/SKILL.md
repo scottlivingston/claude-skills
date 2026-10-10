@@ -10,6 +10,8 @@ The iterative spine, beside `/wayfinder` → `/next`. Where a map settles every 
 
 The **effort log** is the memory — a directory in the repo, an index plus one file per slice, format in [LOG-FORMAT.md](LOG-FORMAT.md). Read the index and only the slice file the stage at hand names; earlier slices' files stay closed unless a question reaches back into them. This session is its single writer, and it writes the moment something happens: a decision when it settles, a stage when it changes. A lost session costs at most the exchange in flight. The stage is never remembered — it is read off the log.
 
+**Every stage change is announced in one line**: the slice, the stage it enters of choose · shape · build · review · reflect, what the stage that ended produced (merged and green, review fixes applied, the brief confirmed), whether the next stage needs the human or runs on its own, and that `/clear` is safe — always true at a stage boundary, since the log changed with the stage.
+
 ## Find the effort
 
 - The argument is an idea and no log matches it → kick off, per [KICKOFF.md](KICKOFF.md).
@@ -53,7 +55,7 @@ Shaping is done when the **brief** is written — *Delivers*, *Done when* (every
 
 1. Record **Base** (the effort branch's `HEAD`) and a **build branch** per part (`<effort branch>-slice-<n>`, or `…-slice-<n>-<part>` when the brief has several), set stage `building`, and commit the log — every build agent's worktree is cut from `HEAD`, so a log left uncommitted is a log they never see.
 2. Run the build as **one background `Workflow`** (this skill is your authorization to use it). **Start from [build.template.js](build.template.js) — fill it, don't author from scratch**: every `FILL` slot per its comments, tiers resolved per `/model-policy` (load it), test notes per `/testing` (load it). The template owns every build agent's prompt. It runs `/ship`'s wave shape without the tracker or verification: a planner per part and a collision check over the plans (skipped for a one-part brief), one implementer per part in its own worktree, and merges into the effort branch in completion order, never on red.
-3. Tell the human the build is running and that the log holds everything — `/clear` now is safe, and `/iterate` resumes here.
+3. Announce the stage change: the build runs on its own, and `/iterate` resumes here.
 4. When the workflow returns, record each part's report under Build — what was built, how to see it, deviations, the merge sha. Any part **parked** → set stage `shaping` and sit with the human on the gap it names, merged parts staying merged. All **done** → run the slice's scoped tests per `/testing` on the effort branch (never leave it red), set stage `reviewing`, and go to Review.
 
 **Resume rule.** Stage `building` with a part missing its Build report means the build died with its session. Fill the template again with only those parts, marking `resume` on any whose build branch has commits.
