@@ -66,7 +66,7 @@ Run `/diff-review` with **Base** as the fixed point, the slice file as the spec 
 
 ## 5. Reflect
 
-Show the human what landed and how to see it running — run it per `/run` when they want to look. Then ask what they make of it: this conversation is the input the next slice is chosen from. Record **Learned** in the slice file and the rest in the index:
+First run every *Done when* check the brief leaves to this session — confirming the brief approved them, so they run without a fresh go-ahead — and record each result under the slice's Build. Then show the human what landed and how to see it running — run it per `/run` when they want to look. Then ask what they make of it: this conversation is the input the next slice is chosen from. Record **Learned** in the slice file and the rest in the index:
 
 - **Learned** — what surprised, and what it changes.
 - **Where it stands** — rewritten to describe the code as it is now.
