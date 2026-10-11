@@ -44,17 +44,18 @@ Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts
 - Done when: <observable checks>
 - Not in this slice: <what's deliberately left for later>
 - Parts (only when the work splits): <part> — <what it builds>; Done when: <its checks>
+- Review: deferred (only when the human deferred it)
 
-**Build** — <agent report, one per part: what was built, how to see it, deviations; merge sha>
+**Build** — <agent report, one per part: what was built, how to see it, deviations; merge sha> <check results: the scoped test run, each Done when check passed, failed, or not run>
 
-**Review** — <fixes applied, tickets filed, answers given>
+**Review** — <fixes applied, tickets filed, answers given; for a deferred slice, "deferred", then "covered by Slice <m>'s review">
 
 **Learned** — <what surprised; what it changes about the destination or the fog>
 ```
 
 ## Stages
 
-`shaping` → `building` → `reviewing` → `reflecting` → `done` for a build slice; `exploring` → `reflecting` → `done` for a spike or research slice. Sections a slice hasn't reached yet are left out rather than written empty.
+`shaping` → `building` → `reviewing` → `reflecting` → `done` for a build slice, skipping `reviewing` when its review is deferred; `exploring` → `reflecting` → `done` for a spike or research slice. Sections a slice hasn't reached yet are left out rather than written empty.
 
 ## An old single-file log
 

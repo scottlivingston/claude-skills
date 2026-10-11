@@ -1,10 +1,11 @@
 export const meta = {
   name: 'iterate-build',
-  description: 'Build one /iterate slice: plan each part → collision check → implement in worktrees → merge into the effort branch in completion order, never on red',
+  description: 'Build one /iterate slice: plan each part → collision check → implement in worktrees → merge into the effort branch in completion order, never on red → run the brief\'s checks on the merged branch',
   phases: [
     { title: 'Plan', detail: 'one decider-tier planner per part, then a collision check over the plans (both skipped for a one-part brief)' },
     { title: 'Implement', detail: 'one executor-tier implementer per part, each in an isolated worktree' },
     { title: 'Merge', detail: 'strictly serialized executor-tier merges in implementer-completion order; tests after each' },
+    { title: 'Check', detail: 'one executor-tier agent runs the slice\'s scoped tests and every Done when check it can on the merged branch (skipped when a part parked)' },
   ],
 }
 
@@ -12,7 +13,8 @@ export const meta = {
 // prompt; SKILL.md says what the build is for. The plan → collision → implement →
 // merge shape is /ship's wave, minus the tracker (the effort log is the spec, and
 // reports come back to the session, which alone writes the log) and minus
-// verification (that is the slice's Review stage).
+// verification (that is the slice's Review stage). The Check phase runs the
+// brief's Done when checks so the session opens Reflect with results in hand.
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
 // `script`. An unfilled slot throws "FILL is not defined" at launch. Fill prose
@@ -128,6 +130,30 @@ function mergePrompt(p, branch, notes) {
   ])
 }
 
+const CHECK_SCHEMA = {
+  type: 'object', required: ['testSummary', 'checks'],
+  properties: {
+    testSummary: { type: 'string', description: 'the slice\'s scoped test run on ' + EFFORT_BRANCH + ' and its result' },
+    checks: { type: 'array', items: { type: 'object', required: ['check', 'result', 'detail'], properties: {
+      check: { type: 'string', description: 'the Done when check, verbatim from the brief' },
+      result: { enum: ['pass', 'fail', 'not-run'] },
+      detail: { type: 'string', description: 'what was run and what it showed; for not-run, what it needs (the human\'s eyes, a credential, a device)' },
+    } } },
+  },
+}
+
+function checkPrompt(done) {
+  return j([
+    CONTEXT,
+    'You are the check agent for slice ' + SLICE + ', working in the main checkout on ' + EFFORT_BRANCH + ', where every part has now merged:',
+    done.map(r => '- ' + (r.part || 'slice-' + SLICE) + ' — ' + r.built + (r.howToSee ? ' (to see it: ' + r.howToSee + ')' : '')).join('\n'),
+    'First run the slice\'s scoped tests: the Scoping to a change rule applied to every file the slice changed.',
+    TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
+    'Then take every Done when check in the brief, the parts\' included, and run each one an agent can — a test, a command, starting the app and exercising it, a load run. A check that needs a human\'s eyes, a credential, or a device you lack is not-run, with what it needs.',
+    'You report; you never fix. Leave the code and the log untouched, commit nothing, and stop anything you started.',
+  ])
+}
+
 // ── Plan ─────────────────────────────────────────────────────────────────────
 
 const reports = [] // { part, status, branch, built, howToSee, deviations, sha, testSummary }
@@ -187,5 +213,15 @@ await parallel(active.map(({ p, plan }) => async () => {
   })
 }))
 
-log('Slice ' + SLICE + ': ' + reports.filter(r => r.status === 'done').length + ' merged, ' + reports.filter(r => r.status === 'parked').length + ' parked')
-return { reports }
+// ── Check ────────────────────────────────────────────────────────────────────
+// Only a fully merged slice: a parked part sends the slice back to shaping.
+
+let check = null
+const done = reports.filter(r => r.status === 'done')
+if (done.length && done.length === PARTS.length) {
+  phase('Check')
+  check = await agent(checkPrompt(done), { ...tier('executor'), schema: CHECK_SCHEMA, label: 'check:slice-' + SLICE, phase: 'Check' })
+}
+
+log('Slice ' + SLICE + ': ' + done.length + ' merged, ' + reports.filter(r => r.status === 'parked').length + ' parked' + (check ? ', ' + check.checks.filter(c => c.result === 'pass').length + '/' + check.checks.length + ' checks passed' : ''))
+return { reports, check }
