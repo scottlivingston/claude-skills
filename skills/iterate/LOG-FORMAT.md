@@ -43,7 +43,7 @@ Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts
 - Delivers: <what the human will be able to see or do>
 - Done when: <observable checks>
 - Not in this slice: <what's deliberately left for later>
-- Parts (only when the work splits): <part> — <files it owns>; Done when: <its checks>
+- Parts (only when the work splits): <part> — <what it builds>; Done when: <its checks>
 
 **Build** — <agent report, one per part: what was built, how to see it, deviations; merge sha>
 
