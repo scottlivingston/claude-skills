@@ -22,7 +22,7 @@ On `main`, with a clean-enough tree to reason about: `git status -sb` and `git d
 
 5. **Bump the version.** `.claude-plugin/plugin.json` carries `version`; the series is `0.MINOR.0`, one **minor** per release regardless of size. Append `; bump to <new version>` to the **last** commit's subject, and stage the bump with it. If this release adds or removes a skill, or changes the shape of the workflow the plugin advertises, also update the `description` in `.claude-plugin/plugin.json` **and** the matching one in `.claude-plugin/marketplace.json` — they are duplicates and must stay identical.
 
-6. **Commit and push.** Every commit ends with the co-author trailer for the model that wrote it. Then `git push origin main`, and report the pushed range (`git log --oneline origin/main@{1}..origin/main`) so the user sees exactly what shipped.
+6. **Commit and push.** Every commit ends with the co-author trailer for the model that wrote it. Before pushing, check that each new commit's subject (`git log --format=%s origin/main..`) is the one subject line alone — a subject that swallowed its bullets is missing the blank line after it; amend it while it is still unpushed. Then `git push origin main`, and report the pushed range (`git log --oneline origin/main@{1}..origin/main`) so the user sees exactly what shipped.
 
 ## Rules
 
