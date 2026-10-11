@@ -134,6 +134,7 @@ Used by the chain, and useful on their own:
 - **prototype** — throwaway code that answers a design question (a shareable single-file HTML logic demo, or switchable UI variants)
 - **wizard** — generate an interactive bash wizard that walks a human through steps only they can perform (credentials, provisioning, cutovers)
 - **create-verification-skill** — generate a `verify-<app>` skill per app (monorepo apps included, all in the root `.claude/skills/`) that launches the real app, drives it the way a user does, and captures evidence, seeded with a feature map and proved by one end-to-end run before hand-off
+- **maintain-verification-skill** — the upkeep pass for a verification skill: one source reader per feature, one live pass driving every feature, and at most one PR of proven map and harness corrections, with product regressions reported to you instead of papered over
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
 - **tdd** — the red–green loop, seams, mocking guidance, and test anti-patterns
 - **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
