@@ -10,7 +10,9 @@ The iterative spine, beside `/wayfinder` → `/next`. Where a map settles every 
 
 The **effort log** is the memory — a directory in the repo, an index plus one file per slice, format in [LOG-FORMAT.md](LOG-FORMAT.md). Read the index and only the slice file the stage at hand names; earlier slices' files stay closed unless a question reaches back into them. This session is its single writer, and it writes the moment something happens: a decision when it settles, a stage when it changes. A lost session costs at most the exchange in flight. The stage is never remembered — it is read off the log. Run the repo's formatter over the log files before each commit, so a build agent never inherits a red format check from them.
 
-**The checkout is shared while a workflow runs.** Build merges, the check agent, and review fixes all work in the checkout that holds the effort branch. While one runs, every log write is committed the moment it's made, nothing else in that checkout is edited, and notes that aren't log yet (a scratch render, a probe) live in the scratchpad.
+**Each effort has its own checkout** — a worktree at `worktrees/<slug>/` under the main checkout's root, gitignored, on the effort branch, named on the index's `Checkout:` line — so efforts run side by side and the human sees every one from the main checkout in their editor. Build agents work in their own throwaway worktrees and everything they build merges into this one. Enter it as this session's working directory (`EnterWorktree` with its path) before anything else, since a `cd` doesn't move the agents a workflow spawns; the main checkout is never touched for an effort.
+
+**The checkout is shared while a workflow runs.** Build merges, the check agent, and review fixes all work in the effort's checkout. While one runs, every log write is committed the moment it's made, nothing else in that checkout is edited, and notes that aren't log yet (a scratch render, a probe) live in the scratchpad.
 
 **Every stage change is announced in one line**: the slice, the stage it enters of choose · shape · build · review · reflect, what the stage that ended produced (merged and green, review fixes applied, the brief confirmed), whether the next stage needs the human or runs on its own, and that `/clear` is safe — always true at a stage boundary, since the log changed with the stage.
 
@@ -18,9 +20,9 @@ The **effort log** is the memory — a directory in the repo, an index plus one 
 
 - The argument is an idea and no log matches it → kick off, per [KICKOFF.md](KICKOFF.md).
 - The argument names an effort or a log path → that effort.
-- No argument → the effort indexes with `Status: active` among the repo's tracked `*/efforts/*/index.md` files — a monorepo keeps them per app. One → use it. Several → ask which, by name. None → ask for the idea and kick off.
+- No argument → the effort indexes with `Status: active` among the tracked `*/efforts/*/index.md` files in every checkout `git worktree list` names, the current one included — a monorepo keeps them per app. One → use it. Several → ask which, by name. None → ask for the idea and kick off.
 
-Check out the effort's branch (the index's `Branch:` line), then route on the **current slice** — the last slice line not `queued` — announcing it in one line ("Mood meter — slice 3 is mid-build; checking on it"):
+Enter the effort's checkout (the index's `Checkout:` line). An index without that line predates it: its checkout is whichever worktree already has the branch — an effort running in the main checkout stays there — or, when none does, a new one made per Kickoff; record the line either way. Then route on the **current slice** — the last slice line not `queued` — announcing it in one line ("Mood meter — slice 3 is mid-build; checking on it"):
 
 | Current slice | Go to |
 | --- | --- |
@@ -43,7 +45,7 @@ A slice has a **kind**:
 
 The human argues, redirects, or picks another. Once agreed, add the slice's line to the index (stage `shaping`, or `exploring` for a spike or research) — or, for a queued slice, move its line to the end and set its stage — and create its slice file with its Why now line.
 
-When the destination looks reached, say so instead; on the human's agreement — and once no deferred review is left uncovered, running Review over any that are — set `Status: done` and stop.
+When the destination looks reached, say so instead; on the human's agreement — and once no deferred review is left uncovered, running Review over any that are — set `Status: done`, commit the log, and offer to remove the effort's worktree — the branch stays.
 
 ## 2. Shape the slice
 

@@ -8,6 +8,7 @@ One directory per effort, at `<effort-log dir>/<slug>/`: an **index** holding wh
 # <Effort name>
 
 Branch: `<branch>` · PR per slice: <yes | no | not asked> · Status: active
+Checkout: `<absolute path of the effort's worktree>`
 
 ## Destination
 

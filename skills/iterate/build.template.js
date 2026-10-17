@@ -29,7 +29,7 @@ export const meta = {
 const SLICE = FILL           // slice number n
 const LOG_DIR = FILL         // the effort log directory's repo path, e.g. "apps/raidboss/docs/efforts/raidboss-revival"
 const EFFORT_BRANCH = FILL   // the index's Branch: line — merges land here
-const EFFORT_CHECKOUT = FILL // absolute path of the checkout that has EFFORT_BRANCH checked out (the launching session's working tree) — merges and checks run there
+const EFFORT_CHECKOUT = FILL // absolute path of the checkout that has EFFORT_BRANCH checked out (the index's Checkout: line) — merges and checks run there
 const PARTS = FILL           // [{ name: "dev-page", body: "the part's brief text verbatim, Done when included", branch: "<effort branch>-slice-<n>-dev-page", resume: false }]
                              // one entry for a brief without parts (name "", branch "<effort branch>-slice-<n>", body the whole brief);
                              // resume: true when the branch already holds commits from a dead build
