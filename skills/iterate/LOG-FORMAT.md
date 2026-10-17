@@ -26,7 +26,7 @@ Branch: `<branch>` · PR per slice: <yes | no | not asked> · Status: active
 - [Slice 1 — <name>](slice-1.md) · <build | spike | research> · <stage>
 ```
 
-One line per slice, newest last; a slice's stage changes on its line here.
+One line per slice, newest last; a slice's stage changes on its line here. A slice shaped ahead while another builds sits at the end with stage `queued` until it is chosen.
 
 ## `slice-<n>.md`
 
@@ -46,7 +46,7 @@ Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts
 - Parts (only when the work splits): <part> — <what it builds>; Done when: <its checks>
 - Review: deferred (only when the human deferred it)
 
-**Build** — <agent report, one per part: what was built, how to see it, deviations; merge sha> <check results: the scoped test run, each Done when check passed, failed, or not run>
+**Build** — <agent report, one per part: what was built, how to see it, deviations; merge sha> <each merge's test run; check results: each Done when check passed, failed, or not run>
 
 **Review** — <fixes applied, tickets filed, answers given; for a deferred slice, "deferred", then "covered by Slice <m>'s review">
 
@@ -55,7 +55,7 @@ Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts
 
 ## Stages
 
-`shaping` → `building` → `reviewing` → `reflecting` → `done` for a build slice, skipping `reviewing` when its review is deferred; `exploring` → `reflecting` → `done` for a spike or research slice. Sections a slice hasn't reached yet are left out rather than written empty.
+`queued` (only when shaped ahead) → `shaping` → `building` → `reviewing` → `reflecting` → `done` for a build slice, skipping `reviewing` when its review is deferred; `exploring` → `reflecting` → `done` for a spike or research slice. Sections a slice hasn't reached yet are left out rather than written empty.
 
 ## An old single-file log
 

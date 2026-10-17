@@ -5,7 +5,7 @@ export const meta = {
     { title: 'Plan', detail: 'one decider-tier planner per part, then a collision check over the plans (both skipped for a one-part brief)' },
     { title: 'Implement', detail: 'one executor-tier implementer per part, each in an isolated worktree' },
     { title: 'Merge', detail: 'strictly serialized executor-tier merges in implementer-completion order; tests after each' },
-    { title: 'Check', detail: 'one executor-tier agent runs the slice\'s scoped tests and every Done when check it can on the merged branch (skipped when a part parked)' },
+    { title: 'Check', detail: 'one executor-tier agent runs every Done when check it can on the merged branch (skipped when a part parked)' },
   ],
 }
 
@@ -13,19 +13,23 @@ export const meta = {
 // prompt; SKILL.md says what the build is for. The plan → collision → implement →
 // merge shape is /ship's wave, minus the tracker (the effort log is the spec, and
 // reports come back to the session, which alone writes the log) and minus
-// verification (that is the slice's Review stage). The Check phase runs the
-// brief's Done when checks so the session opens Reflect with results in hand.
+// verification (that is the slice's Review stage). Each merge's test run is the
+// slice's test run; the Check phase runs the brief's Done when checks so the
+// session opens Reflect with results in hand.
 //
 // USAGE: fill every FILL slot below, then launch the result as the Workflow
 // `script`. An unfilled slot throws "FILL is not defined" at launch. Fill prose
-// slots as JSON string literals (double quotes, \n escapes). Nothing goes
-// through `args`.
+// slots as JSON string literals (double quotes, \n escapes): JSON.stringify or
+// Python's json.dumps, spliced in with a plain string replace — a regex
+// replacement string turns the \n escapes back into raw newlines and the script
+// no longer parses. Nothing goes through `args`.
 
 // ══════════════════ DATA SLOTS — fill every FILL before launching ══════════════════
 
 const SLICE = FILL           // slice number n
 const LOG_DIR = FILL         // the effort log directory's repo path, e.g. "apps/raidboss/docs/efforts/raidboss-revival"
 const EFFORT_BRANCH = FILL   // the index's Branch: line — merges land here
+const EFFORT_CHECKOUT = FILL // absolute path of the checkout that has EFFORT_BRANCH checked out (the launching session's working tree) — merges and checks run there
 const PARTS = FILL           // [{ name: "dev-page", body: "the part's brief text verbatim, Done when included", branch: "<effort branch>-slice-<n>-dev-page", resume: false }]
                              // one entry for a brief without parts (name "", branch "<effort branch>-slice-<n>", body the whole brief);
                              // resume: true when the branch already holds commits from a dead build
@@ -110,34 +114,35 @@ function collisionPrompt(planned, overlaps) {
 function implementerPrompt(p, plan, amendment) {
   return j([
     CONTEXT,
-    'You build ' + (SPLIT ? 'part ' + p.name + ' only' : 'the slice') + ', in an isolated worktree, on branch ' + p.branch + '.' + (p.resume ? ' The branch already holds commits from an earlier build that died — continue from them.' : ''),
+    'You build ' + (SPLIT ? 'part ' + p.name + ' only' : 'the slice') + ', in an isolated worktree, on branch ' + p.branch + '. Your worktree may start on some other branch: ' + (p.resume ? 'first check out ' + p.branch + ', which already holds commits from an earlier build that died — continue from them; if git says another worktree holds it, that worktree is the dead build\'s, so remove it first.' : 'first create ' + p.branch + ' from ' + EFFORT_BRANCH + ' and work there.'),
     SPLIT ? 'Your part:\n' + p.body : null,
     plan ? 'Your plan:\n' + plan.plan : null,
     amendment ? 'Collision-check amendment — build against this shared shape:\n' + amendment : null,
     'Load /tdd and /testing first, then build test-first at the seams the Decisions name.',
     TEST_NOTES ? 'Test recipes (per /testing) — before you report done, run the unit invocations of the Scoping to a change rule applied to the files you touched:\n' + TEST_NOTES : null,
+    SPLIT ? 'Other parts are building on this same machine right now. A test that needs the machine to itself — fixed ports, a repo-wide lock, a load run — is left to the merge step, and you keep the load you put on the machine to what your own tests need.' : 'Keep the load you put on the machine to what your own tests need, and stop anything you start.',
+    'The brief\'s Done when checks belong to the check agent that runs after the merge: build so they can pass, and say in howToSee how to run them, but a check you cannot run here — no browser, no device, no credential — is never a reason to park.',
     'Stay inside the brief: a detail it leaves open that you need, take the smallest reversible option and note it as a deviation; something that would change what the slice delivers, stop and park. Commit as you go.',
   ])
 }
 
 function mergePrompt(p, branch, notes) {
   return j([
-    'You are a merge agent for slice ' + SLICE + ', working in the main checkout. Merge branch ' + branch + (SPLIT ? ' (part ' + p.name + ')' : '') + ' into ' + EFFORT_BRANCH + '. Verify you are on ' + EFFORT_BRANCH + ' first.',
+    'You are a merge agent for slice ' + SLICE + ', working in ' + EFFORT_CHECKOUT + '. Merge branch ' + branch + (SPLIT ? ' (part ' + p.name + ')' : '') + ' into ' + EFFORT_BRANCH + '. Verify that checkout is on ' + EFFORT_BRANCH + ' first. The effort log under ' + LOG_DIR + ' is the launching session\'s alone — leave it untouched; its commits may land between merges, and a commit touching only the log needs no test run of its own.',
     notes.length ? 'Unreconciled collision notes from planning — you inherit these:\n' + notes.map(n => '- ' + n).join('\n') : null,
-    'On conflict, resolve preserving both parts\' intent. After the merge, run the integration invocations of the Scoping to a change rule applied to the merged files (the whole scoped set when the recipes don\'t split unit from integration).',
+    'On conflict, resolve preserving both parts\' intent; your edits are conflict resolutions and nothing more. After the merge, run the integration invocations of the Scoping to a change rule applied to the merged files (the whole scoped set when the recipes don\'t split unit from integration) — once, and this run is the slice\'s test run, so report every lane and its count.',
     TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
-    'Never merge on red: a branch that cannot come green is parked — abort or revert so ' + EFFORT_BRANCH + ' stays green, and return status=parked with the failure.',
+    'Never merge on red: a branch that cannot come green is parked — abort or revert so ' + EFFORT_BRANCH + ' stays green, and return status=parked with the failure. A test that fails and then passes on a rerun is red. Fixing a failing test is the session\'s call, not yours.',
   ])
 }
 
 const CHECK_SCHEMA = {
-  type: 'object', required: ['testSummary', 'checks'],
+  type: 'object', required: ['checks'],
   properties: {
-    testSummary: { type: 'string', description: 'the slice\'s scoped test run on ' + EFFORT_BRANCH + ' and its result' },
     checks: { type: 'array', items: { type: 'object', required: ['check', 'result', 'detail'], properties: {
       check: { type: 'string', description: 'the Done when check, verbatim from the brief' },
       result: { enum: ['pass', 'fail', 'not-run'] },
-      detail: { type: 'string', description: 'what was run and what it showed; for not-run, what it needs (the human\'s eyes, a credential, a device)' },
+      detail: { type: 'string', description: 'what you ran and what you saw yourself; for not-run, what it needs (the human\'s eyes, a credential, a device)' },
     } } },
   },
 }
@@ -145,12 +150,12 @@ const CHECK_SCHEMA = {
 function checkPrompt(done) {
   return j([
     CONTEXT,
-    'You are the check agent for slice ' + SLICE + ', working in the main checkout on ' + EFFORT_BRANCH + ', where every part has now merged:',
-    done.map(r => '- ' + (r.part || 'slice-' + SLICE) + ' — ' + r.built + (r.howToSee ? ' (to see it: ' + r.howToSee + ')' : '')).join('\n'),
-    'First run the slice\'s scoped tests: the Scoping to a change rule applied to every file the slice changed.',
+    'You are the check agent for slice ' + SLICE + ', working in ' + EFFORT_CHECKOUT + ' on ' + EFFORT_BRANCH + ', where every part has now merged and each merge already ran the tests:',
+    done.map(r => '- ' + (r.part || 'slice-' + SLICE) + ' — ' + r.built + (r.howToSee ? ' (to see it: ' + r.howToSee + ')' : '') + ' — merge tests: ' + r.testSummary).join('\n'),
     TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
-    'Then take every Done when check in the brief, the parts\' included, and run each one an agent can — a test, a command, starting the app and exercising it, a load run. A check that needs a human\'s eyes, a credential, or a device you lack is not-run, with what it needs.',
-    'You report; you never fix. Leave the code and the log untouched, commit nothing, and stop anything you started.',
+    'Take every Done when check in the brief, the parts\' included, and run each one an agent can — a test, a command, starting the app and exercising it (through the repo\'s verification skill when it has one), a load run. A check that names the human (they play it, they see it) is not-run even when you drove it yourself — put what you saw in its detail. A check that needs a credential or a device you lack is not-run, with what it needs.',
+    'A pass is what you observed yourself: a test that passed proves what its assertions check, so read them; a clean git status proves nothing about ignored files; a check that failed once and passed on a rerun is fail, with both runs. A check that needs a failing run may break things deliberately, provided everything is restored after.',
+    'You report; you never fix. Leave the code and the log as you found them, commit nothing, and stop anything you started.',
   ])
 }
 
