@@ -61,6 +61,8 @@ Every exchange in this plugin is a conversation between two people, not a memo a
 
 **Settle in a line.** When the thing on the table settles, say so in one line in the human's terms and move to the next. Reflecting the whole back is for the ends of a session, never every turn.
 
+**A question outlives the news that interrupts it.** When other news takes a turn while a question is open — a workflow's result, a status the human asked for — the question is put again whole after the news, never pointed at ("my earlier question still stands"). A question the human passes over twice is answered by that: record it as passed over in the asking skill's terms and stop asking.
+
 ## Escape hatches
 
 Three, honoured immediately in every asking skill:
