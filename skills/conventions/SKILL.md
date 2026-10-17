@@ -30,7 +30,7 @@ Any directory may carry its own `CONVENTIONS.md`, binding everything beneath it:
 - **Nearest ancestor wins.** The standards governing a file are every `CONVENTIONS.md` on its ancestor path, root included; where two rules conflict, the nearer file's rule wins.
 - **Scoped files are deltas.** Write them as differences over the root — "as root, except…" plus additions — never as full copies; a copy forks and drifts.
 
-A reviewer facing a diff that spans scopes collects the governing set per file and applies each file's own standards to it — one app's rules never judge another app's code.
+A reviewer facing a diff that spans scopes collects the governing set per file and applies each file's own standards to it — one app's rules never judge another app's code. [find-conventions.sh](find-conventions.sh), run from this skill's directory with the touched paths, does the collecting: each governing file, the directory it binds, and any path none governs — or, with no `CONVENTIONS.md` on any path, the fallback files it found.
 
 ## Writing rules
 
@@ -49,4 +49,4 @@ Standards live in `CONVENTIONS.md`; `CLAUDE.md` may link to it so coding agents 
 
 ## Fallback
 
-A repo without `CONVENTIONS.md` still has standards sources: anything documenting how code should be written — `CODING_STANDARDS.md`, `CONTRIBUTING.md`, `STYLEGUIDE.md`, or equivalents under `docs/`. Reviewers use them as found. `CONVENTIONS.md` is simply the first place looked, the tiebreaker, and the only append target.
+A repo without `CONVENTIONS.md` still has standards sources: anything documenting how code should be written — `CODING_STANDARDS.md`, `CONTRIBUTING.md`, `STYLEGUIDE.md`, or equivalents under `docs/`. Reviewers use them as found; the script checks only the names above, at the root and under `docs/`, so an equivalent under another name is the reviewer's to spot. `CONVENTIONS.md` is simply the first place looked, the tiebreaker, and the only append target.

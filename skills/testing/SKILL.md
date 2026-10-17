@@ -51,6 +51,8 @@ Resolve once per change, from the set of files it touches:
 2. **`~/.claude/testing.md`** — a user default in the same sections, for repos the user works in that carry none of their own.
 3. **Nothing.** The agent discovers the commands itself — the task runner's help, `package.json` scripts, `Cargo.toml` workspace members, CI config — and runs single test files while working and the full suite once at the end.
 
+Run [find-testing.sh](find-testing.sh) from this skill's directory with the touched paths — directories serve for a change not yet made: it prints each governing file with the directory it binds and any path none governs, else the user default, else `none`.
+
 ## Writing recipes
 
 - **Every command runs cold from the repo root.** A spawned agent has no shell history, no CLAUDE.md, no session context — it has this file and a checkout. If a command needs a `cd`, a service up, or an env var, the recipe says so on the same line.

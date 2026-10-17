@@ -18,7 +18,7 @@ For the issue tracker, invoke `/issue-tracker`.
 
 Whatever the user said is the fixed point — a commit SHA, branch name, tag, `main`, `HEAD~5`, etc. If they didn't specify one, ask for it.
 
-Before going further, confirm the fixed point resolves and the diff against its merge-base (three-dot) is non-empty — a bad ref or empty diff fails here, not inside the workflow. Capture that diff command, the commit list since the fixed point with full messages, and the diff's stat, which decides whether the reviews partition. Paths the caller names to leave out — its own bookkeeping, such as an effort log — are excluded by pathspec from the diff command and the stat alike, so they are neither reviewed nor counted.
+Run [capture-diff.sh](capture-diff.sh) with the fixed point, plus `--exclude <path>` for each path the caller names to leave out — its own bookkeeping, such as an effort log. A bad ref or an empty diff fails there, not inside the workflow. Otherwise it prints the diff command, the commit log, and the stat that decides whether the reviews partition, with the excluded paths left out of all of them — the `DIFF_CMD`, `COMMIT_LOG` and `DIFF_STAT` slots, as printed — and whether `HEAD` is the default branch.
 
 If `HEAD` is the repo's default branch, get the user's OK (or a branch) before any auto-commit lands — the OK travels in the fix agent's brief.
 
@@ -37,7 +37,7 @@ When the spec is a tracker issue, "the spec contents" means the kernel body plus
 
 ### 3. Identify the standards sources
 
-The canonical source is `CONVENTIONS.md`, per `/conventions`: the root file plus, in a monorepo, any `CONVENTIONS.md` on the ancestor path of a file the diff touches — nearest scope wins on conflict, scoped files read as deltas over root. Collect the governing set for the files this diff touches, and record which directories each scoped file binds, so each file is judged by its own scope's rules.
+The canonical source is `CONVENTIONS.md`, per `/conventions`: the root file plus, in a monorepo, any `CONVENTIONS.md` on the ancestor path of a file the diff touches — nearest scope wins on conflict, scoped files read as deltas over root. Load `/conventions` and run its finder over the files this diff touches, recording which directories each scoped file binds, so each file is judged by its own scope's rules.
 
 Repos not using the convention still get reviewed: fall back to anything that documents how code should be written (`CODING_STANDARDS.md`, `CONTRIBUTING.md`, `STYLEGUIDE.md`, equivalents under `docs/`). Record whether this search found anything documented at all — the orientation summary (step 6) says so when it didn't.
 

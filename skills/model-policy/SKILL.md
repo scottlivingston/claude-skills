@@ -23,6 +23,8 @@ Resolve once per session, in this order — first file found wins per key, and a
 2. **User policy**: `~/.claude/model-policy.md`.
 3. **Defaults**: executor `sonnet`, decider `inherit`, auditor `inherit`.
 
+Run [resolve-model-policy.sh](resolve-model-policy.sh) from this skill's directory, inside the repo: it applies this order and prints each tier's value with the file it came from, which is also the reporting line below.
+
 The file is three lines, one per tier:
 
 ```
