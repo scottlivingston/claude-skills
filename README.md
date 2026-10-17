@@ -127,6 +127,7 @@ Used by the chain, and useful on their own:
 - **grilling** — you lay out your picture first, then it holds a position on one decision at a time until the design holds; facts get looked up, never asked
 - **snag** — `/snag <what went wrong>` in any session files the friction, with the session's transcript and skill version, to `~/.claude/snags/` and carries on
 - **autopsy** — run here: trace open snags, or a sweep of a skill's recent transcripts, back to the skill text that caused them, and fix that text with your sign-off
+- **maintain-iterate** — run here whenever a batch of slices has gone by: a reader per `/iterate` session since the last pass, its build and review workflows timed, recurring friction and waste traced to the skill text behind it, and the fixes you pick applied
 - **wait-what** — stop and re-pitch the last message in plain language, using the project's ubiquitous language
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
 - **design** — decide the shape of code before it's built — module boundaries, interfaces, data shapes, and the seams tests will live at — captured as contract snippets that flow into the spec
