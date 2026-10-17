@@ -18,11 +18,13 @@ The **effort log** is the memory — a directory in the repo, an index plus one 
 
 ## Find the effort
 
-- The argument is an idea and no log matches it → kick off, per [KICKOFF.md](KICKOFF.md).
-- The argument names an effort or a log path → that effort.
-- No argument → the effort indexes with `Status: active` among the tracked `*/efforts/*/index.md` files in every checkout `git worktree list` names, the current one included — a monorepo keeps them per app. One → use it. Several → ask which, by name. None → ask for the idea and kick off.
+Run [find-efforts.sh](find-efforts.sh) from this skill's directory, in the repo: it lists every active effort across all the repo's checkouts — its log, branch, checkout, current slice (the last slice line not `queued`) and that slice's stage — reading each index from the checkout that has its branch. `--all` adds finished efforts. An index it can't parse is reported on stderr; repair it to [LOG-FORMAT.md](LOG-FORMAT.md) before going on.
 
-Enter the effort's checkout (the index's `Checkout:` line). An index without that line predates it: its checkout is whichever worktree already has the branch — an effort running in the main checkout stays there — or, when none does, a new one made per Kickoff; record the line either way. Then route on the **current slice** — the last slice line not `queued` — announcing it in one line ("Mood meter — slice 3 is mid-build; checking on it"):
+- The argument is an idea and no effort matches it → kick off, per [KICKOFF.md](KICKOFF.md).
+- The argument names an effort or a log path → that effort.
+- No argument → one active effort → use it. Several → ask which, by name. None → ask for the idea and kick off.
+
+Enter the effort's checkout. A checkout marked `(no Checkout: line)` is an effort that predates the line, already running there: record the line and stay. `none` → make one per Kickoff and record it. Then route on the current slice, announcing it in one line ("Mood meter — slice 3 is mid-build; checking on it"):
 
 | Current slice | Go to |
 | --- | --- |
