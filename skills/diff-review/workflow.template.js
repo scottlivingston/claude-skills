@@ -22,7 +22,7 @@ export const meta = {
 
 // ══════════════════ DATA SLOTS — fill every FILL before launching ══════════════════
 
-const DIFF_CMD = FILL             // "git diff <fixed-point>...HEAD" — three-dot, from step 1
+const DIFF_CMD = FILL             // "git diff <fixed-point>...HEAD" — three-dot, from step 1; with left-out paths, "git diff <fixed-point>...HEAD -- . ':(exclude)<path>'"
 const COMMIT_LOG = FILL           // full `git log <fixed-point>..HEAD` output — full messages, validators read them
 const DIFF_STAT = FILL            // `git diff <fixed-point>...HEAD --stat` output — the partition agent reads this, not the diff
 const WIDE = FILL                 // true past ~15 files / ~1,500 changed lines (judge from DIFF_STAT) → partition stage runs
@@ -39,6 +39,7 @@ const DEFAULT_BRANCH_OK = FILL    // false, or the user's exact words OKing comm
 const SPEC_ISSUE_REF = FILL       // tracker ref of the spec issue ("#42") when the spec IS a tracker issue, else null — auto-tickets parent to it
 const TICKET_MECHANICS = FILL     // prose: the tracker's create/label/parent/comment operations per /issue-tracker (exact commands), or null → auto-ticket findings come back for the manager (step 7)
 const GATE_FILE = FILL            // absolute path of the gate file (SKILL.md step 6) when the gate home is not the spec issue, else null — the pending-questions section is appended there
+const TEST_NOTES = FILL           // per /testing: the governing TESTING.md sections verbatim (how to run the full suite and the formatter check), or "" when the repo has none
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model ('sonnet'), or null to inherit the session model
 const DECIDER_MODEL = FILL     // per /model-policy: the decider tier's resolved model ('opus'), or null to inherit — never leave a fan-out on the session's model by accident
@@ -209,12 +210,17 @@ const SPEC_REVIEW_SCHEMA = {
 }
 
 const CHECKER_SCHEMA = {
-  type: 'object', required: ['status', 'note'],
+  type: 'object', required: ['results'],
   properties: {
-    status: { enum: ['implemented-pre-existing', 'implemented-in-diff', 'missing', 'partial'] },
-    note: { type: 'string', description: 'one line of evidence' },
+    results: { type: 'array', items: { type: 'object', required: ['requirement', 'status', 'note'], properties: {
+      requirement: { type: 'string', description: 'the requirement, verbatim' },
+      status: { enum: ['implemented-pre-existing', 'implemented-in-diff', 'missing', 'partial'] },
+      note: { type: 'string', description: 'one line of evidence' },
+    } } },
   },
 }
+
+const COVERAGE_BATCH = 8 // unclaimed requirements per coverage checker
 
 const APPLY_SCHEMA = {
   type: 'object', required: ['applied', 'demoted', 'testSummary'],
@@ -328,11 +334,12 @@ function specReviewerPrompt(g) {
   ])
 }
 
-function checkerPrompt(q) {
+function checkerPrompt(qs) {
   return j([
-    'One spec requirement was claimed by no reviewer slice in a partitioned review. Requirement: ' + q,
+    'These spec requirements were claimed by no reviewer slice in a partitioned review:',
+    qs.map((q, i) => (i + 1) + '. ' + q).join('\n'),
     COMMON,
-    'Check whether it is implemented. Absent from the changed files does NOT mean unimplemented — it may pre-exist; search the repo before you call it missing.',
+    'Check whether each is implemented, and return one result per requirement, in order. Absent from the changed files does NOT mean unimplemented — it may pre-exist; search the repo before you call it missing.',
   ])
 }
 
@@ -434,7 +441,8 @@ function fixAgentPrompt(batch) {
     '- If a precondition cannot be verified at all, demote with kind=preconditions, reason "demoted: couldn\'t verify preconditions".',
     DEFAULT_BRANCH_OK ? 'User\'s default-branch OK, verbatim: ' + JSON.stringify(DEFAULT_BRANCH_OK) : 'The user gave NO default-branch OK.',
     'Anchor each edit by the proposal\'s quoted snippet, never by line number. A finding whose staleAfter lists earlier IDs: those fixes may have invalidated this proposal\'s premise or wording — re-ground it against the code as it now stands before applying; if it no longer holds after those fixes, demote it, kind=other, saying why.',
-    'After the whole batch: run the full test suite once; revert any finding-commit that breaks it and demote that finding, kind=test-failure, with the failure attached.',
+    'After the whole batch: run the full test suite and the repo\'s formatter check once, every lane the changed files fall under included; commit what the formatter fixes as its own commit; revert any finding-commit that breaks a test and demote that finding, kind=test-failure, with the failure attached.',
+    TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
     'Batch:',
     JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, proposal: f.proposal, sketch: f.sketch, pairWith: f.pairWith || null, dependsOn: f.dependsOn || [], staleAfter: f.staleAfter || [] }))),
   ])
@@ -626,13 +634,15 @@ async function specAxis(groups, requirements) {
     const touched = new Set(reviews.flatMap(r => r.requirementsTouched))
     const unclaimed = requirements.filter(q => !touched.has(q))
     if (unclaimed.length) {
-      const checks = (await parallel(unclaimed.map(q => () =>
-        agent(checkerPrompt(q), { ...tier('decider'), schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' })
-          .then(c => ({ q, c }))))).filter(Boolean)
-      const missing = checks.filter(x => x.c.status === 'missing' || x.c.status === 'partial')
+      const batches = []
+      for (let i = 0; i < unclaimed.length; i += COVERAGE_BATCH) batches.push(unclaimed.slice(i, i + COVERAGE_BATCH))
+      const checked = (await parallel(batches.map(qs => () =>
+        agent(checkerPrompt(qs), { ...tier('decider'), schema: CHECKER_SCHEMA, phase: 'Review', label: 'check:coverage' })
+          .then(c => c ? c.results : qs.map(q => ({ requirement: q, status: 'partial', note: 'coverage checker died — unverified' })))))).flat()
+      const missing = checked.filter(x => x && (x.status === 'missing' || x.status === 'partial'))
       if (missing.length) {
         reports.push('Requirement-coverage check (requirements no slice claimed):\n' +
-          missing.map(x => '- ' + x.q + ': ' + x.c.status + ' — ' + x.c.note).join('\n'))
+          missing.map(x => '- ' + x.requirement + ': ' + x.status + ' — ' + x.note).join('\n'))
       }
     }
   }
@@ -648,7 +658,7 @@ if (WIDE) {
   phase('Partition')
   const p = await agent(partitionPrompt(), { ...tier('decider'), schema: PARTITION_SCHEMA, label: 'partition' })
   if (p && p.groups.length) {
-    groups = p.groups.map(g => ({ name: g.name, paths: g.paths, decisionIds: g.decisionIds, diffCmd: DIFF_CMD + ' -- ' + g.paths.join(' ') }))
+    groups = p.groups.map(g => ({ name: g.name, paths: g.paths, decisionIds: g.decisionIds, diffCmd: (DIFF_CMD.includes(' -- ') ? DIFF_CMD.replace(' -- . ', ' -- ') + ' ' : DIFF_CMD + ' -- ') + g.paths.join(' ') }))
     requirements = p.requirements
     log('Partitioned into ' + groups.length + ' groups: ' + groups.map(g => g.name).join(', '))
   } else {

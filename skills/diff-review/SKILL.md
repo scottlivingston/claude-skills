@@ -18,7 +18,7 @@ For the issue tracker, invoke `/issue-tracker`.
 
 Whatever the user said is the fixed point — a commit SHA, branch name, tag, `main`, `HEAD~5`, etc. If they didn't specify one, ask for it.
 
-Before going further, confirm the fixed point resolves and the diff against its merge-base (three-dot) is non-empty — a bad ref or empty diff fails here, not inside the workflow. Capture that diff command, the commit list since the fixed point with full messages, and the diff's stat, which decides whether the reviews partition.
+Before going further, confirm the fixed point resolves and the diff against its merge-base (three-dot) is non-empty — a bad ref or empty diff fails here, not inside the workflow. Capture that diff command, the commit list since the fixed point with full messages, and the diff's stat, which decides whether the reviews partition. Paths the caller names to leave out — its own bookkeeping, such as an effort log — are excluded by pathspec from the diff command and the stat alike, so they are neither reviewed nor counted.
 
 If `HEAD` is the repo's default branch, get the user's OK (or a branch) before any auto-commit lands — the OK travels in the fix agent's brief.
 
@@ -47,7 +47,7 @@ On top of whatever the repo documents, the Standards axis always carries the **s
 
 **Start from [workflow.template.js](workflow.template.js) — fill it, don't author from scratch.** Fill every `FILL` slot in its data block, per the comment beside each and the contract's *Workflow authoring invariants*; everything below its FIXED marker is the same every run — edit it only when this run genuinely deviates. The manager fills, launches, relays progress, and does no review work itself.
 
-**Fill `SPEC_SCOPE` whenever the diff is partial** (a work-in-progress branch, one ticket of a DAG, half a migration) — unbounded, the Spec reviewer reports every requirement not yet due as missing. Fetch the dedup inputs — the open `review-finding` tickets and the gate home's prior `<!-- diff-review summary -->` records — **before** launching. Resolve the three model slots per `/model-policy` and say which models the tiers resolved to in one line before launching.
+**Fill `SPEC_SCOPE` whenever the diff is partial** (a work-in-progress branch, one ticket of a DAG, half a migration) — unbounded, the Spec reviewer reports every requirement not yet due as missing. Fetch the dedup inputs — the open `review-finding` tickets and the gate home's prior `<!-- diff-review summary -->` records — **before** launching. Resolve the three model slots per `/model-policy` and say which models the tiers resolved to in one line before launching. Fill the test notes per `/testing` (load it), so the fix agent runs the repo's real suite.
 
 The workflow returns the full labeled queue — every finding with its flags, verdicts, proposal, size, route, and applied SHA or ticket ref — plus the escalation queue with question classes; that return value is all the manager sees of the pipeline.
 
