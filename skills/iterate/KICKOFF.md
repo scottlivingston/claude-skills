@@ -12,4 +12,6 @@ Starting an effort sets a direction, not a plan. It ends with an index holding a
 
 4. **Write the index** per [LOG-FORMAT.md](LOG-FORMAT.md) — the checkout's absolute path on its `Checkout:` line, Destination, Where it stands ("nothing yet" for greenfield, a few lines on the existing code otherwise), Fog, an empty Slices section — and commit it on the branch.
 
+5. **Hand off.** When the effort got a new worktree, run [handoff.sh](handoff.sh) from this skill's directory with the checkout's absolute path and the slug: inside Herdr it opens the checkout as its own workspace, starts a new Claude Code session there and sends it `/iterate <slug>`. On success, tell the human the workspace's label and stop — that session is the log's single writer from here, so this one touches the effort no further. Exit status 3 means this session isn't running in Herdr; any other failure, say what it printed. Either way, carry on below.
+
 Then go to *1. Choose the next slice* in the main skill — in this session if there's room, otherwise end by saying `/iterate`.
