@@ -13,7 +13,9 @@ all=0
 
 git rev-parse --git-dir >/dev/null 2>&1 || { echo "find-efforts: not in a git repository" >&2; exit 1; }
 
-tmp=$(mktemp -d)
+# An explicit template: macOS mktemp ignores $TMPDIR without one, and the
+# sandbox only lets us write under $TMPDIR.
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/find-efforts.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 
 # <worktree path> TAB <branch, empty when detached>

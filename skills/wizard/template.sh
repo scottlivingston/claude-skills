@@ -136,7 +136,9 @@ ask_secret() {
 write_env() {
   local key="$1" value="$2" tmp
   touch "$ENV_FILE"
-  tmp=$(mktemp)
+  # Beside ENV_FILE, so mv is a same-filesystem rename and nothing lands in a
+  # temp dir the sandbox may not let us write (macOS mktemp ignores $TMPDIR).
+  tmp=$(mktemp "${ENV_FILE}.XXXXXX")
   grep -vE "^${key}=" "$ENV_FILE" > "$tmp" || true
   printf '%s=%s\n' "$key" "$value" >> "$tmp"
   mv "$tmp" "$ENV_FILE"
