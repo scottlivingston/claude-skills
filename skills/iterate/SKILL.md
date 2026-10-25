@@ -21,8 +21,9 @@ The **effort log** is the memory — a directory in the repo, an index plus one 
 Run [find-efforts.sh](find-efforts.sh) from this skill's directory, in the repo: it lists every active effort across all the repo's checkouts — its log, branch, checkout, current slice (the last slice line not `queued`) and that slice's stage — reading each index from the checkout that has its branch. `--all` adds finished efforts. An index it can't parse is reported on stderr; repair it to [LOG-FORMAT.md](LOG-FORMAT.md) before going on.
 
 - The argument is an idea and no effort matches it → kick off, per [KICKOFF.md](KICKOFF.md).
+- The argument is a ticket marked `effort-seed` → kick off from that seed, per Kickoff.
 - The argument names an effort or a log path → that effort.
-- No argument → one active effort → use it. Several → ask which, by name. None → ask for the idea and kick off.
+- No argument → one active effort → use it. Several → ask which, by name. None → offer any open seeds (per `/issue-tracker`) or ask for the idea, and kick off.
 
 Enter the effort's checkout. A checkout marked `(no Checkout: line)` is an effort that predates the line, already running there: record the line and stay. `none` → make one per Kickoff and record it. Then route on the current slice, announcing it in one line ("Mood meter — slice 3 is mid-build; checking on it"):
 
@@ -96,5 +97,5 @@ Set stage `done` and commit the log. A finished slice is a natural PR point: ask
 ## Rules
 
 - **One slice per invocation, with the budget call made out loud.** After a slice, a light session invites another `/iterate` here; a heavy one recommends `/clear` first. Grilling and building never share a context: the build always goes to the workflow, and only a Reflect tweak is made in this session.
-- **Shaping ahead.** While a build or review runs, the human may choose and shape the next slice. It gets its index line, stage `queued`, and its slice file with Decisions and brief, each committed as it settles; the current slice's stages carry on around it, and the next Choose starts from it.
+- **Shaping ahead.** While a build or review runs, the human may choose and shape the next slice. It gets its index line, stage `queued`, and its slice file with Decisions and brief, each committed as it settles; the current slice's stages carry on around it, and the next Choose starts from it. An idea that belongs to no slice of this effort is a `/seed` instead.
 - **The human owns every decision**, put per `/hitl-questions` — loaded before the session's first question, whatever stage it resumes at; facts come from the code and the effort log, looked up by you before any question leans on them.

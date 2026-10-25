@@ -34,6 +34,7 @@ Workflow roles:
 - `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding.
 - `impl` — an implementation ticket published by `/tickets` (a child of its spec).
 - `review-finding` — a ticket published from a review-gate finding (per `/finding-pipeline`): carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
+- `effort-seed` — an idea parked for a future `/iterate` effort, published by `/seed`; closed when an effort kicks off from it.
 - `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
 - `wayfinder:map`, `wayfinder:slice`, and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`design`/`task`) — wayfinder's map, its delivery slices, and its ticket types. A map's children are its tickets *and* its slices; only the type-labelled ones are tickets.
 
@@ -80,6 +81,7 @@ gh label create spec               --force -c "#0e8a16" -d "Spec issue (publishe
 gh label create spec-reviewed      --force -c "#0e8a16" -d "Spec read whole and grounded against the code (/spec-review)"
 gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /tickets)"
 gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review-gate finding"
+gh label create effort-seed        --force -c "#c2e0c6" -d "Idea parked for a future /iterate effort (/seed)"
 gh label create hitl               --force -c "#d93f0b" -d "Needs the human in the loop"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
 gh label create slice-reviewed     --force -c "#0e8a16" -d "Sealed slice cross-read and coherent (/map-review)"
@@ -119,7 +121,7 @@ Each **slice** is also a sub-issue of the map, labelled `wayfinder:slice` and ca
 
 ## Local markdown implementation (fallback)
 
-Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children, and being there is what makes a ticket `impl`. Standalone tickets — e.g. `/diff-review`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`.
+Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children, and being there is what makes a ticket `impl`. Standalone tickets — e.g. `/diff-review`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`. Seeds live in the main checkout at `.scratch/seeds/<slug>.md`, with `Labels: effort-seed` and `Status: open`.
 
 ### Ticket operations
 
