@@ -35,8 +35,10 @@ Workflow roles:
 - `impl` — an implementation ticket published by `/tickets` (a child of its spec).
 - `review-finding` — a ticket published from a review-gate finding (per `/finding-pipeline`): carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `effort-seed` — an idea parked for a future `/iterate` effort, published by `/seed`; closed when an effort kicks off from it.
-- `hitl` / `afk` — a wayfinder ticket's mode: worked live with the human, or agent-alone. Every wayfinder child carries exactly one.
-- `wayfinder:map`, `wayfinder:slice`, and `wayfinder:<type>` (`research`/`prototype`/`grilling`/`design`/`task`) — wayfinder's map, its delivery slices, and its ticket types. A map's children are its tickets *and* its slices; only the type-labelled ones are tickets.
+- `hitl` / `afk` — a wayfinder ticket's mode: waiting on the human (escalated, or a task only they can do), or agent-worked. Every wayfinder child carries exactly one.
+- `friction` — a decision carrying friction notes (per `/deciding`) not yet acted on; cleared when its reconsideration opens.
+- `superseded` — a closed decision replaced by a later one (per `/wayfinder`); its replacement is linked in a comment.
+- `wayfinder:map`, `wayfinder:slice`, and `wayfinder:<type>` (`decision`/`design`/`prototype`/`research`/`task`/`reconsider`) — wayfinder's map, its delivery slices, and its ticket types. A map's children are its tickets *and* its slices; only the type-labelled ones are tickets.
 
 ### Ticket operations
 
@@ -51,7 +53,8 @@ Workflow roles:
 ### Structure operations
 
 - **Parent/child**: link a ticket as a child of a parent — implementation tickets under their spec, wayfinder tickets and slices under their map.
-- **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Use the tracker's native dependency relationship (per `/wayfinder`, it shows the frontier in the tracker's UI), falling back to a body convention only where none exists.
+- **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Use the tracker's native dependency relationship (per `/wayfinder`, it shows the frontier in the tracker's UI), falling back to a body convention only where none exists. Edges may be added between closed tickets too — a decision's rests-on edges (per `/deciding`) are blocking edges added at resolution.
+- **Dependents**: list the tickets a ticket blocks, open or closed — what would need re-checking if it changed.
 
 ### Spec decisions
 
@@ -64,7 +67,7 @@ A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed
 
 - **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed.
 - **Frontier query**: a parent's open **ticket** children, minus any with an open blocker, minus any claimed; first in parent order wins. On a map, ticket children are the `wayfinder:<type>`-labelled ones — slices are children too and are never on the frontier.
-- **Resolve** (wayfinding): comment the answer on the ticket, close it, remove the claim, then — for a `hitl` ticket only — append a pointer (title-wrapped link + one-line gist) to the map's Decisions so far. An `afk` ticket is never indexed on the map (per `/wayfinder`).
+- **Resolve** (wayfinding): comment the answer on the ticket — a decision record for a deciding ticket (per `/deciding`), findings for an evidence ticket — close it, and remove the claim. Folding then appends a deciding ticket's pointer (title-wrapped link + one-line gist) to the map's Decisions so far; an evidence ticket is never indexed (per `/wayfinder`).
 
 ## GitHub implementation (default)
 
@@ -82,14 +85,17 @@ gh label create spec-reviewed      --force -c "#0e8a16" -d "Spec read whole and 
 gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /tickets)"
 gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review-gate finding"
 gh label create effort-seed        --force -c "#c2e0c6" -d "Idea parked for a future /iterate effort (/seed)"
-gh label create hitl               --force -c "#d93f0b" -d "Needs the human in the loop"
+gh label create hitl               --force -c "#d93f0b" -d "Waiting on the human"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
+gh label create friction           --force -c "#fbca04" -d "Decision strained by later work; reconsideration pending"
+gh label create superseded         --force -c "#cccccc" -d "Decision replaced by a later one"
 gh label create slice-reviewed     --force -c "#0e8a16" -d "Sealed slice cross-read and coherent (/map-review)"
 gh label create wayfinder:map      --force -c "#006b75" -d "Wayfinder map"
 gh label create wayfinder:slice    --force -c "#006b75" -d "Wayfinder delivery slice (one spec's worth of decisions)"
 gh label create wayfinder:research --force -c "#c5def5" -d "Wayfinder ticket: research"
 gh label create wayfinder:prototype --force -c "#c5def5" -d "Wayfinder ticket: prototype"
-gh label create wayfinder:grilling --force -c "#c5def5" -d "Wayfinder ticket: grilling"
+gh label create wayfinder:decision --force -c "#c5def5" -d "Wayfinder ticket: decision"
+gh label create wayfinder:reconsider --force -c "#c5def5" -d "Wayfinder ticket: reconsider an earlier decision"
 gh label create wayfinder:design   --force -c "#c5def5" -d "Wayfinder ticket: design"
 gh label create wayfinder:task     --force -c "#c5def5" -d "Wayfinder ticket: task"
 gh label create needs-triage       --force -c "#ededed" -d "Maintainer must evaluate"
@@ -103,6 +109,7 @@ gh label create ready-for-human    --force -c "#f9d0c4" -d "Requires human imple
 ### Structure operations
 
 - **Parent/child**: GitHub **sub-issues** — `gh api --method POST repos/<owner>/<repo>/issues/<parent>/sub_issues -F sub_issue_id=<child-db-id>` (`<child-db-id>` is the numeric database id: `gh api repos/<owner>/<repo>/issues/<n> --jq .id`). Where sub-issues aren't enabled, add the child to a task list in the parent body and put `Part of #<parent>` at the top of the child body.
+- **Dependents**: `gh api repos/<owner>/<repo>/issues/<n>/dependencies/blocking` (or, on the fallback, issues whose `Blocked by` line names `#<n>`).
 - **Blocking**: GitHub's **native issue dependencies**. Add an edge with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`, where `<blocker-db-id>` is the blocker's numeric **database id** (`gh api repos/<owner>/<repo>/issues/<n> --jq .id`, _not_ the `#number` or `node_id`). GitHub reports `issue_dependencies_summary.blocked_by` (open blockers only — the live gate). Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body.
 
 ### Spec decisions
@@ -136,7 +143,7 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 ### Structure operations
 
 - **Parent/child**: the directory is the parent — a spec's children live in its `issues/` subdirectory, a map's tickets in `map/`, a map's slices in `slices/`.
-- **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `closed`.
+- **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `closed`. **Dependents** are the files whose `Blocked by` line names it.
 - **Spec decisions**: inline in `spec.md` — a `## Decisions` section after the kernel, one `### D<n>: <title>` heading per decision in index order. No size cap locally; the headings alone provide the addressability.
 
 ### Workflow operations
@@ -147,6 +154,6 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 ### Wayfinding specifics
 
-The **map** is `.scratch/<effort>/map.md` — the map body per `/wayfinder`. Each **child ticket** is `.scratch/<effort>/map/NN-<slug>.md` — its own directory, so wayfinder tickets never mix with the spec's `issues/` — with the question in the body, a `Type:` line (`research`/`prototype`/`grilling`/`design`/`task`), a `Mode:` line (`hitl`/`afk`), and a `Status:` line.
+The **map** is `.scratch/<effort>/map.md` — the map body per `/wayfinder`. Each **child ticket** is `.scratch/<effort>/map/NN-<slug>.md` — its own directory, so wayfinder tickets never mix with the spec's `issues/` — with the question in the body, a `Type:` line (`decision`/`design`/`prototype`/`research`/`task`/`reconsider`), a `Mode:` line (`hitl`/`afk`), a `Status:` line, and `friction` or `superseded` on a `Labels:` line when they apply.
 
 Each **slice** is `.scratch/<effort>/slices/NN-<slug>.md`, numbered in ship order, with the Ships / Decisions body, `Labels: wayfinder:slice`, a `Blocked by: NN, NN` line naming the slices it ships after, and a `Status:` line. Sealing sets `Status: closed`; `slice-reviewed` goes on the `Labels:` line. A slice's spec is `.scratch/<effort>/<slice-slug>/spec.md` — one feature directory per slice, so each slice's tickets stay separate.

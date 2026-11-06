@@ -45,7 +45,7 @@ The spec's origin decides how much to hunt:
    Escalate a recount only when a decision's verdict flips on it; a decision that merely quotes the figure gets its number fixed and its argument annotated.
 
    Everything that adds a decision, strikes a decision, or picks among readings of one **escalates, with its drafted repair attached**, so the ask is a verdict on concrete text: underdetermined decisions, seam gaps, unfalsifiable acceptance, uncovered stories, orphans, scope leaks, and the contradictions whose halves both genuinely stand.
-4. **The gate.** Escalations post as `<!-- spec-review pending-questions -->` on the spec (the workflow's final stage), notify, and end the turn per the contract. The question loop — here or in a later session, which loads `/finding-pipeline` first — walks the defects one per turn per the contract's question mechanics: each put as a position — the drafted text you'd land and the reason that carries it — the user accepts, redirects, or argues. Verdicts act as:
+4. **The gate.** Escalations post as `<!-- spec-review pending-questions -->` on the spec (the workflow's final stage), notify, and end the turn per the contract — except on a spec that descends from a wayfinder map, where the gate is first answered per `/deciding` (load it) and only its escalations remain. The question loop — here or in a later session, which loads `/finding-pipeline` first — walks the defects one per turn per the contract's question mechanics: each put as a position — the drafted text you'd land and the reason that carries it — the user accepts, redirects, or argues. Verdicts act as:
    - **Amend** — edit the decision's text in place, and its index gist with it.
    - **Add** — a genuine gap: publish a new decision unit at the end of the index and extend the Decision Index. Existing IDs never renumber; downstream citations depend on them.
    - **Strike** — a scope leak or dead decision: remove it, note the removal in the summary, and leave the ID retired rather than reused.
@@ -55,7 +55,7 @@ All repairs land **as edits to the spec** — the body and its decision units, n
 
 ## When a defect isn't answerable on the spot
 
-An underdetermined decision sometimes turns out to be genuinely undecided — nobody ever made the call. That's a grilling, not a review verdict: when its turn comes in the question loop, run `/grilling` on it right there, grounded in the domain model, and record the outcome as an amended or new decision. The spec is the canonical home for decisions, so the effort stays in this stage rather than routing backward.
+An underdetermined decision sometimes turns out to be genuinely undecided — nobody ever made the call. That's a grilling, not a review verdict: when its turn comes in the question loop, run `/grilling` on it right there, grounded in the domain model, and record the outcome as an amended or new decision — or, on a spec that descends from a map, the answering agent decides it per `/deciding`. The spec is the canonical home for decisions, so the effort stays in this stage rather than routing backward.
 
 The exception is a spec whose *destination* is wrong — the problem statement itself is off. Stop, say so, and point at `/wayfinder`; no amount of spec editing fixes that.
 

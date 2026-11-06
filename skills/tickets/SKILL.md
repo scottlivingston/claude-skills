@@ -70,7 +70,7 @@ Before any human sees the breakdown, one **adversarial critic agent** — fresh,
 - **Verify the expected files** — grep and list the actual files each ticket will touch, don't take the author's word — and flag every same-wave pair that overlaps.
 - Return a typed verdict: **pass**, or **re-cut demanded**, naming the specific edges to drop and slices to re-cut.
 
-A demanded re-cut gets exactly **one** revision, re-scored by the critic. A second failure is a real finding, not a lap to repeat: present it to the user (in the quiz, or as the gate question under `/next auto`) with the critic's diagnosis — the work may genuinely be a chain.
+A demanded re-cut gets exactly **one** revision, re-scored by the critic. A second failure is a real finding, not a lap to repeat: present it to the user (in the quiz, or as the gate question under `/next auto` — on a spec from a map, answered per `/deciding` like any gate) with the critic's diagnosis — the work may genuinely be a chain.
 
 ### 5. Quiz the user
 

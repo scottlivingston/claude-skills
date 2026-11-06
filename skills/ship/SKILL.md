@@ -63,7 +63,7 @@ A parked ticket doesn't stop the run unless it blocks everything — later front
 
 ### 3. The gate
 
-When the workflow returns, read the escalation queue — the findings routed to a human, each carrying its question class.
+When the workflow returns, read the escalation queue — the findings routed to a human, each carrying its question class. On a spec that descends from a wayfinder map, load `/deciding` and have the queue answered per it first; only what it escalates is the queue below.
 
 - **Any spec-axis escalation** (including any cross-axis pair — the pair's spec member closes the gate for both) → **the gate is closed.** Send a push notification if one is available, then go to the question loop (step 4).
 - **No spec-axis escalation** → **the gate is open.** Standards-axis escalations (a pervasive pattern, a standards trade-off) are **not** raised now: record each as `deferred-to-close` (full question block) in the wave summary. Post the wave summary and launch the next wave immediately — no pause, no question. Auto-applies and auto-tickets never hold the gate: they are the pipeline doing its job, listed in the ledger for audit, not approval.

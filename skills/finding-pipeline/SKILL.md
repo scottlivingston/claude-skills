@@ -57,6 +57,8 @@ All gate state lives as comments on the issue the stage operates on, each openin
 
 **A pending-questions comment with no matching summary is a resume point**: any session bootstraps onto it and runs the question loop from the comment alone, never by re-running the pipeline.
 
+On an effort that descends from a wayfinder map, an agent answers the gate instead of the user, per `/deciding`; only the blocks it escalates take the path below.
+
 When escalations exist, the gate goes **AFK**: send a push notification (load via `ToolSearch("select:PushNotification")`; skip silently if unavailable) and end the turn — the user answers here or in a fresh session, identically. No escalations → post the summary and the stage completes without a pause.
 
 ## Question mechanics

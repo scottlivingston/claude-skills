@@ -1,6 +1,6 @@
 ---
 name: design
-description: Decide the shape of code before it's built — modules, interfaces, function signatures, data shapes, and the seams tests will live at. Use when the user wants to be intentional about structure, or when a wayfinder design ticket is being resolved.
+description: Decide the shape of code before it's built — modules, interfaces, function signatures, data shapes, and the seams tests will live at. Use when the user wants to be intentional about structure, or as the method an agent follows on a wayfinder design ticket.
 ---
 
 # Design
@@ -23,5 +23,6 @@ This is planning, not building: the output is **decisions**, recorded on the tic
 
 ## Rules
 
-- **The human owns every structural decision.** Look up facts in the code; put decisions to the human. A design ticket is always HITL — never resolve one AFK.
+- **With the human, the human owns every structural decision.** Look up facts in the code; put decisions to the human.
+- **On a wayfinder design ticket, the agent decides** per `/deciding`, following steps 1, 3, and 4 with the grounds standing where the human's picture would — step 2's conversation becomes reading the terrain — and the decision record carrying step 5's contracts and seams.
 - **No implementation.** If validating a shape needs running code, that's a `/prototype` ticket — link the two rather than blurring them.

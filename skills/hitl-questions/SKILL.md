@@ -7,7 +7,7 @@ Every skill in this plugin that puts a question to the human speaks this contrac
 
 ## The opening
 
-A skill that opens a **design conversation** — grilling, design, a wayfinder resolution — does not open with a question. It opens by **setting context**: what it looked up, what is already true in the code and the tracker, and what it takes the decision space to be. Only then does it ask the human for **their picture** of how the thing should work, in their own words, at whatever length they have.
+A skill that opens a **design conversation** — grilling, design, a wayfinder charting session or escalation — does not open with a question. It opens by **setting context**: what it looked up, what is already true in the code and the tracker, and what it takes the decision space to be. Only then does it ask the human for **their picture** of how the thing should work, in their own words, at whatever length they have.
 
 The human designs; the agent pushes. They usually already hold a shape of the answer, and the opening lets them state it once, whole. Withhold your own proposal here — offered before you have heard their picture, it anchors them to your design.
 
