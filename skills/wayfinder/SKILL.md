@@ -198,7 +198,7 @@ User invokes with a loose idea. This is the one session that is the human's by d
 3. **Agree the high-level design** — the major parts, how they relate, the flows that matter — at the altitude the human holds it, not down to interfaces.
 4. **Map the frontier, breadth-first**: the open questions across the whole space and the first ones takeable now, each typed. **If this surfaces no fog** — the whole journey fits one session — you don't need a map. Stop and say so.
 5. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first): Destination, Principles, Design, and Notes filled in, the fog sketched into **Not yet specified**. Then create the tickets you can state now as child issues, and add the blocking edges in a second pass. Chart any slice you can already state the same way; most maps can't name one yet.
-6. Stop, and point at `/next auto <map>` — charting is one session's work.
+6. **Hand off** — charting is one session's work. Load `/multiplexer` and hand off to a session of its own: the repo root, the map's title as the label, and `/next auto <map>` as the prompt; tell the human the label and stop. With no multiplexer, point at `/next auto <map>` and stop.
 
 ### Work through the map
 
