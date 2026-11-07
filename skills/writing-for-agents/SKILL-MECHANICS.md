@@ -13,7 +13,7 @@ Pick model-invocation only when the agent must reach the skill on its own, or an
 
 ## Splitting by invocation
 
-The invocation cut of splitting (the sequence cut lives in `SKILL.md`): split off a model-invoked skill when a distinct leading word you actually use in prompts should trigger it on its own, or another skill must reach it — worth the new description's context load only then.
+The invocation cut of splitting (the sequence cut lives in `SKILL.md`): split off a model-invoked skill when a distinct word you actually use in prompts should trigger it on its own, or another skill must reach it — worth the new description's context load only then.
 
 ## Loading another skill
 

@@ -13,7 +13,7 @@ A **context pointer** is a reference held in the agent's context that names some
 
 A pointer does two jobs — state what the material is, and list the branches that should trigger reaching it (a branch is a distinct case the document handles). Every word of an always-loaded pointer costs on every turn, so prune it harder than the body:
 
-- **Front-load the leading word** — the pointer is where it does its triggering work.
+- **Put the trigger word first** — the word the agent should match on leads the pointer.
 - **One trigger per branch.** Synonyms that rename a single branch are one branch written twice; collapse them and keep only genuinely distinct branches.
 - **Cut identity the body already carries.**
 
@@ -58,24 +58,19 @@ Splitting one document into two spends one of the two loads, so split only when 
 - **By sequence** — split a run of steps where the steps ahead tempt the agent to rush the one in front of it; merging sequences does the reverse.
 - **By invocation** — skill-specific: see [`SKILL-MECHANICS.md`](SKILL-MECHANICS.md).
 
-## Leading words
+## Naming
 
-A **leading word** is a compact concept already living in the model's pretraining that the agent thinks with while running the document (_lesson_, _fog of war_, _tracer bullets_). Repeated as a token, never as a sentence, it anchors a whole region of behaviour in the fewest tokens by recruiting priors the model already holds. A coined term recruits none and must be defined and remembered: coin one only for a concept other documents must reference by name or a state a tool records. Everything else stays in plain words.
+Call each concept by a word the model already knows, and use that same word everywhere the concept appears — in the doc, in other docs, and in the code. Coin a term only when other documents must refer to the concept by name; define it where it's introduced. Otherwise write it out in plain words, even when that takes a few more.
 
-It anchors twice. In the body, _execution_: the agent reaches for the same behaviour every time the word appears, and inside flat reference it focuses attention on a class of thing to look for. In a pointer, _invocation_: when the same word lives in your prompts, your docs, and your codebase, the agent links that shared language to the material and reaches it more reliably.
+## Prohibitions
 
-Hunt for opportunities to refactor with leading words. A triad spelled out at three sites, a pointer spending a sentence to gesture at one idea — each is a passage begging to collapse into a single token:
-
-- "fast, deterministic, low-overhead" → _tight_ (a _tight_ loop).
-- "a loop you believe in" → _red_ — a fuzzy gate becomes a binary observable state (the loop goes _red_ on the bug, or it doesn't).
-
-**Negation** steers badly: a prohibition drags the forbidden behaviour into context and makes it _more_ available — _don't think of an elephant_. State the target behaviour ("write one-line comments") so the banned one is never spoken. Keep a prohibition only as a hard guardrail you cannot phrase positively, and pair it with the positive target.
+Lead with the behaviour you want ("write one-line comments"); that's what the agent acts on. When the model falls into a specific failure by default, name the failure right after the target, with an example of what it looks like — a named failure is easier to spot and avoid than one left implied.
 
 ## Pruning
 
 - **One owner per fact.** Each rule, list, or format lives in the one document whose subject it is, and everything else points at it. Duplication costs maintenance and tokens and inflates a meaning's prominence past its real rank. A rule never names the documents that consume its output or describes how they read it — that is the consumer's to say.
 - The **environment** is a source of truth too — `package.json` scripts, config files, the directory layout, `--help` output — and a document that restates it is a **cache**, earning its load only when the lookup is expensive. Cache what the agent cannot find by looking: the unwritten convention, the reason behind a choice, the gotcha no config confesses.
 - **Outcomes, not mechanics.** Say what must be true, not the commands that make it true. Spell out a step only where agents would otherwise vary and the variance hurts: an ordering with consequences, a default direction on failure, a trap the obvious approach falls into.
-- **One clause of why**, and only when it changes a call at the margin. A rule the agent would follow on its own needs no failure story, and a default is argued once or not at all.
+- **Give the reason** when it helps the agent apply the rule to cases the rule doesn't list. A rule the agent would follow on its own needs no reason.
 - Check every line for **relevance**: does it still bear on what the document does? A line loses relevance by never bearing on the task (mere exposition, or a branch that should be disclosed) or by going stale as the behaviour or world it describes changes. Shorter documents are easier to keep relevant. Without pruning, a document gathers **sediment**: stale layers that settle because adding feels safe and removing feels risky. `/cold-read` cores through it.
-- Hunt **no-ops** sentence by sentence: an instruction the model already obeys by default pays load to say nothing. The test — does it change behaviour versus the default? — is model-relative, settled by running the document, not by debate. When a sentence fails, delete the whole sentence. A leading word too weak to beat the default (_be thorough_) is a no-op too; the fix is a stronger word (_relentless_).
+- **No-ops.** A sentence that doesn't change what the agent would do anyway costs load and says nothing. Whether it does is settled by running the agent with and without it, not by judgement: load `/evals` and compare. A sentence no eval has shown to be redundant stays.
