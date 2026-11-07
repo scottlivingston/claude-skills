@@ -4,3 +4,6 @@
 # Claude Code local state
 .claude/worktrees/
 .claude/settings.local.json
+
+# Python bytecode
+__pycache__/
