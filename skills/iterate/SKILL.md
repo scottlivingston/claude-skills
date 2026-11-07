@@ -14,7 +14,7 @@ The **effort log** is the memory — a directory in the repo, an index plus one 
 
 **The checkout is shared while a workflow runs.** Build merges, the check agent, and review fixes all work in the effort's checkout. While one runs, every log write is committed the moment it's made, nothing else in that checkout is edited, and notes that aren't log yet (a scratch render, a probe) live in the scratchpad.
 
-**Every stage change is announced in one line**: the slice, the stage it enters of choose · shape · build · review · reflect, what the stage that ended produced (merged and green, review fixes applied, the brief confirmed), whether the next stage needs the human or runs on its own, and that `/clear` is safe — always true at a stage boundary, since the log changed with the stage.
+**Every stage change is announced in one line**: the slice, the stage it enters of choose · shape · build · review · reflect, what the stage that ended produced (merged and green, review fixes applied, the brief confirmed), whether the next stage needs the human or runs on its own.
 
 ## Find the effort
 
@@ -94,8 +94,10 @@ Record **Learned** in the slice file and the rest in the index:
 
 Set stage `done` and commit the log. A finished slice is a natural PR point: ask once per effort whether the human wants a PR per slice, and record the answer on the index's `Branch:` line.
 
+**The session ends here**: each slice is one session, from Choose to Reflect. Recommend `/clear` and then `/iterate` for the next slice, which is chosen in that session, never this one; a candidate for it is one line at most. Mid-slice, never suggest a clear: the log makes any stage resumable, but a slice's stages share one context.
+
 ## Rules
 
-- **One slice per invocation, with the budget call made out loud.** After a slice, a light session invites another `/iterate` here; a heavy one recommends `/clear` first. Grilling and building never share a context: the build always goes to the workflow, and only a Reflect tweak is made in this session.
+- **One slice per session**, ended at Reflect. Grilling and building never share a context: the build always goes to the workflow, and only a Reflect tweak is made in this session.
 - **Shaping ahead.** While a build or review runs, the human may choose and shape the next slice. It gets its index line, stage `queued`, and its slice file with Decisions and brief, each committed as it settles; the current slice's stages carry on around it, and the next Choose starts from it. An idea that belongs to no slice of this effort is a `/seed` instead.
 - **The human owns every decision**, put per `/hitl-questions` — loaded before the session's first question, whatever stage it resumes at; facts come from the code and the effort log, looked up by you before any question leans on them.
