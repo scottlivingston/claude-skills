@@ -26,9 +26,9 @@ Edits stay inside the verification skill's own directory — its `SKILL.md`, `fe
 
 1. **Index hygiene.** Reconcile the feature map README against its sibling files and fix missing, extra, duplicate, and dead entries.
 
-2. **Source wave.** One read-only background agent per feature file, launched together on the **decider tier** (load `/model-policy` to resolve it). Each explains from source how its user-facing feature works and returns: feature summary, source entry points, likely drift with citations (or none), and one live-verification recipe. These agents never drive the app and never edit files.
+2. **Source wave.** Read every feature file against the source in one dynamic `Workflow` (this skill is your authorization to use it), on the **decider tier** (load `/model-policy` to resolve it). **Start from [source-wave.template.js](source-wave.template.js) — fill it, don't author from scratch.** Each reader explains from source how its user-facing feature works and returns a summary, the source entry points, likely drift with citations (or none), and one live-verification recipe. The readers never drive the app and never edit files.
 
-   **Done when:** every feature file has a returned summary.
+   **Done when:** every feature file has a returned summary; a file the wave lists as missing gets one more reader.
 
 3. **Reconcile.** Merge overlapping recipes into as few app states as practical. Spot-check cited drift; leave clean claims unproven. Sweep recent churn under the app's directory and the shared packages its skill names for user-facing surfaces the map lacks, naming a concrete source path before calling one missing.
 

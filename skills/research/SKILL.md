@@ -3,7 +3,7 @@ name: research
 description: Investigate a question against high-trust primary sources and capture the findings as a Markdown file in the repo. Use when the user wants a topic researched, docs or API facts gathered, or reading legwork delegated to a background agent.
 ---
 
-Spin up a **background agent** to do the research, so you keep working while it reads. It runs on the **decider tier** (load `/model-policy` to resolve it) — pass `model` when the tier is pinned.
+Spin up a **background agent** to do the research, so you keep working while it reads. It runs on the **decider tier** (load `/model-policy` to resolve it) — pass `model` when the tier is pinned. An agent that was itself spawned to do the research, such as a ticket agent in a `/drain` round, does the job below itself.
 
 Its job:
 

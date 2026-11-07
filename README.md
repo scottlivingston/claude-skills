@@ -14,7 +14,7 @@ Charting is the one session that is yours by design. Wayfinder grills you to pin
 
 ### 2. Resolve the tickets — agents decide, citing their grounds
 
-From here agents make the decisions. **`/drain`** works the whole frontier in parallel background agents, one per ticket:
+From here agents make the decisions. **`/drain`** works the whole frontier in rounds, each one workflow with an agent per ticket:
 
 | Ticket type | Resolves |
 | --- | --- |
@@ -127,7 +127,7 @@ What must be true of your project and working style for this workflow to fit:
 - **You work in a git repo with a test suite you trust.** Ship implements in isolated worktrees and gates every serial merge on green tests; without meaningful tests, "never merge on red" protects nothing. A `TESTING.md` (the `testing` skill holds the convention) tells agents which slice of the suite a change has to pass, so a wave runs its crates' tests, not the world's.
 - **Fan-outs never inherit the session's model by accident.** Every spawned agent runs on a tier — executors (implementers, merges, fixes, mechanics) default to Sonnet; deciders (deciding agents, reviewers, validators and refuters, planners, research agents) and auditors (the few run-once reads whose misses nothing catches: labeling, the spec grounding read, the map cross-read, the closing pass) default to the session's model unless a policy file pins them. Put `decider: opus` and `auditor: fable` in `~/.claude/model-policy.md` and a session on any model reviews on Opus and audits on Fable.
 - **Sessions are disposable; only the tracker is durable.** Anything worth keeping must land on an issue before context clears. The flip side: any session — yours, a teammate's, a background agent's — can pick up the effort cold.
-- **Concurrency is normal.** Background drain agents and parallel sessions edit the tracker at the same time; claims (`in-progress`), a single map-writer per session, and reconcile-before-routing in `/next` are what keep them from colliding.
+- **Concurrency is normal.** Drain rounds and parallel sessions edit the tracker at the same time; claims (`in-progress`), a single map-writer per session, and reconcile-before-routing in `/next` are what keep them from colliding.
 
 ## Standalone skills
 

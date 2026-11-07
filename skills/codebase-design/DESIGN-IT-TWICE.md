@@ -1,6 +1,6 @@
 # Design It Twice
 
-When the user wants to explore alternative interfaces for a chosen deepening candidate, use this parallel sub-agent pattern. Based on "Design It Twice" (Ousterhout) — your first idea is unlikely to be the best.
+When the user wants to explore alternative interfaces for a chosen deepening candidate, run several designers in parallel. Based on "Design It Twice" (Ousterhout) — your first idea is unlikely to be the best.
 
 Uses the vocabulary in [SKILL.md](SKILL.md) — **module**, **interface**, **seam**, **adapter**, **leverage**.
 
@@ -8,34 +8,19 @@ Uses the vocabulary in [SKILL.md](SKILL.md) — **module**, **interface**, **sea
 
 ### 1. Frame the problem space
 
-Before spawning sub-agents, write a user-facing explanation of the problem space for the chosen candidate:
+Before running the designers, write a user-facing explanation of the problem space for the chosen candidate:
 
 - The constraints any new interface would need to satisfy
 - The dependencies it would rely on, and which category they fall into (see [DEEPENING.md](DEEPENING.md))
 - A rough illustrative code sketch to ground the constraints — not a proposal, just a way to make the constraints concrete
 
-Show this to the user, then immediately proceed to Step 2. The user reads and thinks while the sub-agents work in parallel.
+Show this to the user, then immediately proceed to Step 2. The user reads and thinks while the designers work.
 
-### 2. Spawn sub-agents
+### 2. Run the designers
 
-Spawn 3+ sub-agents in parallel using the Agent tool, on the decider tier (load `/model-policy` to resolve it). Each must produce a **radically different** interface for the deepened module.
+Run the designers as one dynamic `Workflow` (this skill is your authorization to use it), on the decider tier (load `/model-policy` to resolve it). **Start from [design-it-twice.template.js](design-it-twice.template.js) — fill it, don't author from scratch.** It gives each designer a different design constraint and asks each for a **radically different** interface.
 
-Prompt each sub-agent with a separate technical brief (file paths, coupling details, dependency category from [DEEPENING.md](DEEPENING.md), what sits behind the seam). The brief is independent of the user-facing problem-space explanation in Step 1. Give each agent a different design constraint:
-
-- Agent 1: "Minimize the interface — aim for 1–3 entry points max. Maximise leverage per entry point."
-- Agent 2: "Maximise flexibility — support many use cases and extension."
-- Agent 3: "Optimise for the most common caller — make the default case trivial."
-- Agent 4 (if applicable): "Design around ports & adapters for cross-seam dependencies."
-
-Include both [SKILL.md](SKILL.md) vocabulary and the project's `CONTEXT.md` vocabulary (per `/domain-modeling`) in the brief so each sub-agent names things consistently with the architecture language and the project's domain language.
-
-Each sub-agent outputs:
-
-1. Interface (types, methods, params — plus invariants, ordering, error modes)
-2. Usage example showing how callers use it
-3. What the implementation hides behind the seam
-4. Dependency strategy and adapters (see [DEEPENING.md](DEEPENING.md))
-5. Trade-offs — where leverage is high, where it's thin
+Fill it with a technical brief separate from the user-facing explanation in Step 1: file paths, coupling details, the dependency category from [DEEPENING.md](DEEPENING.md), and what sits behind the seam. Hand it both [SKILL.md](SKILL.md)'s vocabulary and the project's `CONTEXT.md` (per `/domain-modeling`), so every design names things in the architecture's language and the project's domain language.
 
 ### 3. Present and compare
 

@@ -20,9 +20,9 @@ Every run ends on exactly one, named in the report:
 
 1. **Scope.** The sessions are the transcripts under `~/.claude/projects/` whose records carry `"attributionSkill":"<plugin>:iterate"`, modified after the timestamp in `~/.claude/snags/maintain-iterate.last` — or after the argument's date, which overrides it. No marker and no argument: ask how far back to go. No sessions: **clean**. Add the open snags in `~/.claude/snags/` for iterate and the skills it drives.
 
-2. **Reader wave.** One read-only background agent per session on the **decider tier** (load `/model-policy` to resolve it), briefed with [the autopsy's transcript reader](../autopsy/READER.md) and the transcript's path, launched as fast as the concurrent-agent limit allows. Keep a running tally of what returns in a scratch file, so the pass survives a compacted context.
+2. **Reader wave.** Read the sessions in one dynamic `Workflow` (this skill is your authorization to use it), filled from [the autopsy's reader template](../autopsy/readers.template.js) with iterate as the skill under study, on the **decider tier** (load `/model-policy` to resolve it). Write its returned reports to a scratch file as soon as it returns, so the pass survives a compacted context.
 
-   **Done when:** every session has a returned report.
+   **Done when:** every session has a returned report; a session the wave lists as missing gets one more reader.
 
 3. **Patterns.** Group incidents by cause, diagnosed per [the autopsy's Diagnose](../autopsy/SKILL.md#diagnose). A flow-health finding becomes a pattern when it recurs in two or more sessions; a one-off waste is noted, not fixed. Before believing a pattern, open two of its cited records yourself — readers misread, and a reader's render can be another session's. Then read the current repo text behind each pattern, and drop what it already fixes.
 

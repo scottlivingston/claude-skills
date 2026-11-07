@@ -1,8 +1,8 @@
 # Transcript reader
 
-The brief for one background agent reading one past session for a sweep. The launching skill hands it the transcript path and names the skill under study; it changes no files anywhere.
+The brief for one agent reading one past session, run in the wave [readers.template.js](readers.template.js) launches. The wave hands it the transcript path, the skill under study, and a scratch directory; it changes no files outside that directory.
 
-Read the transcript through [render.py](render.py) in ranges, saving any render to a file of your own under the scratchpad (`<scratchpad>/<session id>/`), never a shared name — other readers run beside you:
+Read the transcript through [render.py](render.py) in ranges, saving any render to a file under your scratch directory, never a shared name — other readers run beside you:
 
     python3 -I <this directory>/render.py <transcript> [--from N --to N]
 
