@@ -23,7 +23,7 @@ For each incident, find the cause in the skill text the session ran — the vers
 - **Silent** — nothing covers the case, and the agent's default filled the gap.
 - **Unreached** — the text that covers it exists, but the session never loaded it: a cited skill never invoked, a sibling file never read. The fix is the pointer's wording, per `/writing-for-agents`.
 - **Outweighed** — the text was loaded and the agent did otherwise: it is buried, hedged, contradicted by another skill, or overridden by the output style or `CLAUDE.md`. Name the competing instruction.
-- **Not a skill problem** — the harness, the model, or the task. Say so and close it; no edit.
+- **Not a skill problem** — the harness, the model, or the task. Say so and close it; no edit. A cause whose only edit would paste in examples from these sessions, or restate a rule the loaded text already states plainly where the agent reads it, belongs here too: a speculative edit is worse than none.
 
 Show the cause with both quotes side by side: the transcript moment and the skill line (or the absence where one belongs). A cause without that evidence is a guess — read more before proposing anything.
 
