@@ -4,7 +4,9 @@ Usage: python3 -I bake-history.py <plugin-root> <case-dir-or-eval-dir>...
 
 A transcript stores every skill it loaded as a hidden user record holding that
 skill's body as it was then, and a resumed session obeys that stored copy, not
-the plugin's current file. So for each case directory holding a session.jsonl
+the plugin's current file. A compaction re-sends the skills loaded so far as
+an invoked_skills attachment, and request-blob records cache the same text;
+both are rewritten too. So for each case directory holding a session.jsonl
 (searched recursively under each argument), this copies the session to
 history.jsonl with every stored body of a skill <plugin-root> has replaced by
 <plugin-root>/skills/<name>/SKILL.md as it is now. Skills from other plugins
@@ -46,21 +48,59 @@ def rebake(text, plugin_root, session_id):
     return f"{PREFIX}{skill_dir}\n\n{body.rstrip()}{args or chr(10)}", name, True
 
 
+def swap_strings(value, swaps):
+    """Apply every (old, new) text swap to each string inside value."""
+    if isinstance(value, str):
+        for old, new in swaps:
+            value = value.replace(old, new)
+        return value
+    if isinstance(value, list):
+        return [swap_strings(v, swaps) for v in value]
+    if isinstance(value, dict):
+        return {k: swap_strings(v, swaps) for k, v in value.items()}
+    return value
+
+
 def bake_case(case_dir, plugin_root):
-    rebaked, kept, out = set(), set(), []
+    rebaked, kept, out, swaps = set(), set(), [], []
     with open(os.path.join(case_dir, "session.jsonl")) as f:
         for line in f:
             if not line.strip():
                 continue
             record = json.loads(line)
+            attachment = record.get("attachment")
+            if record.get("type") == "attachment" and isinstance(attachment, dict) \
+                    and attachment.get("type") == "invoked_skills":
+                # after a compaction, Claude Code re-sends every skill loaded so
+                # far as one attachment, and its `rendered` copy is what the
+                # resumed session reads
+                for skill in attachment.get("skills", []):
+                    old = skill.get("content", "")
+                    if not old.startswith(PREFIX):
+                        continue
+                    new, name, done = rebake(old, plugin_root, record.get("sessionId"))
+                    (rebaked if done else kept).add(name)
+                    skill["content"] = new
+                    swaps.append((old.rstrip(), new.rstrip()))
+                record["rendered"] = swap_strings(record.get("rendered"), swaps)
+                out.append(json.dumps(record))
+                continue
+            if record.get("type") == "api-request-blob" and swaps:
+                # a cached copy of a request body, carrying the same skill text
+                record["message"] = swap_strings(record.get("message"), swaps)
+                out.append(json.dumps(record))
+                continue
             content = record.get("message", {}).get("content")
             if record.get("type") == "user" and record.get("isMeta") and isinstance(content, list):
                 for part in content:
                     if part.get("type") == "text" and part.get("text", "").startswith(PREFIX):
+                        old = part["text"]
                         part["text"], name, done = rebake(
-                            part["text"], plugin_root, record.get("sessionId")
+                            old, plugin_root, record.get("sessionId")
                         )
                         (rebaked if done else kept).add(name)
+                        if done:
+                            swaps.append((old.rstrip(), part["text"].rstrip()))
             out.append(json.dumps(record))
     with open(os.path.join(case_dir, "history.jsonl"), "w") as f:
         f.write("\n".join(out) + "\n")
