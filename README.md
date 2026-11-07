@@ -136,7 +136,7 @@ Used by the chain, and useful on their own:
 - **grilling** — you lay out your picture first, then it holds a position on one decision at a time until the design holds; facts get looked up, never asked
 - **seed** — `/seed <idea>` parks an idea for a future `/iterate` effort as a tracker ticket, outside every worktree; `/seed <ticket>` preps its Destination further
 - **snag** — `/snag <what went wrong>` in any session files the friction, with the session's transcript and skill version, to `~/.claude/snags/` and carries on
-- **autopsy** — run here: trace open snags, or a sweep of a skill's recent transcripts, back to the skill text that caused them, and fix that text with your sign-off
+- **autopsy** — run here: trace open snags, or a sweep of a skill's recent transcripts, back to the skill text that caused them, replay each one as an eval against the version that ran, and fix that text with your sign-off, the before/after run in front of you
 - **maintain-iterate** — run here whenever a batch of slices has gone by: a reader per `/iterate` session since the last pass, its build and review workflows timed, recurring friction and waste traced to the skill text behind it, and the fixes you pick applied
 - **wait-what** — stop and re-pitch the last message in plain language, using the project's ubiquitous language
 - **domain-modeling** — build and sharpen the project's domain model (`CONTEXT.md`, ADRs)
@@ -148,6 +148,7 @@ Used by the chain, and useful on their own:
 - **maintain-verification-skill** — the upkeep pass for a verification skill: one source reader per feature, one live pass driving every feature, and at most one PR of proven map and harness corrections, with product regressions reported to you instead of papered over
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
 - **tdd** — the red–green loop, seams, mocking guidance, and test anti-patterns
+- **evals** — test whether skill text changes what an agent does: cases under `evals/<skill>/`, graded by lookups before judgement, run through one script that also A/Bs a skill edit against the text at `HEAD` and replays real sessions with either side's skill text
 - **writing-for-agents** — reference for writing documents agents consume: skills, `AGENTS.md`/`CLAUDE.md`, and the docs they point at
 - **cold-read** — repair a document many agent sessions have edited so it reads to someone holding only the doc and what it points at: ghosts, broken pointers, changelog prose, aliases, undefined terms, residue, stale caches, contradictions — every repair proved by a lookup, only the rest asked
 - **tend** — keep the repo's defined docs (`CONVENTIONS.md`, `TESTING.md`, `PRINCIPLES.md`, `CONTEXT.md`, `CONTEXT-MAP.md`, ADRs) clean and on purpose, as a document gate: cold-read's defects plus each owning skill's `TENDING.md` checks — misfiled entries, uncheckable or tool-enforced rules, dead test commands, copies where deltas belong — provable repairs landed, the rest asked. `/diff-review` and `/ship`'s finish run it `--since` the change, so the docs a change bears on are cleaned as part of the work; `/tend` alone sweeps the whole repo

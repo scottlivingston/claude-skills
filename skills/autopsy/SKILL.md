@@ -1,6 +1,6 @@
 ---
 name: autopsy
-description: Trace where skills went wrong in past sessions — open snags from `/snag`, or a sweep of a skill's recent transcripts — back to the skill text that caused it, and fix that text with the human's sign-off. `/autopsy [skill]`.
+description: Trace where skills went wrong in past sessions — open snags from `/snag`, or a sweep of a skill's recent transcripts — back to the skill text that caused it, reproduce each cause as an eval, and fix that text with the human's sign-off and a before/after run. `/autopsy [skill]`.
 disable-model-invocation: true
 ---
 
@@ -27,12 +27,22 @@ For each incident, find the cause in the skill text the session ran — the vers
 
 Show the cause with both quotes side by side: the transcript moment and the skill line (or the absence where one belongs). A cause without that evidence is a guess — read more before proposing anything.
 
-Then check the repo: when its current text already fixes the cause, the snag closes as fixed by that change. Group incidents by cause — three snags from one buried rule are one fix.
+Group incidents by cause — three snags from one buried rule are one fix.
+
+## Reproduce
+
+Load `/evals`. For each cause, build one replay case under `evals/local/<skill>/<slug>/` from the incident that shows the cause most plainly: cut its transcript at the user turn that opened it, and grade what the human wanted. Their words are the rubric — a pattern where one can decide it, a judge rubric quoting them where none can.
+
+Run it with `/evals`' runner as an A/B, `--base` set to the commit that released the version the session ran (its subject ends `bump to <version>`; for a version installed from an unreleased tree, the release before it), three runs a side. One run answers both questions: the base side failing means the incident reproduces, and the candidate side — the current tree — passing means the repo already fixes it, so its snags close as `already fixed`. Tell the human the run count and a cost estimate before starting; a long transcript makes every run expensive.
+
+A case that passes on the session's version didn't reproduce. Mark the cause **unverified** and carry it on to Fix anyway — some failures need more than a replay carries.
 
 ## Fix
 
-Draft the edit at the cause's owner: a rule shared through a contract skill is fixed in the contract, never patched in one consumer. Load `/hitl-questions` and put each cause to the human per it — their words or the incident, the cause with its evidence, the drafted edit — one cause per turn. They approve, amend, or reject.
+Draft the edit at the cause's owner: a rule shared through a contract skill is fixed in the contract, never patched in one consumer. Apply it to the working tree and A/B the cause's case against `HEAD`, five runs a side; a draft that leaves the case failing gets reworked before anyone sees it.
 
-Apply what's approved, then close each snag it covers: set `Status:` to `fixed`, `already fixed`, or `wontfix`, and append a `## Outcome` section with the cause in one line and the edited file, or the reason it won't be fixed. Sweep incidents leave no file; their fix speaks for them.
+Load `/hitl-questions` and put each cause to the human per it — their words or the incident, the cause with its evidence, the drafted edit, and what the eval showed: the graders that moved, before → after, or that the cause is unverified — one cause per turn. They approve, amend, or reject. An amendment gets its own A/B before it's applied; a rejection reverts the edit.
+
+Close each snag the approved fixes cover: set `Status:` to `fixed`, `already fixed`, or `wontfix`, and append a `## Outcome` section with the cause in one line, the edited file, and the case that guards it, or the reason it won't be fixed. Sweep incidents leave no file; their fix and its case speak for them. A guarding case stays in `evals/local/` until the human approves moving it into the repo, per `/evals`.
 
 End by listing what changed and reminding the human that running sessions still hold the old version until `/release` and `/reload-plugins`.
