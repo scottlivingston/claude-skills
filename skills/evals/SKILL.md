@@ -62,6 +62,8 @@ Add `--allow-tools Edit Write` (or the Bash patterns it needs) when the agent mu
 
 **`--base <ref>`** makes the run an A/B: the working tree's cases run against the plugin at the ref (in a throwaway worktree) and against the working tree, both in parallel, and it prints each case's score on both sides and every grader whose pass rate moved. It is the tool for every "did this edit help" question, including whether a sentence is a no-op: delete it in the working tree, compare against `HEAD`, and the sentence earns its place only if a score drops.
 
+`--base` swaps only the plugin, so it can't compare text a workflow template writes into an agent's prompt: that text lives in the case's prompt, the same on both sides. Write the case's prompt as the template renders it, copy the case to `evals/local/<skill>/<case>-without/` with the line under test removed, and run both with `--case '<case>*'`.
+
 **Reading scores.** One run is an anecdote. At five runs a case, a difference of one run either way is noise; look for a grader that moved by two or more, then read the kept workspaces to see why.
 
 ## Sandbox

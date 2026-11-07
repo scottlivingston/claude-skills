@@ -119,6 +119,7 @@ function implementerPrompt(p, plan, amendment) {
     plan ? 'Your plan:\n' + plan.plan : null,
     amendment ? 'Collision-check amendment — build against this shared shape:\n' + amendment : null,
     'Load /tdd and /testing first, then build test-first at the seams the Decisions name.',
+    'Per /implement: Comments and docs state what the code does now, for a reader who never saw the old version: never "no longer", "used to", "the old X", the replaced mechanism\'s name, or a ticket or decision ID. In the files you touch, rewrite any comment or doc that narrates a past change or has gone false. What changed belongs in the commit message.',
     TEST_NOTES ? 'Test recipes (per /testing) — before you report done, run the unit invocations of the Scoping to a change rule applied to the files you touched:\n' + TEST_NOTES : null,
     SPLIT ? 'Other parts are building on this same machine right now. A test that needs the machine to itself — fixed ports, a repo-wide lock, a load run — is left to the merge step, and you keep the load you put on the machine to what your own tests need.' : 'Keep the load you put on the machine to what your own tests need, and stop anything you start.',
     'The brief\'s Done when checks belong to the check agent that runs after the merge: build so they can pass, and say in howToSee how to run them, but a check you cannot run here — no browser, no device, no credential — is never a reason to park.',

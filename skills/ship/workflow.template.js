@@ -352,6 +352,7 @@ function implementerPrompt(t, plan, amendment) {
     plan.plan,
     amendment ? 'Collision-check amendment — build against this shared shape:\n' + amendment : null,
     'Discipline (/implement + /tdd): red–green at the spec\'s seams — red test first, then the code that greens it; typecheck regularly; run single test files regularly; commit in your worktree as you go.',
+    'Per /implement: Comments and docs state what the code does now, for a reader who never saw the old version: never "no longer", "used to", "the old X", the replaced mechanism\'s name, or a ticket or decision ID. In the files you touch, rewrite any comment or doc that narrates a past change or has gone false. What changed belongs in the commit message.',
     TEST_NOTES ? 'Test recipes (per /testing) — use single test files while working; before you report done, run the UNIT invocations of the Scoping to a change rule applied to the files you touched (never the Green set — integration runs at merge):\n' + TEST_NOTES : null,
     'If the code contradicts the plan, follow the code and note the deviation in a ticket comment. If you need an uncited decision, check the Decision Index and fetch it by ID, noting the missed routing in a ticket comment.',
     'If the ticket cannot be built — a decision the spec holds nowhere, work no listed seam covers — PARK: unclaim, comment what is missing on the ticket, comment the gap on spec issue ' + SPEC_ISSUE_REF + ', return status=parked.',

@@ -22,4 +22,6 @@ Load `/testing` and resolve the test recipes for the files the work touches befo
 
 Outside a `/ship` run, review the work with /diff-review once done; inside one, the wave verification reviews the merged diff — don't review your own worktree.
 
+Comments and docs state what the code does now, for a reader who never saw the old version: never "no longer", "used to", "the old X", the replaced mechanism's name, or a ticket or decision ID. In the files you touch, rewrite any comment or doc that narrates a past change or has gone false. What changed belongs in the commit message.
+
 Commit your work to the current branch.
