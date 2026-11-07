@@ -1,6 +1,6 @@
 export const meta = {
   name: 'doc-gate',
-  description: 'Find→validate→propose→validate→route pipeline over a planning document (a wayfinder slice or map, or a spec) — auto-apply only provably derivable repairs, escalate intent',
+  description: 'Find→validate→propose→validate→route pipeline over a document gate\'s material (a wayfinder slice or map, a spec, or the repo\'s defined docs) — auto-apply only provably derivable repairs, escalate intent',
   phases: [
     { title: 'Read', detail: 'the gate\'s find-side readers over the material, in parallel' },
     { title: 'Label', detail: 'normalize reports into IDed findings; dedup vs prior summaries' },

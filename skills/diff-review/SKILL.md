@@ -76,7 +76,11 @@ Per the contract, after the loop and none of it mid-loop: post the chosen spec c
 
 Close with a wrap-up recap — one line per ID and its terminal outcome — the first and only time the whole set appears together. Then post the round's `<!-- diff-review summary -->` to the gate home per the contract, plus the tickets created.
 
-### 8. Offer the merge (when the spec is a tracker issue)
+### 8. Tend the docs
+
+Load `/tend` and run it `--since` the same fixed point, with this review's gate home as its own, so the defined docs the change bears on are cleaned before it merges. Its question loop follows this one's; its summary posts beside this review's.
+
+### 9. Offer the merge (when the spec is a tracker issue)
 
 If the spec source was a tracker issue and the findings are clean or resolved, offer to open a PR whose body `Closes #<spec>`. Only open it if the user says yes. If the user then asks to merge it, **squash-merge** — the spec lands as one commit on the default branch, not its ticket-by-ticket history.
 
