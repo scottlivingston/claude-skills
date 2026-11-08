@@ -24,7 +24,7 @@ Checkout: `<absolute path of the effort's worktree>`
 
 ## Slices
 
-- [Slice 1 — <name>](slice-1.md) · <build | spike | research> · <stage>
+- [Slice 1 — <name>](slice-1.md) · <build | spike | research | audit> · <stage>
 ```
 
 One line per slice, newest last; a slice's stage changes on its line here. A slice shaped ahead while another builds sits at the end with stage `queued` until it is chosen.
@@ -56,7 +56,7 @@ Base: `<sha>` · Build branch: `<branch>` (one per part when the brief has parts
 
 ## Stages
 
-`queued` (only when shaped ahead) → `shaping` → `building` → `reviewing` → `reflecting` → `done` for a build slice, skipping `reviewing` when its review is deferred; `exploring` → `reflecting` → `done` for a spike or research slice. Sections a slice hasn't reached yet are left out rather than written empty.
+`queued` (only when shaped ahead) → `shaping` → `building` → `reviewing` → `reflecting` → `done` for a build slice, skipping `reviewing` when its review is deferred; `exploring` → `reflecting` → `done` for a spike, research or audit slice. Sections a slice hasn't reached yet are left out rather than written empty.
 
 ## An old single-file log
 

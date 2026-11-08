@@ -31,7 +31,7 @@ Enter the effort's checkout. A checkout marked `(no Checkout: line)` is an effor
 | --- | --- |
 | none, or `done` | 1. Choose |
 | `shaping` | 2. Shape — re-read its Decisions, say in a line what's settled, continue |
-| `exploring` | 2. Shape, the spike/research branch |
+| `exploring` | 2. Shape, the spike/research/audit branch |
 | `building` | 3. Build — the resume rule |
 | `reviewing` | 4. Review |
 | `reflecting` | 5. Reflect |
@@ -40,13 +40,16 @@ Enter the effort's checkout. A checkout marked `(no Checkout: line)` is an effor
 
 Read the index — Destination, Where it stands, the Fog, any `queued` slices — and the last slice file's Learned, and any open review tickets `/diff-review` filed for this effort. Then load `/grilling` and put **one position** per its cadence: the slice you'd take next and the one reason that carries it. A queued slice is the default position: take it unless what the last slice taught changes it, and say so either way. The best next slice is the biggest step one build can carry toward the destination — or, while the way is unclear, the step that teaches how to build it. The first slice is a **tracer bullet** — the thinnest thing that runs end to end and can be seen.
 
+**A reported defect is a claim until you've seen it.** Known bugs, debt lists, notes files, Fog lines and review tickets go stale or were wrong to begin with. Before putting a position that fixes one, check it against the code as it is now — read the code it names, run its repro or test — and say in the position what you found, with `file:line`. A claim that doesn't hold, or that you couldn't check, is no slice's ground: it goes into the Fog marked unconfirmed, with what would settle it. When the next slice would rest on more claims than you can check in a few lookups — an effort whose destination is clearing known debt — the position is an audit slice instead.
+
 A slice has a **kind**:
 
 - **build** — the default: code that lands on the effort branch.
 - **spike** — the human knows what they want but not how to build it; `/prototype` answers that, and the answer is the slice.
 - **research** — a question of fact; `/research` answers it.
+- **audit** — a set of reported defects nobody has checked; an agent checks each against the code, and the verdicts are the slice.
 
-The human argues, redirects, or picks another. Once agreed, add the slice's line to the index (stage `shaping`, or `exploring` for a spike or research) — or, for a queued slice, move its line to the end and set its stage — and create its slice file with its Why now line.
+The human argues, redirects, or picks another. Once agreed, add the slice's line to the index (stage `shaping`, or `exploring` for a spike, research or audit) — or, for a queued slice, move its line to the end and set its stage — and create its slice file with its Why now line.
 
 When the destination looks reached, say so instead; on the human's agreement — and once no deferred review is left uncovered, running Review over any that are — set `Status: done`, commit the log, and offer to remove the effort's worktree — the branch stays.
 
@@ -58,7 +61,7 @@ Before the brief goes back, prove that anything the build needs from outside the
 
 Shaping is done when the **brief** is written — *Delivers*, *Done when* (every check observable: a test, a command, something the human can see), and *Not in this slice* — and fits one build agent's session per part. A slice whose work falls into **parts** — pieces an agent can build without waiting on another's result, meeting at a contract its Decisions pin (a URL, a function's shape) — lists them in the brief, each with its own *Done when*, so they build in parallel. Files every piece touches (a feature list, a task file, startup wiring, a shared source file) don't hold the work together: the build's collision check and serial merges reconcile them. Work that must happen in order — including a part whose tests need another part's code — stays one part. A brief bigger than one build splits: ask the human which part goes first, and put the rest in the Fog. A slice small and low-risk enough — config, copy, a rename, tests only — can carry *Review: deferred*, which folds it into the next slice's review rather than skipping it. Put the brief back to the human as one piece, naming its parts — or, for a single part, the ordering that keeps it whole — and whether review is deferred; on their confirmation, go to Build.
 
-**Spike and research slices.** Run `/prototype` with the human, or launch `/research` in the background. Record the answer in the slice's Learned, set stage `reflecting`, and go to Reflect.
+**Spike, research and audit slices.** Run `/prototype` with the human, or launch `/research` in the background. For an audit, agree with the human which claims are in scope and where they come from, then launch one background agent on the decider tier per `/model-policy` to check every one against the code. Done when every claim in scope carries a verdict: confirmed, with where it lives and the evidence (a failing test, a repro's output, the lines that show it); not reproduced, with what was tried; or not checkable, with why. Record the answer in the slice's Learned, set stage `reflecting`, and go to Reflect — where confirmed defects become Fog lines the next Choose picks from, and claims that didn't hold are dropped.
 
 ## 3. Build
 
