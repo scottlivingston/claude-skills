@@ -15,11 +15,11 @@ The user invokes with a **spec** (issue URL/number) whose implementation tickets
 
 ## Guardrails
 
-- **Wrong entry point?** Redirect, don't improvise: a spec with no tickets → run `/tickets <spec>` (HITL) first. A wayfinder map → `/specify <map>` first.
+- **Wrong entry point?** Redirect, don't improvise: a spec with no tickets → run `/tickets <spec>` (HITL) first. A wayfinder plan is a spec: its pieces are its `impl` children, and `/wayfinder` runs its waves.
 - **Branch discipline**: if on the default branch, create `spec-<number>-<slug>` and work there. The whole run lands on one branch; one PR closes the spec at the end.
 - Never merge to shared branches, push, or open PRs unless the user asked explicitly.
 - **The manager orchestrates and asks — nothing else.** Implementation, merging, review, fixes, ticket filing, and tracker updates all happen inside workflow agents. The manager's own work is authoring workflows, reading their returns, running the question loop, and posting ledger comments.
-- **Waves are derived, never stored.** The durable truth is the ticket DAG plus the spec issue's ledger comments. The frontier — open tickets with no open blocker and no claim — is recomputed from the tracker at every wave boundary, so parked tickets drop out and mid-run review tickets join in automatically.
+- **Waves are derived, never stored.** The durable truth is the ticket DAG plus the spec issue's ledger comments. The frontier — open `impl` children with no open blocker and no claim — is recomputed from the tracker at every wave boundary, so parked tickets drop out and mid-run review tickets join in automatically.
 - **No taste findings.** The standards axis reports breaches of written rules only. If `/conventions` finds nothing scoped to the touched files, the axis is idle and the ledger says so plainly — the axis activates when rules get written, not before. Style and design review belong to `/diff-review` and `/simplify`, run deliberately, not to this gate.
 
 ## The ledger
@@ -63,7 +63,7 @@ A parked ticket doesn't stop the run unless it blocks everything — later front
 
 ### 3. The gate
 
-When the workflow returns, read the escalation queue — the findings routed to a human, each carrying its question class. On a spec that descends from a wayfinder map, load `/deciding` and have the queue answered per it first; only what it escalates is the queue below.
+When the workflow returns, read the escalation queue — the findings routed to a human, each carrying its question class. On a wayfinder plan, load `/deciding` and have the queue answered per it first; only what it escalates is the queue below.
 
 - **Any spec-axis escalation** (including any cross-axis pair — the pair's spec member closes the gate for both) → **the gate is closed.** Send a push notification if one is available, then go to the question loop (step 4).
 - **No spec-axis escalation** → **the gate is open.** Standards-axis escalations (a pervasive pattern, a standards trade-off) are **not** raised now: record each as `deferred-to-close` (full question block) in the wave summary. Post the wave summary and launch the next wave immediately — no pause, no question. Auto-applies and auto-tickets never hold the gate: they are the pipeline doing its job, listed in the ledger for audit, not approval.
@@ -74,7 +74,7 @@ Either way the wave summary comment gets posted before anything else happens —
 
 Runs in the manager session — this one, or any later session that bootstraps onto the pending-questions comment. Walk the **whole** escalation queue, standards escalations included (the user is warm; cold questions at the end are the expensive version), per `/finding-pipeline`'s question mechanics (load it if this session hasn't): orientation summary first, then one finding per turn as a position the user accepts or pushes back on, then act on the answers (spec comments, fix agent, tickets, reverts), then post the wave summary recording every outcome.
 
-Then **checkpoint**: state is fully durable, so end the turn with the choice stated plainly — continue with the next wave here, or run `/ship <spec>` in a fresh session; both resume identically from the tracker. Don't launch the next wave unprompted after a question loop: the checkpoint is the session-boundary the gate exists to offer.
+Then **checkpoint**: state is fully durable, so end the turn with the choice stated plainly — continue with the next wave here, or run `/ship <spec>` in a fresh session; both resume identically from the tracker. Don't launch the next wave unprompted after a question loop: the checkpoint is the session-boundary the gate exists to offer. On a wayfinder plan the conductor is that prompt, and its next round goes on.
 
 Tickets filed by answers (and by auto-ticketing) are spec children — the next frontier computation picks them up, so review rework rides the very next wave.
 

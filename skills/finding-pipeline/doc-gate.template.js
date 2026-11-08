@@ -1,6 +1,6 @@
 export const meta = {
   name: 'doc-gate',
-  description: 'Find→validate→propose→validate→route pipeline over a document gate\'s material (a wayfinder slice or map, a spec, or the repo\'s defined docs) — auto-apply only provably derivable repairs, escalate intent',
+  description: 'Find→validate→propose→validate→route pipeline over a document gate\'s material (a wayfinder plan\'s decisions, a spec, or the repo\'s defined docs) — auto-apply only provably derivable repairs, escalate intent',
   phases: [
     { title: 'Read', detail: 'the gate\'s find-side readers over the material, in parallel' },
     { title: 'Label', detail: 'normalize reports into IDed findings; dedup vs prior summaries' },
@@ -11,7 +11,7 @@ export const meta = {
   ],
 }
 
-// Template for the document gates (/map-review, /spec-review). This file owns
+// Template for the document gates (/spec-review, /wayfinder's plan review). This file owns
 // every stage prompt and the routing; /finding-pipeline owns the invariants;
 // each gate skill owns what its fill carries (defect list, derivable kinds,
 // escalation conditions, verdicts) and fills it here.
@@ -22,17 +22,17 @@ export const meta = {
 
 // ══════════════════ DATA SLOTS — fill every FILL before launching ══════════════════
 
-const GATE_NAME = FILL          // "map-review" | "spec-review" — names the gate's markers: <!-- GATE_NAME pending-questions -->
+const GATE_NAME = FILL          // "plan-review" | "spec-review" — names the gate's markers: <!-- GATE_NAME pending-questions -->
 const ID_PREFIX = FILL          // finding-ID prefix: "MR" | "SR" — IDs run <prefix>-1, -2, ... per run
 const GATE_PURPOSE = FILL       // one or two sentences: what this gate checks and what it never re-litigates (merits are settled)
-const MATERIAL_SOURCE = FILL    // one line: what is under review and in which mode ("slice #12 'Auth' of map #3, slice mode")
+const MATERIAL_SOURCE = FILL    // one line: what is under review and in which mode ("the decisions since round 4 of plan #3")
 const MATERIAL = FILL           // the full material as read in the skill's load step — every unit in full, each headed by its ref — one JSON string
-const SCOPE_NOTE = FILL         // one line: what a finding may anchor in, and what is context only ("the slice's claimed tickets and the map-wide decisions; other slices are context")
+const SCOPE_NOTE = FILL         // one line: what a finding may anchor in, and what is context only ("the decisions made since the last review; earlier decisions are context")
 const READ_OP = FILL            // one-liner: how an agent fetches a ticket, decision, or comment by ref per /issue-tracker — "" if none
 const READERS = FILL            // the find stage: [{ label: "cross-read", tier: "auditor" | "decider", brief: "what this reader holds against what" }] — one entry per reader the skill names
 const DEFECTS = FILL            // the skill's defect list, verbatim — what to hunt, never what to escalate
 const DERIVABLE = FILL          // the skill's derivable-repair kinds, verbatim — the only repairs that may auto-apply
-const ESCALATE_WHEN = FILL      // gate-local conditions that escalate a finding whatever its repair ("a finding on an already-shipped slice"), or ""
+const ESCALATE_WHEN = FILL      // gate-local conditions that escalate a finding whatever its repair ("a finding on a decision a merged piece already builds on"), or ""
 const REPAIR_KINDS = FILL       // the gate's verdicts as repair kinds: [{ kind: "amend", what: "what applying it edits" }, ...] — the proposer picks one per repair
 const EDIT_TARGET = FILL        // one or two sentences: where repairs land (which bodies, comments, index lines) — never a separate artifact
 const QUESTION_NOTES = FILL     // the skill's local block rules for the assembler (how sides are named, where paths are welcome), or ""

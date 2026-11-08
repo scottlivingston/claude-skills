@@ -33,7 +33,7 @@ Load `/finding-pipeline`: tend is a document gate on it, run as one dynamic `Wor
 
 ## Gate home and questions
 
-The **gate home** is the caller's when a workflow runs this gate — it names its own; run standalone, it is `.scratch/tend-<branch>.md`. A `<!-- tend pending-questions -->` there with no summary after it is a resume point: run the question loop from it, never the workflow again. The orientation, the question loop, AFK, the summary, and agent-answered gates on a wayfinder effort are all `/finding-pipeline`'s.
+The **gate home** is the caller's when a workflow runs this gate — it names its own; run standalone, it is `.scratch/tend-<branch>.md`. A `<!-- tend pending-questions -->` there with no summary after it is a resume point: run the question loop from it, never the workflow again. The orientation, the question loop, AFK, the summary, and agent-answered gates on a wayfinder plan are all `/finding-pipeline`'s.
 
 ## Rules
 

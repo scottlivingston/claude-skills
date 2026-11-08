@@ -1,214 +1,101 @@
 ---
 name: wayfinder
-description: Plan a huge chunk of work — more than one agent session can hold — as a shared map of decision tickets on your issue tracker that agents resolve on their own against the human's destination, principles, and high-level design, reconsidering earlier decisions when later ones strain against them. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
+description: Build something too big for one agent session, on its own, from the destination, principles, and design the human sets at the start — agents plan it as a graph of pieces, prove only the risks that could sink it, build every ready piece in parallel, make the detailed calls as they go, and review their own decisions each round so a bad call is corrected before more is built on it. `/wayfinder <idea>` starts an effort; `/wayfinder <plan>` resumes one. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
-A loose idea has arrived — too big for one agent session, and wrapped in fog: the way from here to the **destination** isn't visible yet. This skill charts the way as a **shared map** on the repo's issue tracker and lets agents find it. The human gives three things at charting — the destination, the principles, and the high-level design — and agents make every decision in between, citing which of those settled it (per `/deciding`). The human is pulled back only by an escalation.
+The human gives an effort its **destination** — the working thing, what they will run when it's done — its principles, and its high-level design, in one setup session. From then on agents take it to running code without the human: one **conductor** session runs rounds, each building every piece that is ready, until the destination runs. The human is pulled back only for `/deciding`'s three escalation cases and for work only they can do, and the run carries on around both while it waits.
 
-Autonomy makes one failure likely: decisions **compounding** — a call made early and confidently that later calls quietly bend around until the route is built on it. The map is built to catch that: every decision records what it rests on, every strain on an earlier decision is reported, and accumulated strain triggers a **reconsideration** that plans the correction from what has since been learned.
-
-The destination is a **decision state, never the built thing**: building belongs to `/ship`, once a slice of the map's decisions is sealed (see [Slices](#slices) and [Completion and handoff](#completion-and-handoff)).
-
-## Plan, don't do
-
-Each deciding ticket resolves a decision, each evidence ticket gathers what a decision needs, and the map is done when nothing is left to decide before someone builds the thing. Produce decisions, not deliverables.
-
-**Implementation tickets never belong on the map.** When resolving a ticket surfaces "now build X", that's fog clearing — record the decision that makes X buildable and leave the building to `/ship`. The one exception is the Task type below, which earns its place strictly by unblocking a *decision*.
+**Running code is the measure.** A round that lands nothing is a problem to diagnose, not a lap to repeat. Plans, decisions, and reviews exist only to get the right code built; none of them is output.
 
 ## Refer by name
 
-In everything a human reads — narration, the map's Decisions so far, escalations — refer to a map, slice, or ticket by its title, wrapping its link, never by a bare id, number, or slug.
+In everything a human reads, refer to the plan, a piece, or a risk by its title, wrapping its link — never by a bare id, number, or slug.
 
-## The Map
+## The plan
 
-The map is a single issue on this repo's issue tracker, labelled `wayfinder:map` — the canonical artifact. Its tickets are child issues of the map, and so are its [slices](#slices).
-
-The map is an **index**, not a store. It lists the decisions made and points at the tickets that hold their records; a decision lives in exactly one place — its ticket.
-
-**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** Invoke `/issue-tracker` — its "Which tracker?" section resolves which implementation this repo uses, and each implementation carries its wayfinding specifics.
-
-### The map body
-
-The whole map at low resolution, loaded once per session. Open tickets are **not** listed — they are open child issues, found by query.
+The plan is a **spec issue** (per `/issue-tracker`, labelled `spec` and `wayfinder:plan`), so `/ship` builds from it unchanged. Its body is `/specify`'s spec kernel, with three sections of its own first:
 
 ```markdown
 ## Destination
 
-<what reaching the end of this map looks like — one or two lines; every session orients to it>
-
-## Principles
-
-<!-- map-specific principles, as deltas over PRINCIPLES.md per /principles; "none beyond the repo's" is a valid entry -->
+<the working thing — one or two lines — and the check that shows it runs>
 
 ## Design
 
-<the high-level design the human agreed at charting: the major parts, how they relate, the flows that matter. Decisions serve it; only a human answer changes it>
+<the high-level design the human agreed at setup: the major parts, how they relate, the flows that matter. Only a human answer changes it>
 
-## Notes
+## Where it stands
 
-<domain; the repo areas whose scoped PRINCIPLES.md files bind this map; skills every session should consult; checkpoint cadence if not the default>
-
-## Decisions so far
-
-<!-- the index — one line per closed deciding ticket; a superseding decision replaces the line it supersedes -->
-
-- [<closed ticket title>](link) — <one-line gist of the answer>
-
-## Slices
-
-- [<slice name>](link) — <what it ships> (sealed | open)
-
-## Map-wide decisions
-
-- [<closed ticket title>](link)
-
-## Not yet specified
-
-<!-- the fog: in-scope questions you can't ticket yet -->
-
-## Out of scope
-
-<!-- work ruled beyond the destination; closed, never graduates -->
+<rewritten every round: what runs now, what the last round landed and learned, what is next>
 ```
 
-### Tickets
+The effort's own principles go in the kernel's Further Notes as deltas over `PRINCIPLES.md` (per `/principles`), with the merge authorization and the machines and services the run may use. The kernel's **Seams under test** start with what the design names and grow as foundation pieces land.
 
-Each ticket is a **child issue** of the map; its body is the question, sized to one agent session:
+The plan has three kinds of work:
 
-```markdown
-## Question
+- **Pieces** — the plan's `impl` children: a chunk of code sized to one agent session, with acceptance criteria an agent can check, the `D<n>` decisions it builds on, and blocking edges to the pieces whose code it needs. `/ship`'s frontier is the ready pieces.
+- **Risks** — issues labelled `wayfinder:risk`, linked from the plan but never its children, so `/ship` never sees them. Each blocks the pieces that rest on its answer, and nothing else.
+- **Human tasks** — issues labelled `wayfinder:task` and `hitl`, linked the same way: a precise checklist of something only the human can do (a run on hardware the agents can't reach, a credential, an account). Pieces that need the result are blocked on it; everything else builds.
 
-<the decision this ticket resolves, or the question of fact it answers>
-```
+**Decisions live where they are used.** A call only one piece needs is made by the agent building it and recorded on that piece, per `/deciding`. A call two or more pieces need is published as a plan decision `D<n>` (per `/issue-tracker`'s spec decisions) before the pieces that cite it are built, and its record follows `/deciding`'s format.
 
-Each ticket carries a `wayfinder:<type>` label (see [Ticket types](#ticket-types)) and a mode label: `afk` for every ticket an agent works, `hitl` only for a ticket escalated to the human or a task only the human can do.
+## Prove what could sink it, guess the rest
 
-A session **claims** a ticket by labelling it `in-progress`, **first**, before any work. Blocking uses the tracker's dependency relationship (per `/issue-tracker`). A ticket is **unblocked** when every ticket blocking it is closed; the **frontier** is the open, unblocked, unclaimed ticket children.
+A question becomes a **risk** only when building on a wrong guess would waste real work — the design might not hold up, the platform might not do what the design needs, or the answer would change the shape of many pieces. Everything else is decided by best guess: the call the principles and design most plainly imply, made by whichever agent needs it, recorded, and corrected later by the code if it was wrong.
 
-Blocking edges do two jobs here. Charted before a ticket is worked, they are question order; added when a decision is recorded, they are its **rests-on** edges (per `/deciding`). Either way, the tickets a decision blocks are the ones that would have to be re-checked if it changed — its **dependents**.
+A risk is answered by one **spike** — a throwaway prototype per `/prototype`, or a lookup per `/research` — that stops the moment the question is answered, and its answer is recorded as a decision. The failure this prevents is proving things forever: a second prototype to measure a path the first already showed works, a ticket for what a reboot should do, a benchmark nobody's call depends on. A follow-up a spike suggests is a new risk only if it passes the test above on its own; otherwise it is a best guess for the piece that needs it.
 
-## Ticket types
+The same test applies whenever an agent is tempted to open a question instead of deciding: at setup, at every replan, and in every piece's build. A piece agent never stops to ask about a detail; it decides per `/deciding` and carries on.
 
-- **Decision** (`afk`): the default. A product or behaviour question, decided per `/deciding`.
-- **Design** (`afk`): "what structure should power this" — modules, interfaces, data shapes, the seams tests will live at — decided per `/deciding` using `/design`'s method; the record carries the contract snippets and seams that flow into the spec.
-- **Prototype** (`afk`): a question only seeing it run can answer; the agent builds a throwaway per `/prototype`, judges it against the grounds, links it, and records the decision.
-- **Research** (`afk`): a question of *fact* — what an API supports, how comparable systems solve it, what a service costs. Resolves as cited **findings** per `/research`, plus the options they leave open; never a choice. Chart it blocking the decision it feeds, so evidence has a consumer.
-- **Task** (`afk` or `hitl`): work that must happen before a decision can be made — provisioning access, moving data so its shape can be seen. `hitl` when only the human can do it, with a precise checklist.
-- **Reconsider** (`afk`): opened only by the [reconsideration](#reconsideration) trigger, never charted by hand.
+## Ordering for speed
 
-Decision, design, prototype, and reconsider tickets are **deciding** tickets; research and task tickets are **evidence**. A deciding ticket escalates only in `/deciding`'s three cases.
+The graph should be **wide**. Cut pieces along the design's seams, so most pieces need only the foundations and never each other, and every piece whose blockers have landed builds in the same round.
 
-## Fog of war
+A **foundation** is a piece other pieces build on — a skeleton that runs end to end, the shared types, an interface two parts meet at. Foundations go first because their dependents need their code, not because they are first in some plan order, and they land as real code, not documents. An edge between two pieces exists only where one truly needs the other's code; two pieces that only touch the same files have no edge, since `/ship`'s collision check and serial merges handle that.
 
-The map is _deliberately_ incomplete: don't chart what you can't yet see. The **Not yet specified** section holds the dim view — the suspected question, the area to revisit — everything in scope, not sharp enough to ticket.
+Plan only as far as you can see clearly. The first plan holds the foundations, the pieces visible from the design, and the risks; each replan adds the pieces the landed code makes visible.
 
-**Fog or ticket?** The test is whether you can state the question precisely now — _not_ whether you can answer it now. Ticket a sharp question even if it's blocked; leave a fuzzy one in the fog, unsliced, until a resolution sharpens it.
+## The round
 
-## Slices
+The conductor runs rounds until no piece, risk, or human task is open. It never asks the human whether to go on, and announces each round in one line: what's building, what's being proved, what's waiting on the human.
 
-A map's decisions are ordered by what had to be *learned*; implementation is ordered by what *ships together*. So the map partitions its decisions into **slices**: each a demoable outcome that becomes its own spec, its own tickets, its own ship run.
+1. **Reconcile.** Read the plan in full, its open pieces, risks, and human tasks, and the ledger `/ship` keeps on it. A piece or risk claimed by a session that is gone is unclaimed.
+2. **Build and prove, side by side.** Run one `/ship` wave over the ready pieces — its steps 2–3, starting on its bootstrap's branch, with the gate answered per `/deciding` and only what that escalates waiting on the human. Beside it, one background agent per open, unblocked risk works its spike on the **decider tier** (per `/model-policy`). A round with no ready piece still proves its risks; a round with neither waits on the human, reports the queue, and ends the turn.
+3. **Check it runs.** On the merged branch, run the destination's check as far as the code now reaches, and the *Green* set per `/testing`. A red result becomes the first piece of the next round.
+4. **Replan.** One decider subagent reads the wave's ledger, its parked pieces, the spikes' answers, and the code, and updates the plan: rewrites **Where it stands**; records each spike's answer as a decision and closes the risk; fills each parked piece's gap per `/deciding` and unparks it; publishes the `D<n>` decisions the next pieces need; adds, splits, or drops pieces; adds the seams that landed.
+5. **Review.** Launch the plan review per [REVIEW.md](REVIEW.md) in the background over the decisions made since the last one. It runs beside the next round, so building never waits on it; what it finds lands in a later round as corrections (below).
+6. **Progress check.** A round must land a piece or retire a risk. A round that does neither is a **stall**: post a stall report on the plan — what was attempted, what blocked it, what's needed — notify, and escalate. A transient failure (an agent died, a flaky suite) gets one retry first.
 
-A slice is a **child issue of the map** labelled `wayfinder:slice` — never a ticket. Its body:
+When nothing is open, run `/ship`'s closing pass and its done step over the whole branch, then merge or offer the PR per the merge authorization: with it, squash-merge on a clean closing pass; without it, offer the PR. Report the destination's check result and how to run the thing.
 
-```markdown
-## Ships
+## Correcting a decision
 
-<the demoable outcome this slice delivers — one or two lines>
+Friction notes (per `/deciding`) and the plan review's tensions accumulate on decisions. A decision is **reconsidered** when it carries any friction from code — a parked piece or review finding that traces to it — a tension from the plan review, or two notes from anything else, counting only notes since its last reconsideration.
 
-## Decisions
+A reconsideration is one decider agent that reads the decision, its friction, the pieces and decisions that rest on it, and what has been learned since, and returns a plan — **stands** (with why each strain is acceptable), **amend** (a clarification no dependent's code changes over), or **supersede** (a replacement, with every dependent marked unaffected or reworked). A fresh decider agent tries to refute the plan before it applies; a plan refuted twice escalates, and so does one that falls in `/deciding`'s three cases.
 
-- [<closed ticket title>](link)
-```
+A superseding plan amends the plan decision (or the piece's record) and turns each reworked dependent into a piece: code not yet built takes the new decision as written, and code already built gets a **rework piece** that blocks whatever would build further on it. That bounds a bad call's cost to the code built in the rounds before it was caught.
 
-**Blocking edges between slices are the ship order.** **Slices are fog-shaped**: chart one only when you can state what it ships and what it needs first — ship order shows up in the resolutions, never in the question order.
+## Setup
 
-An open ticket whose answer will land in a known slice carries a `Slice: <slice name>` line in its body, set when it is charted or proposed. That line is what tells a slice is still waiting on work.
+This is the one session that is the human's. Load `/grilling`, `/domain-modeling`, and `/hitl-questions`.
 
-**Every closed deciding ticket of record ends up in exactly one place** — a slice's Decisions list, **Map-wide decisions** (the resolutions that bind every slice: the error model, the vocabulary, cross-cutting contracts), or unfiled while the partition is still dim. Filing is a **link, never a copy**. Evidence tickets are never filed; they reach the spec through the decisions that cite them. Neither are two kinds of closed deciding ticket that are not decisions of record: a `superseded` ticket, and a reconsider ticket whose plan was Stands or Amend — it is linked from the decision it reconsidered, never indexed or filed.
+1. **Name the destination**: what the human will run when it's done, and the check that shows it runs — confirmed in one or two lines.
+2. **Settle the principles.** Load `/principles` and read the governing `PRINCIPLES.md` files; draft what's missing with the human, asking which way they lean on the trade-offs this effort will hit. Done when you can predict their call on the hardest decisions you can foresee.
+3. **Agree the high-level design** — the major parts, how they relate, the flows that matter — at the altitude the human holds it.
+4. **Settle the run's limits**: whether it may merge to the default branch on a clean closing pass, which machines and services agents may use, and the human tasks they will need to do.
+5. **Plan the first round**: the foundations, the pieces visible from the design, and the risks, each per the rules above. **If the whole effort fits one agent session**, it needs no plan: say so, and stop.
+6. **Create the plan** (run the tracker's bootstrap first): the spec issue with its body, then its pieces, risks, and human tasks, then the blocking edges in a second pass.
+7. **Hand off.** Load `/multiplexer` and hand off to a session of its own: the repo root, the plan's title as the label, and `/wayfinder <plan>` as the prompt; tell the human the label and stop. With no multiplexer, point at `/wayfinder <plan>` and stop.
 
-### Sealing a slice
+## Conducting
 
-A **sealed** slice is one declared safe to spec while the rest of the map is still foggy — closing the slice issue is the seal. A slice is **ready to seal** when it claims at least one decision, no open ticket names it on a `Slice:` line, and no open reconsideration touches a decision it claims. When a fold leaves a slice ready, the coordinator drafts the seal case: what the slice ships, and each remaining **Not yet specified** patch in one line with why it doesn't land here. An independent agent on the **decider tier** (per `/model-policy`) tries to refute the case; a case it can't refute seals the slice, with the case posted on it. A refuted case leaves the slice open with the reason, and the patch that broke it becomes the next thing charted.
+`/wayfinder <plan>` from any session resumes as conductor at step 1 of the round: all state is on the tracker. The human cancels or redirects by saying so; record it as a comment on the plan so a later session sees it.
 
-A sealed slice that a later decision turns out to belong to is **breached**; a breach is routed exactly as a reconsideration routes a changed decision, by how far the slice has gone (see [Applying a correction](#applying-a-correction)). **Unsealing** a slice means reopening its issue and removing `slice-reviewed`, so it is sealed and reviewed again before it specs.
+The conductor's context holds the run, not its substance. It loads this skill, `/deciding`, `/issue-tracker`, `/model-policy`, and `/finding-pipeline`, and delegates everything heavier, each subagent on its tier per `/model-policy`:
 
-## Out of scope
+- **Fill agents** (executor tier) fill each workflow — the ship wave, the plan review — from the tracker, and the conductor launches it and reads only its typed return.
+- **The replan** and every reconsideration are decider subagents that return one line.
+- **Escalations** are posted durably on the issue they concern, opening `<!-- escalation -->`, and push-notified, per `/deciding`. The conductor routes around them; the human's answer, in any session, is recorded as a decision and the run picks it up next round.
 
-The destination fixes the scope. When a ticket turns out to sit past it, **close it** and leave one line in **Out of scope**: the gist, why, and the link. Out-of-scope work never graduates; it returns only as a fresh effort if the destination is redrawn.
-
-## Folding a resolution
-
-The map body has **one writer**: the **coordinator** — the session running `/drain`, or `/next` when no drain is running. The coordinator claims the map (`in-progress`) for as long as it runs. Every other writer proposes instead: a ticket agent ends its resolution with a `## Map changes proposed` section, and any other stage that would change the map body while it is claimed — `/map-review`'s repairs, another session's reconcile — posts the change as a `## Map changes proposed` comment on the map. Proposals cover new questions now statable (each with its `Slice:` line where known), fog graduated, tickets out of scope or invalidated, the filing of a decision, a new slice now statable (its Ships line and the decisions it claims), and edits to gists. The coordinator **folds** each closed ticket, and each proposal comment on the map, serially:
-
-1. **Index it**: a deciding ticket of record gets its line in Decisions so far (per `/issue-tracker`'s Resolve). Evidence tickets, and reconsider tickets that ended Stands or Amend, are never indexed.
-2. **Apply the proposals** that still hold against the map as it now stands — create the new tickets (every issue first, then the links), clear graduated fog, rule out of scope, file the decision. A proposal a sibling fold already overtook is dropped with a line on the ticket.
-3. **Count toward the checkpoint** and check the [reconsideration trigger](#reconsideration) for every decision that gained friction.
-4. **Seal** any slice this fold left ready (above), and note completion if the map is now complete.
-
-When the frontier holds nothing takeable but **Not yet specified** isn't empty, the coordinator makes a **charting pass**: graduate every patch the record now makes sharp; for one still fuzzy, chart a research ticket whose findings would sharpen it; a patch still fuzzy after its research becomes a decision ticket escalated per `/deciding` — the human is asked what they meant.
-
-## Reconsideration
-
-Friction notes (per `/deciding`) accumulate on decisions. A decision is **reconsidered** when it carries any friction from code — a ship park or review finding that traces to it — or a note saying it breaks a principle, or two notes from anything else — counting only notes posted since its last reconsideration. The coordinator opens a **reconsider** ticket (`wayfinder:reconsider`, `afk`) naming the decision, makes it block every **open** dependent so nothing new is decided on a base under question, and clears the `friction` marker so the same notes never trigger twice.
-
-The reconsider agent reads the decision's record, every friction note on it, the dependents (the tickets it blocks, followed transitively), and whatever has been learned since it was made, and returns a **correction plan** as its record:
-
-- **Stands** — the decision holds; say why each strain is acceptable or belongs to the dependent that reported it, and post a pointer on each strained dependent.
-- **Amend** — a clarification that changes no dependent's call: the amendment text, posted on the decision's ticket.
-- **Supersede** — a replacement decision, with full grounds, plus a line per dependent: unaffected (and why) or re-decide.
-
-The plan is attacked before it applies: a fresh decider-tier agent that didn't write it tries to refute it against the grounds and the dependents' records. A refuted plan gets one revision round with the refutation attached; refuted again, it escalates. A plan escalates anyway when it falls in one of `/deciding`'s three cases — superseding a one-way decision, or one that would change the principles or the design.
-
-### Applying a correction
-
-A superseding plan applies like any fold: the reconsider ticket becomes the decision of record — its line **replaces** the superseded one in Decisions so far and in whatever slice or map-wide list held it, and the old ticket gets the `superseded` marker and a link to its replacement (its record stays, for the audit trail). The slice holding the superseded decision, and each re-decide dependent, is routed by how far that slice has gone:
-
-- **Not yet specced**: reopen the dependent ticket with a comment linking the plan, so it is re-decided on the frontier (the superseded decision itself needs nothing more — its replacement is already filed). A sealed slice touched this way is unsealed.
-- **Specced, not yet shipping** (the spec has no `impl` sub-issues yet): amend the spec with the new decision and remove `spec-reviewed`, so it goes back through `/spec-review`.
-- **Shipping or shipped**: leave the slice sealed and publish the change as an `impl` ticket on its spec, so it lands as follow-up work; note it on the slice.
-
-## Checkpoints
-
-Friction catches the strains a decider notices; a **checkpoint** catches the ones nobody did. After every six folded decisions (or the cadence the map's Notes set), and whenever a slice's spec closes, the coordinator routes `/map-review <map> checkpoint`, which cross-reads the decisions since the last checkpoint against everything they rest on and turns each tension into friction or a reconsideration.
-
-## Completion and handoff
-
-Handoff is **per slice**, and it starts before the map is done — that is what sealing buys. When a slice is sealed:
-
-1. `/map-review <slice>` — cross-read that slice's decisions with the map-wide ones; a coherent slice is marked `slice-reviewed`.
-2. `/specify <slice>` — distill them into a spec issue.
-3. `/spec-review <spec>` — read the spec whole and ground it against the codebase; a clean spec is marked `spec-reviewed`.
-4. `/tickets <spec>` — break it into implementation tickets.
-5. `/ship <spec>` — implement the ticket DAG wave by wave; its closing pass offers the PR.
-
-The **map** is complete when no tickets remain open, **Not yet specified** is empty, every closed deciding ticket of record is filed, and every slice is sealed. Then `/map-review <map>` runs once more over the whole map — the only read that holds every slice at once. The map closes once every slice has a published spec.
-
-**A map with no slices still works**: it completes as one unit, and `/map-review <map>` then `/specify <map>` treat it as a single slice.
-
-`/next <map>` routes to whichever step the tracker says is current; `/next auto <map>` conducts all of them, pausing only for escalations.
-
-## Invocation
-
-### Chart the map
-
-User invokes with a loose idea. This is the one session that is the human's by design: everything agents decide later stands on what is settled here. Load `/grilling` and `/domain-modeling`.
-
-1. **Name the destination.** Grill until what this map is finding its way to is one or two confirmed lines.
-2. **Settle the principles.** Load `/principles` and read the governing `PRINCIPLES.md` files. If the repo has none, or they say nothing about the questions this effort raises, draft the missing principles and reference solutions with the human, and write them to the repo file (or the map's Principles section, where they hold for this effort only). Work by asking which way the human leans on the trade-offs the effort will hit; the test of done is that you can predict their call on the hardest decisions you can foresee.
-3. **Agree the high-level design** — the major parts, how they relate, the flows that matter — at the altitude the human holds it, not down to interfaces.
-4. **Map the frontier, breadth-first**: the open questions across the whole space and the first ones takeable now, each typed. **If this surfaces no fog** — the whole journey fits one session — you don't need a map. Stop and say so.
-5. **Create the map** (label `wayfinder:map`; run the tracker doc's bootstrap first): Destination, Principles, Design, and Notes filled in, the fog sketched into **Not yet specified**. Then create the tickets you can state now as child issues, and add the blocking edges in a second pass. Chart any slice you can already state the same way; most maps can't name one yet.
-6. **Hand off** — charting is one session's work. Load `/multiplexer` and hand off to a session of its own: the repo root, the map's title as the label, and `/next auto <map>` as the prompt; tell the human the label and stop. With no multiplexer, point at `/next auto <map>` and stop.
-
-### Work through the map
-
-User invokes with a map (URL or number), optionally a ticket. Working one ticket by hand follows the same rules an agent does:
-
-1. Load the map body. If the map is already complete, say so and point at [Completion and handoff](#completion-and-handoff).
-2. Choose the ticket — the one named, or the first frontier ticket — and **claim it**.
-3. Resolve it: an evidence ticket per `/drain`'s brief; a deciding ticket per `/deciding`, ending in its record with the proposed map changes; a reconsider ticket per [Reconsideration](#reconsideration).
-4. Close it and **fold** it (above).
-
-An escalated (`hitl`) ticket worked with the human: load `/grilling` and `/hitl-questions`, open from the escalation's draft, and record the human's verdict as the decision record before folding.
-
-To work the whole agent frontier in parallel, run `/drain <map>` instead. Expect other sessions and background agents to be editing the tracker concurrently.
+Re-read the plan from the tracker at every round boundary, so a long run is safe to summarize mid-session.

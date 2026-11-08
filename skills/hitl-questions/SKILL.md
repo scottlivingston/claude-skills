@@ -7,7 +7,7 @@ Every skill in this plugin that puts a question to the human speaks this contrac
 
 ## The opening
 
-A skill that opens a **design conversation** — grilling, design, a wayfinder charting session or escalation — does not open with a question. It opens by **setting context**: what it looked up, what is already true in the code and the tracker, and what it takes the decision space to be. Only then does it ask the human for **their picture** of how the thing should work, in their own words, at whatever length they have.
+A skill that opens a **design conversation** — grilling, design, a wayfinder setup session or escalation — does not open with a question. It opens by **setting context**: what it looked up, what is already true in the code and the tracker, and what it takes the decision space to be. Only then does it ask the human for **their picture** of how the thing should work, in their own words, at whatever length they have.
 
 The human designs; the agent pushes. They usually already hold a shape of the answer, and the opening lets them state it once, whole. Withhold your own proposal here — offered before you have heard their picture, it anchors them to your design.
 
@@ -23,7 +23,7 @@ Finding facts is the agent's job, never the human's. When a question hinges on a
 
 ## The cold reader
 
-Every question is written for a cold reader: someone who joined the project today must be able to answer from the question alone — assume the human has not read the spec, the map, the diff, or the transcript that produced the question. Concretely:
+Every question is written for a cold reader: someone who joined the project today must be able to answer from the question alone — assume the human has not read the spec, the plan, the diff, or the transcript that produced the question. Concretely:
 
 - **Things are named by what they decided or require.** A decision, ticket, or section enters the question as a clause saying what it is — "the decision that every dialog returns keyboard focus to its opener on close" — and is referred to that way on every mention; its title alone is agent-written and can be as opaque as its number. The ID (`D6`, `#401`) appears at most once per question, trailing in parentheses as the record's handle — in the block header or after the first mention — and never in the question line or an option label. Same for locations — "the five admin-side dialogs" beats a crate path.
 - **Situation before question.** Open with one or two sentences: what part of the product this concerns and what the change wants there. Only then the question.

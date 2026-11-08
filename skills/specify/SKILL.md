@@ -1,15 +1,9 @@
 ---
 name: specify
-description: Turn the current conversation — or a completed wayfinder map — into a spec and publish it to the project issue tracker. No interview, just synthesis of what was already discussed or decided. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
+description: Turn the current conversation into a spec and publish it to the project issue tracker. No interview, just synthesis of what was already discussed or decided. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
 ---
 
-This skill produces a spec (you may know this document as a PRD) from one of three inputs. Do NOT interview the user — just synthesize what is already known.
-
-- **Conversation mode** (no argument): synthesize the current conversation context and codebase understanding.
-- **Slice mode** (argument is a `wayfinder:slice` issue URL or number) — **the normal path off a map**: load the slice's parent map for its Destination and Notes, then **zoom every ticket the slice claims plus every entry under Map-wide decisions** — fetch each closed ticket's body and resolution comments. The spec synthesizes exactly those resolutions and no others. The slice must be **sealed** (closed); if it is open, stop and say so. A sealed slice should also carry `slice-reviewed`; if it's absent, flag that the review hasn't run and let the user choose: review first, or spec anyway.
-- **Unsliced-map mode** (argument is a `wayfinder:map` issue URL or number): for a map that was never sliced. Load the map, then **zoom every entry in Decisions so far** — fetch each closed ticket's body and resolution comment; the one-line gists on the map are an index, not the decisions themselves. The spec synthesizes those resolutions. Anything still open on the map (open tickets, non-empty Not yet specified) means the map isn't complete — stop and say so rather than spec around a hole. A complete map should also carry the `map-reviewed` marker; if it's absent, flag that the review hasn't run and let the user choose: review first, or spec anyway. If the map *does* have slices, spec them one at a time in slice mode instead.
-
-In the two map-derived modes, "map mode" below means both unless a line says otherwise.
+This skill produces a spec (you may know this document as a PRD) from the current conversation context and codebase understanding. Do NOT interview the user — just synthesize what is already known. (A `/wayfinder` plan is a spec already: its setup session writes the kernel itself, from `/specify`'s template below.)
 
 For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
@@ -19,15 +13,11 @@ For the issue tracker and triage vocabulary, invoke `/issue-tracker`.
 
 2. Sketch out the seams at which you're going to test the feature. Prefer existing seams, as high and as few as possible — ideally one.
 
-In map mode, the map's resolutions — design tickets especially — settle the seams: carry them into the spec's **Seams under test** list without re-asking. Only check with the user if the map left the seams genuinely undecided (and note that as a gap in the map). In conversation mode, check with the user that these seams match their expectations — the one interview moment this skill allows.
+Check with the user that these seams match their expectations — the one interview moment this skill allows.
 
 3. Write the spec as two kinds of unit — a **kernel** that binds every ticket, and **addressable decisions** (`D1`…`Dn`) that each bind only some — using the templates below. Publish the kernel as the spec's body and each decision as its own unit, in index order, per the tracker doc's spec-decision convention. The split keeps each agent's context bounded and every unit under the tracker's body-size cap. Apply the `spec` label, no triage label (if the label doesn't exist yet, run the tracker doc's bootstrap first).
 
-In **slice mode**, comment the published spec's link on the slice, and add it to the slice's line in the map's Slices section. Close the map only when this was the **last unspecced slice** of a complete map. Later slices may still be foggy; that is expected.
-
-In **unsliced-map mode**, comment on the map linking the published spec — the map's destination is reached — and close the map.
-
-The **kernel inherits the map-wide decisions** in slice mode: a resolution filed map-wide binds every slice, so it belongs in the kernel (Solution, Testing Decisions, Further Notes) rather than as an indexed decision — the Decision Index is for what *this* slice settled. End by pointing the user at the next step: `/spec-review <spec>`.
+End by pointing the user at the next step: `/spec-review <spec>`.
 
 <spec-template>
 
@@ -61,7 +51,7 @@ One line per implementation decision, in index order:
 
 The index is the complete list of what was decided; the decisions themselves are published as separate addressable units (see the decision template below). Write each gist specific enough that "the spec never asked for this" is checkable against it.
 
-What makes a decision: one settled question — typically one map resolution — covering modules and their interfaces, architectural calls, schema changes, API contracts, specific interactions, technical clarifications from the developer. The test is that a *subset* of the implementation tickets needs its full text; a decision every ticket would cite isn't a decision, it's the Solution or a Testing Decision, and belongs in the kernel.
+What makes a decision: one settled question, covering modules and their interfaces, architectural calls, schema changes, API contracts, specific interactions, technical clarifications from the developer. The test is that a *subset* of the implementation tickets needs its full text; a decision every ticket would cite isn't a decision, it's the Solution or a Testing Decision, and belongs in the kernel.
 
 ## Testing Decisions
 
@@ -91,7 +81,7 @@ One unit per Decision Index entry, published per the tracker doc's spec-decision
 - **Decided:** the verdict, stated so an implementer can act on it without reading any debate.
 - **Because:** the rationale, one or two lines — no more.
 - **Rejected:** the alternatives that lost, one line.
-- **Origin:** link(s) to the map ticket(s) that settled it, or "this conversation". The debate lives at the link, never here.
+- **Origin:** link(s) to where it was settled — a wayfinder piece, a spike, or "this conversation". The debate lives at the link, never here.
 
 Then the decision's substance:
 

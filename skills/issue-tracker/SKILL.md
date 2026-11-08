@@ -28,17 +28,14 @@ Triage roles: `needs-triage` (maintainer must evaluate), `needs-info` (waiting o
 Workflow roles:
 
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
-- `map-reviewed` — applied to a map by `/map-review` when its resolutions survive the whole-map cross-read. Reopening any child ticket removes it.
-- `slice-reviewed` — the same marker one altitude down: applied to a **sealed slice** by `/map-review` when that slice's decisions survive their cross-read. Reopening the slice removes it.
-- `spec` — a spec issue published by `/specify`.
+- `spec` — a spec issue, published by `/specify` or created as a `/wayfinder` plan.
 - `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding.
-- `impl` — an implementation ticket published by `/tickets` (a child of its spec).
+- `impl` — an implementation ticket (a child of its spec), published by `/tickets` or planned as a `/wayfinder` piece.
 - `review-finding` — a ticket published from a review-gate finding (per `/finding-pipeline`): carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `effort-seed` — an idea parked for a future `/iterate` effort, published by `/seed`; closed when an effort kicks off from it.
-- `hitl` / `afk` — a wayfinder ticket's mode: waiting on the human (escalated, or a task only they can do), or agent-worked. Every wayfinder child carries exactly one.
+- `hitl` / `afk` — a wayfinder risk's or task's mode: waiting on the human (escalated, or a task only they can do), or agent-worked. Each carries exactly one.
 - `friction` — a decision carrying friction notes (per `/deciding`) not yet acted on; cleared when its reconsideration opens.
-- `superseded` — a closed decision replaced by a later one (per `/wayfinder`); its replacement is linked in a comment.
-- `wayfinder:map`, `wayfinder:slice`, and `wayfinder:<type>` (`decision`/`design`/`prototype`/`research`/`task`/`reconsider`) — wayfinder's map, its delivery slices, and its ticket types. A map's children are its tickets *and* its slices; only the type-labelled ones are tickets.
+- `wayfinder:plan`, `wayfinder:risk`, `wayfinder:task` — a `/wayfinder` plan (a spec), a risk a spike answers, and a task only the human can do. Risks and tasks are **linked** to their plan, never its children, so they stay off the plan's frontier.
 
 ### Ticket operations
 
@@ -52,8 +49,8 @@ Workflow roles:
 
 ### Structure operations
 
-- **Parent/child**: link a ticket as a child of a parent — implementation tickets under their spec, wayfinder tickets and slices under their map.
-- **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Use the tracker's native dependency relationship (per `/wayfinder`, it shows the frontier in the tracker's UI), falling back to a body convention only where none exists. Edges may be added between closed tickets too — a decision's rests-on edges (per `/deciding`) are blocking edges added at resolution.
+- **Parent/child**: link a ticket as a child of a parent — implementation tickets under their spec, which includes a wayfinder plan's pieces.
+- **Blocking**: record that a ticket is blocked by another; a ticket is **unblocked** when every blocker is closed. Use the tracker's native dependency relationship (it shows the frontier in the tracker's UI), falling back to a body convention only where none exists. Edges may be added between closed tickets too — a decision's rests-on edges (per `/deciding`) are blocking edges added at resolution.
 - **Dependents**: list the tickets a ticket blocks, open or closed — what would need re-checking if it changed.
 
 ### Spec decisions
@@ -66,8 +63,8 @@ A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed
 ### Workflow operations
 
 - **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed.
-- **Frontier query**: a parent's open **ticket** children, minus any with an open blocker, minus any claimed; first in parent order wins. On a map, ticket children are the `wayfinder:<type>`-labelled ones — slices are children too and are never on the frontier.
-- **Resolve** (wayfinding): comment the answer on the ticket — a decision record for a deciding ticket (per `/deciding`), findings for an evidence ticket — close it, and remove the claim. Folding then appends a deciding ticket's pointer (title-wrapped link + one-line gist) to the map's Decisions so far; an evidence ticket is never indexed (per `/wayfinder`).
+- **Frontier query**: a parent's open **ticket** children, minus any with an open blocker, minus any claimed; first in parent order wins.
+- **Plan link**: a risk or task carries a `Plan: <ref>` line at the top of its body; listing a plan's risks and tasks is a query for that line plus the label.
 
 ## GitHub implementation (default)
 
@@ -79,7 +76,6 @@ Labeling with a label the repo lacks fails, on create and edit alike, so before 
 
 ```sh
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
-gh label create map-reviewed       --force -c "#0e8a16" -d "Map resolutions cross-read and coherent (/map-review)"
 gh label create spec               --force -c "#0e8a16" -d "Spec issue (published by /specify)"
 gh label create spec-reviewed      --force -c "#0e8a16" -d "Spec read whole and grounded against the code (/spec-review)"
 gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /tickets)"
@@ -88,16 +84,9 @@ gh label create effort-seed        --force -c "#c2e0c6" -d "Idea parked for a fu
 gh label create hitl               --force -c "#d93f0b" -d "Waiting on the human"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
 gh label create friction           --force -c "#fbca04" -d "Decision strained by later work; reconsideration pending"
-gh label create superseded         --force -c "#cccccc" -d "Decision replaced by a later one"
-gh label create slice-reviewed     --force -c "#0e8a16" -d "Sealed slice cross-read and coherent (/map-review)"
-gh label create wayfinder:map      --force -c "#006b75" -d "Wayfinder map"
-gh label create wayfinder:slice    --force -c "#006b75" -d "Wayfinder delivery slice (one spec's worth of decisions)"
-gh label create wayfinder:research --force -c "#c5def5" -d "Wayfinder ticket: research"
-gh label create wayfinder:prototype --force -c "#c5def5" -d "Wayfinder ticket: prototype"
-gh label create wayfinder:decision --force -c "#c5def5" -d "Wayfinder ticket: decision"
-gh label create wayfinder:reconsider --force -c "#c5def5" -d "Wayfinder ticket: reconsider an earlier decision"
-gh label create wayfinder:design   --force -c "#c5def5" -d "Wayfinder ticket: design"
-gh label create wayfinder:task     --force -c "#c5def5" -d "Wayfinder ticket: task"
+gh label create wayfinder:plan     --force -c "#006b75" -d "Wayfinder plan (a spec the run builds on its own)"
+gh label create wayfinder:risk     --force -c "#c5def5" -d "Wayfinder risk: a question a spike answers"
+gh label create wayfinder:task     --force -c "#c5def5" -d "Wayfinder task only the human can do"
 gh label create needs-triage       --force -c "#ededed" -d "Maintainer must evaluate"
 gh label create needs-info         --force -c "#ededed" -d "Waiting on reporter"
 gh label create ready-for-agent    --force -c "#bfd4f2" -d "Fully specified, ready for an AFK agent"
@@ -122,13 +111,11 @@ One **issue comment per decision** on the spec issue, posted in index order imme
 
 ### Wayfinding specifics
 
-The **map** is a single issue labelled `wayfinder:map`, holding the map body per `/wayfinder`. Each **child ticket** is a sub-issue of the map, labelled `wayfinder:<type>` plus its mode, `hitl` or `afk`.
-
-Each **slice** is also a sub-issue of the map, labelled `wayfinder:slice` and carrying no type or mode label — that absence is what keeps it off the frontier. Ship order between slices uses the same native dependency edges as ticket blocking. A slice is **sealed** by closing it, and `slice-reviewed` is applied after it closes; a breach reopens it and removes the marker.
+The **plan** is a spec issue labelled `spec` and `wayfinder:plan`; its pieces are `impl` sub-issues. Risks and tasks are ordinary issues with the plan link line, never sub-issues; their blocking edges to pieces use the native dependency relationship.
 
 ## Local markdown implementation (fallback)
 
-Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, wayfinder type on a `Type:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children, and being there is what makes a ticket `impl`. Standalone tickets — e.g. `/diff-review`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`. Seeds live in the main checkout at `.scratch/seeds/<slug>.md`, with `Labels: effort-seed` and `Status: open`.
+Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to lines in each file: triage and claim state on a `Status:` line, mode on a `Mode:` line, and any role the path doesn't already encode (`review-finding`, …) on a `Labels:` line. Path encodes the rest: `spec.md` is the spec; files under `issues/` are its children, and being there is what makes a ticket `impl`. Standalone tickets — e.g. `/diff-review`'s adopt-as-rule cleanups — live outside every feature directory at `.scratch/review-findings/<NN>-<slug>.md`, with `Labels: review-finding` and `Status: needs-triage`. Seeds live in the main checkout at `.scratch/seeds/<slug>.md`, with `Labels: effort-seed` and `Status: open`.
 
 ### Ticket operations
 
@@ -142,18 +129,15 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 ### Structure operations
 
-- **Parent/child**: the directory is the parent — a spec's children live in its `issues/` subdirectory, a map's tickets in `map/`, a map's slices in `slices/`.
+- **Parent/child**: the directory is the parent — a spec's children live in its `issues/` subdirectory.
 - **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `closed`. **Dependents** are the files whose `Blocked by` line names it.
 - **Spec decisions**: inline in `spec.md` — a `## Decisions` section after the kernel, one `### D<n>: <title>` heading per decision in index order. No size cap locally; the headings alone provide the addressability.
 
 ### Workflow operations
 
 - **Claim**: set `Status: in-progress` and save before any work; unclaim by reverting it. **Claim check**: read the `Status:` lines.
-- **Frontier query**: scan the parent's ticket directory — `map/` for a map, `issues/` for a spec — for files that are open, unblocked, and unclaimed; first by number wins. `slices/` is never scanned, which is what keeps slices off the frontier.
-- **Resolve**: the answer goes under an `## Answer` heading; the map's Decisions so far lives in `map.md`.
+- **Frontier query**: scan the spec's `issues/` directory for files that are open, unblocked, and unclaimed; first by number wins.
 
 ### Wayfinding specifics
 
-The **map** is `.scratch/<effort>/map.md` — the map body per `/wayfinder`. Each **child ticket** is `.scratch/<effort>/map/NN-<slug>.md` — its own directory, so wayfinder tickets never mix with the spec's `issues/` — with the question in the body, a `Type:` line (`decision`/`design`/`prototype`/`research`/`task`/`reconsider`), a `Mode:` line (`hitl`/`afk`), a `Status:` line, and `friction` or `superseded` on a `Labels:` line when they apply.
-
-Each **slice** is `.scratch/<effort>/slices/NN-<slug>.md`, numbered in ship order, with the Ships / Decisions body, `Labels: wayfinder:slice`, a `Blocked by: NN, NN` line naming the slices it ships after, and a `Status:` line. Sealing sets `Status: closed`; `slice-reviewed` goes on the `Labels:` line. A slice's spec is `.scratch/<effort>/<slice-slug>/spec.md` — one feature directory per slice, so each slice's tickets stay separate.
+The **plan** is `.scratch/<effort>/spec.md` with `Labels: spec, wayfinder:plan`, and its pieces are the files in `issues/`. Risks and tasks are `.scratch/<effort>/risks/NN-<slug>.md` — outside `issues/`, so the frontier scan never sees them — with `Labels: wayfinder:risk` or `wayfinder:task`, a `Mode:` line, and a `Status:` line. A piece blocked on one names it in its `Blocked by` line as `risks/NN`.

@@ -4,7 +4,7 @@ description: Grow a feature slice by slice — settle only what the next slice n
 disable-model-invocation: true
 ---
 
-The iterative spine, beside `/wayfinder` → `/next`. Where a map settles every decision before code exists, an effort here settles decisions **just in time**: a slice settles what its own build needs, and everything else waits in the fog until a slice reaches it. Slices are discovered one at a time, never planned ahead — each chosen from what exists now and what the last one taught.
+The human-driven spine, beside `/wayfinder`. Where a wayfinder effort runs on its own once its inputs are set, an effort here keeps the human in every slice and settles decisions **just in time**: a slice settles what its own build needs, and everything else waits in the fog until a slice reaches it. Slices are discovered one at a time, never planned ahead — each chosen from what exists now and what the last one taught.
 
 ## The log
 

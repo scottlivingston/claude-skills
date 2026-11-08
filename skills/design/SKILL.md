@@ -1,6 +1,6 @@
 ---
 name: design
-description: Decide the shape of code before it's built — modules, interfaces, function signatures, data shapes, and the seams tests will live at. Use when the user wants to be intentional about structure, or as the method an agent follows on a wayfinder design ticket.
+description: Decide the shape of code before it's built — modules, interfaces, function signatures, data shapes, and the seams tests will live at. Use when the user wants to be intentional about structure, or as the method an agent follows when a wayfinder piece sets a structure other pieces build on.
 ---
 
 # Design
@@ -11,7 +11,7 @@ This is planning, not building: the output is **decisions**, recorded on the tic
 
 ## Process
 
-1. **Pin the question.** What structure is being decided, and for what behaviour? Load the surrounding context — the map's Destination and Notes when working a wayfinder ticket, the conversation otherwise.
+1. **Pin the question.** What structure is being decided, and for what behaviour? Load the surrounding context — the plan's Destination and Design when working a wayfinder piece, the conversation otherwise.
 
 2. **Read the terrain, then open per the contract.** Load `/hitl-questions` and `/domain-modeling`. Existing modules, interfaces, and conventions near the change; check `CONTEXT.md` for vocabulary and ADRs for constraints (per `/domain-modeling`). What you found *is* the context `/hitl-questions`' opening sets: lay it out, then ask the human how they picture the structure and reflect the split back before proposing anything of your own. Every structural question thereafter reaches them per that same contract — in the project's domain language, as what exists and how it behaves.
 
@@ -19,10 +19,10 @@ This is planning, not building: the output is **decisions**, recorded on the tic
 
 4. **Capture decisions as contracts.** Where a snippet states the decision more precisely than prose — a type shape, an interface stub, a function signature, a state shape — write the snippet, trimmed to the decision-rich parts.
 
-5. **Record the resolution**: the decisions, their contract snippets, and the **seams under test** they imply. On a wayfinder ticket, resolve per the wayfinder skill. Offer an ADR only when `/domain-modeling`'s three-part test passes.
+5. **Record the resolution**: the decisions, their contract snippets, and the **seams under test** they imply. On a wayfinder piece, record them per `/wayfinder`'s *Decisions live where they are used*. Offer an ADR only when `/domain-modeling`'s three-part test passes.
 
 ## Rules
 
 - **With the human, the human owns every structural decision.** Look up facts in the code; put decisions to the human.
-- **On a wayfinder design ticket, the agent decides** per `/deciding`, following steps 1, 3, and 4 with the grounds standing where the human's picture would — step 2's conversation becomes reading the terrain — and the decision record carrying step 5's contracts and seams.
+- **On a wayfinder piece, the agent decides** per `/deciding`, following steps 1, 3, and 4 with the grounds standing where the human's picture would — step 2's conversation becomes reading the terrain — and the decision record carrying step 5's contracts and seams.
 - **No implementation.** If validating a shape needs running code, that's a `/prototype` ticket — link the two rather than blurring them.
