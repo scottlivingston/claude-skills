@@ -6,6 +6,8 @@ Starting an effort sets a direction, not a plan. It ends with an index holding a
 
    **From a seed**, load `/issue-tracker` and read the seed ticket: its Destination draft and Fog are the picture to reflect back and work from, and its Spotted note is where to look in the code first.
 
+   **From a triage** run earlier in this session, the triage is the picture. The Destination draft covers its items, and each defect's done-if-unreproduced is part of the Destination's "good enough to stop". Each item goes into the Fog as one line carrying its verdict and the `file:line` the triage found, so the first Choose can take the checked fixes as one slice ahead of the defects.
+
    Done when the human confirms the Destination paragraph as theirs. The first time it is stateable in a paragraph is the time to stop — the questions still open are what the slices are for.
 
 2. **Place the log.** Pick a short slug. The log's directory goes where the repo already keeps planning notes; with no convention, `docs/efforts/<slug>/`. Say where.

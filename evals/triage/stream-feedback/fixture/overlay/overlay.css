@@ -1,0 +1,14 @@
+/* The Overlay, sized to the OBS browser source. */
+.overlay { container-type: inline-size; position: relative; }
+
+/* Darkening behind the arena text so it reads over any video. */
+.fog {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.35), transparent 70%);
+  filter: blur(24px);
+}
+
+.run-name   { font-size: clamp(14px, 3cqi, 46px); color: #fff; }
+.matchup    { font-size: clamp(12px, 2.4cqi, 36px); color: #fff; }
+.vote-count { font-size: clamp(11px, 2cqi, 30px); color: #fff; }
+.countdown  { font-size: clamp(12px, 2.6cqi, 40px); color: #ffd84a; }
