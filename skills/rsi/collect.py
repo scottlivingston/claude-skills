@@ -14,12 +14,17 @@ on top:
     misses `scott-skills:iterate`. Claude Code sessions are re-read for their
     `attributionSkill` records, Skill tool calls, and the plugin version
     whose skill files they loaded.
+  - Workflow agents: the collector reads only `<session>/subagents/*.jsonl`,
+    so the agents a Workflow spawns, under
+    `<session>/subagents/workflows/<run>/`, are added here, each with its
+    role from the `.meta.json` beside it (`impl`, `merge`, `review`, ...).
   - Sub-agent sessions inherit their parent session's skills and version, so
     a workflow's agents count toward the skill that launched them.
   - Eval runs (sessions run from a temp directory), sessions before --since,
     and the --exclude session are dropped.
   - Sampling spreads across skills and holds a quarter of the slots each for
-    sub-agent sessions and sessions with no skill.
+    sub-agent sessions and sessions with no skill; sub-agents spread across
+    roles as well, so a wave's builders are read and not only its reviewers.
 
 Prints one JSON object to stdout:
   window     {since, until}: until is the newest swept session's mtime
@@ -93,6 +98,44 @@ def read_claude_session(path: Path):
     return skills, version
 
 
+def find_with_workflow_agents(claude_home: Path, cutoff: datetime, include_subagents: bool):
+    """The collector's Claude Code discovery, plus the agents Workflow runs
+    spawn, which it never globs."""
+    files = FIND_CLAUDE(claude_home, cutoff, include_subagents)
+    if include_subagents:
+        for path in (claude_home / "projects").glob("*/*/subagents/workflows/*/*.jsonl"):
+            try:
+                mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+            except OSError:
+                continue
+            if mtime >= cutoff:
+                files.append((mtime, path))
+        files.sort(key=lambda item: item[0], reverse=True)
+    return files
+
+
+FIND_CLAUDE = upstream.find_claude_session_files
+upstream.find_claude_session_files = find_with_workflow_agents
+
+
+def claude_parent(source: str) -> str:
+    """The session a Claude Code sub-agent belongs to: the directory holding
+    its `subagents/` folder, at any depth below it."""
+    parts = Path(source).parts
+    return parts[len(parts) - 1 - parts[::-1].index("subagents") - 1]
+
+
+def agent_role(source: str):
+    """A workflow agent's role, from the label in its .meta.json
+    (`impl:#57` → `impl`), or None."""
+    meta = Path(source).with_suffix(".meta.json")
+    try:
+        label = json.loads(meta.read_text()).get("description") or ""
+    except (OSError, ValueError):
+        return None
+    return re.split(r"[:#\s]", label, maxsplit=1)[0] or None
+
+
 def qualify(names, plugin, owned):
     """Name a bare skill the collector detected the way Claude Code would."""
     out = []
@@ -131,7 +174,8 @@ def sample(rows, limit):
     def round_robin(pool, budget, picked):
         by_skill = {}
         for r in pool:
-            for k in r["skills"] or [""]:
+            # a workflow agent queues by its role, everything else by skill
+            for k in [("role", r["role"])] if r.get("role") else [("skill", k) for k in r["skills"] or [""]]:
                 by_skill.setdefault(k, []).append(r)
         queues = [q for _, q in sorted(by_skill.items(), key=lambda kv: -len(kv[1]))]
         while budget > 0 and any(queues):
@@ -175,7 +219,7 @@ def main():
         source = s["file"]
         parent = None
         if s["harness"] == "claude" and is_agent:
-            parent = Path(source).parent.parent.name  # <project>/<session>/subagents/<agent>.jsonl
+            parent = claude_parent(source)
         elif is_agent:
             parent = s["meta"].get("parent_id")
         if modified <= since or cwd.startswith(TEMP_PREFIXES) or sid in a.exclude or (parent and parent in a.exclude):
@@ -198,6 +242,7 @@ def main():
             "modified": modified.isoformat(),
             "skills": skills,
             "ran": ran,
+            "role": agent_role(source) if s["harness"] == "claude" and is_agent else None,
             **{k: s["stats"].get(k) for k in ("user_turns", "tool_calls", "repeated_tool_calls", "error_outputs", "has_code_edits")},
         }
         if not row["transcript"]:
