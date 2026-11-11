@@ -41,8 +41,11 @@ const STANDARDS_SOURCES = FILL    // [{ path: "CONVENTIONS.md", scope: "repo roo
 const OPEN_REVIEW_TICKETS = FILL  // pre-fetched open review-finding tickets: [{ ref, title, body }] — [] if none
 const PRIOR_LEDGER_SUMMARIES = FILL // pre-fetched prior wave/closing summary comments: ["..."] — [] if none
 const PRIOR_ANSWERS = FILL        // pre-fetched answer record — the answered entries in prior wave/closing summaries and the spec comments their verdicts posted, verbatim: ["..."] — [] if none; binding spec text for classification
-const TRACKER_MECHANICS = FILL    // prose: the tracker's claim/unclaim/close/comment/create/label/parent operations per /issue-tracker (exact commands)
+const TRACKER_MECHANICS = FILL    // prose: the tracker's claim/unclaim/close/comment/create/label/parent operations per /issue-tracker (exact commands) — tracker mechanics only; rules for the run go in RUN_RULES
+const RUN_RULES = FILL            // prose: rules every planner, implementer and merge agent of this run follows beyond the spec, e.g. a /wayfinder plan's "decide per /deciding instead of parking" — "" when none
 const WIDE = FILL                 // true past ~15 files / ~1,500 changed lines expected → partitioned review
+const BUILD_SLOTS = FILL          // how many build and test commands may run at once on this host, across every agent of the run — the run's limits when set (per /wayfinder), else a quarter of the host's cores, at least 1
+const BUILD_SLOT_CMD = FILL       // absolute path of the installed ship skill's build-slot.sh
 const TEST_NOTES = FILL           // per /testing: the governing TESTING.md sections verbatim (Typecheck, Unit, Integration, Scoping to a change, Green — each with the scope it binds), or "" when the repo has none and agents discover commands themselves
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model ('sonnet'), or null to inherit the session model
@@ -76,6 +79,22 @@ const COMMON = j([
   'Commits under review: run ' + LOG_CMD + ' yourself — full messages, they carry deviation notes.',
 ])
 
+// Every agent that builds or tests runs those commands through the host's build slots, so a
+// wave of many agents never runs more than BUILD_SLOTS of them at once.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, e2e sections, anything from the test recipes — through the host\'s build slots: sh ' + BUILD_SLOT_CMD + ' ' + BUILD_SLOTS + ' ' + JSON.stringify(SHIP_BRANCH) + ' -- <command>. It waits for a free slot, then runs the command. Run a long one with run_in_background and wait for its completion notice; a run you have not seen finish has no result yet.'
+
+// /deciding's decision-record format, rendered from DECISION_ITEMS. /deciding owns the format;
+// keep this in step with its "The decision record".
+const GROUND_LABEL = { principle: 'Principle', design: 'Design', 'rests-on': 'Rests on', 'prior-art': 'Prior art', code: 'Code' }
+function renderRecord(d) {
+  return [
+    '<!-- decision-record -->', '## Decision', '', d.decision, '', '## Grounds', '',
+    ...d.grounds.map(g => '- **' + (GROUND_LABEL[g.kind] || g.kind) + ':** "' + g.quote + '" — ' + g.source), '',
+    '## Rejected', '', ...(d.rejected.length ? d.rejected.map(r => '- ' + r) : ['- none']), '',
+    '## Reversal', '', d.reversal,
+  ].join('\n')
+}
+
 const SPEC_CONTEXT = j([
   'Spec kernel (spec issue ' + SPEC_ISSUE_REF + ') — Testing Decisions, Seams under test, and the Decision Index included; index one-liners stand in for every decision not given in full below:',
   SPEC_KERNEL,
@@ -106,13 +125,41 @@ const CLAIM_SCHEMA = {
   },
 }
 
+// One call an agent made that the spec does not settle. Requiring quoted grounds means the
+// agent must open the files it cites; the record posted on the ticket is rendered from these
+// fields by renderRecord, in /deciding's decision-record format.
+const DECISION_ITEMS = {
+  type: 'array',
+  description: 'every call you made that the spec, its decisions and the plan do not settle; [] when you made none',
+  items: {
+    type: 'object', required: ['decision', 'grounds', 'rejected', 'reversal'],
+    properties: {
+      decision: { type: 'string', description: 'the call, stated so a spec can lift it' },
+      grounds: {
+        type: 'array', minItems: 1,
+        items: {
+          type: 'object', required: ['kind', 'quote', 'source'],
+          properties: {
+            kind: { enum: ['principle', 'design', 'rests-on', 'prior-art', 'code'] },
+            quote: { type: 'string', description: 'the line it stands on, copied from the file or plan section you opened in this run, never from this brief' },
+            source: { type: 'string', description: 'the file path or plan section the quote is from' },
+          },
+        },
+      },
+      rejected: { type: 'array', items: { type: 'string' }, description: 'each alternative, with the ground it lost on' },
+      reversal: { type: 'string', description: '"two-way" or "one-way", then what undoing it would cost once built' },
+    },
+  },
+}
+
 const PLAN_SCHEMA = {
-  type: 'object', required: ['status', 'plan', 'files', 'seams'],
+  type: 'object', required: ['status', 'plan', 'files', 'seams', 'decisions'],
   properties: {
     status: { enum: ['planned', 'parked'] },
     plan: { type: 'string', description: 'the implementation plan as posted to the ticket; the park reason when parked' },
     files: { type: 'array', items: { type: 'string' }, description: 'files the work is expected to change' },
     seams: { type: 'array', items: { type: 'string' }, description: 'seams the work will touch or reshape' },
+    decisions: DECISION_ITEMS,
   },
 }
 
@@ -125,20 +172,44 @@ const COLLISION_SCHEMA = {
 }
 
 const IMPL_SCHEMA = {
-  type: 'object', required: ['status', 'branch', 'notes'],
+  type: 'object', required: ['status', 'branch', 'notes', 'redRuns', 'decisions'],
   properties: {
     status: { enum: ['done', 'parked'] },
     branch: { type: 'string', description: 'the worktree branch holding the commits (git rev-parse --abbrev-ref HEAD); "" when parked' },
-    notes: { type: 'string', description: 'deviations from the plan, or the park reason' },
+    notes: { type: 'string', description: 'deviations from the plan and missed decision routing, as the ticket comment to post; the park reason when parked' },
+    redRuns: {
+      type: 'array',
+      description: 'for each behaviour you added or changed, the test run you saw FAIL before writing the code that greens it; [] only when the ticket changes no behaviour',
+      items: {
+        type: 'object', required: ['test', 'command', 'failure'],
+        properties: {
+          test: { type: 'string', description: 'the test name' },
+          command: { type: 'string', description: 'the command you ran' },
+          failure: { type: 'string', description: 'the failure line it printed, copied' },
+        },
+      },
+    },
+    decisions: DECISION_ITEMS,
   },
 }
 
 const MERGE_SCHEMA = {
-  type: 'object', required: ['status', 'sha', 'testSummary'],
+  type: 'object', required: ['status', 'sha', 'testSummary', 'runs'],
   properties: {
     status: { enum: ['merged', 'parked'] },
     sha: { type: 'string', description: 'ship-branch HEAD after the merge; "" when parked' },
     testSummary: { type: 'string' },
+    runs: {
+      type: 'array', minItems: 1,
+      description: 'every test invocation the merge required, each with the result you saw it print on finishing',
+      items: {
+        type: 'object', required: ['command', 'result'],
+        properties: {
+          command: { type: 'string' },
+          result: { type: 'string', description: 'the summary or exit line the finished run printed, copied — never "running", "started" or a timeout' },
+        },
+      },
+    },
   },
 }
 
@@ -323,7 +394,8 @@ function plannerPrompt(t) {
     SPEC_CONTEXT,
     'Your ticket (' + t.ref + ' — ' + t.title + '):',
     t.body,
-    'Post the finished plan as a comment on the ticket, opening with the marker <!-- ship wave-' + WAVE + ' plan -->. Tracker operations:',
+    RUN_RULES ? 'Rules for this run:\n' + RUN_RULES : null,
+    'Post the finished plan as a comment on the ticket, opening with the marker <!-- ship wave-' + WAVE + ' plan -->. Return every call the plan makes that the spec does not settle in decisions; the merge agent posts them as decision records. Tracker operations:',
     TRACKER_MECHANICS,
     'If the ticket cannot be built as written — a decision the spec does not hold, work no listed seam covers — PARK it instead of planning around the gap: unclaim the ticket, comment what is missing on the ticket, comment the gap on spec issue ' + SPEC_ISSUE_REF + ', and return status=parked with the reason.',
   ])
@@ -344,31 +416,54 @@ function collisionPrompt(planned, overlaps) {
 
 function implementerPrompt(t, plan, amendment) {
   return j([
-    'You are the implementer for one ticket of ship wave ' + WAVE + ', working in an ISOLATED WORKTREE. First action: confirm the ticket carries in-progress (tracker operations below). Never touch any other ticket.',
+    'You are the implementer for one ticket of ship wave ' + WAVE + ', working in an ISOLATED WORKTREE. You never write the tracker: the claim agent has claimed your ticket, and the merge agent posts what you return — your notes and decision records — from the main checkout. Writes outside your worktree are refused. Never touch any other ticket.',
     SPEC_CONTEXT,
     'Your ticket (' + t.ref + ' — ' + t.title + '):',
     t.body,
     'Your wave-stamped plan:',
     plan.plan,
     amendment ? 'Collision-check amendment — build against this shared shape:\n' + amendment : null,
-    'Discipline (/implement + /tdd): red–green at the spec\'s seams — red test first, then the code that greens it; typecheck regularly; run single test files regularly; commit in your worktree as you go.',
+    'Discipline (/implement + /tdd): red–green at the spec\'s seams — red test first, run it and see it fail, then the code that greens it; typecheck regularly; run single test files regularly; commit in your worktree as you go. Return each failing run in redRuns. A test written in the same edit as its code never failed, so it has no red run.',
+    BUILD_SLOTS_RULE,
     'Per /implement: Comments and docs state what the code does now, for a reader who never saw the old version: never "no longer", "used to", "the old X", the replaced mechanism\'s name, or a ticket or decision ID. In the files you touch, rewrite any comment or doc that narrates a past change or has gone false. What changed belongs in the commit message.',
     TEST_NOTES ? 'Test recipes (per /testing) — use single test files while working; before you report done, run the UNIT invocations of the Scoping to a change rule applied to the files you touched (never the Green set — integration runs at merge):\n' + TEST_NOTES : null,
-    'If the code contradicts the plan, follow the code and note the deviation in a ticket comment. If you need an uncited decision, check the Decision Index and fetch it by ID, noting the missed routing in a ticket comment.',
-    'If the ticket cannot be built — a decision the spec holds nowhere, work no listed seam covers — PARK: unclaim, comment what is missing on the ticket, comment the gap on spec issue ' + SPEC_ISSUE_REF + ', return status=parked.',
-    'Tracker operations:',
-    TRACKER_MECHANICS,
+    'If the code contradicts the plan, follow the code and note the deviation in your notes. If you need an uncited decision, check the Decision Index and fetch it by ID, noting the missed routing in your notes.' + (TRACKER_READ_OP ? ' Fetch a decision by ID with: ' + TRACKER_READ_OP : ''),
+    'If the ticket cannot be built — a decision the spec holds nowhere, work no listed seam covers — PARK: return status=parked with what is missing in notes; the workflow unclaims the ticket and posts the gap.',
+    RUN_RULES ? 'Rules for this run:\n' + RUN_RULES : null,
     'When done: report your worktree branch (git rev-parse --abbrev-ref HEAD) — the merge agent needs it.',
   ])
 }
 
-function mergePrompt(t, branch, mergeNotes) {
+// What the merge agent posts on the ticket for the stages that cannot write the tracker.
+function postings(plan, impl) {
+  const records = (plan.decisions || []).concat(impl.decisions || []).map(renderRecord)
+  return j([
+    impl.notes ? 'Implementer notes to post as one ticket comment, verbatim:\n' + impl.notes : null,
+    records.length ? 'Decision records to post on the ticket, one comment each, verbatim:\n' + records.join('\n\n---\n\n') : null,
+  ])
+}
+
+function parkPrompt(t, reason, toPost) {
+  return j([
+    'You are the park agent of ship wave ' + WAVE + ' — pure tracker mechanics, in the MAIN checkout. The implementer of ticket ' + t.ref + ' (' + t.title + ') parked it from its worktree, which cannot write the tracker. Unclaim the ticket, comment what is missing on it, and comment the gap on spec issue ' + SPEC_ISSUE_REF + '.',
+    'What is missing, in the implementer\'s words:\n' + reason,
+    toPost || null,
+    'Tracker operations:',
+    TRACKER_MECHANICS,
+  ])
+}
+
+function mergePrompt(t, branch, mergeNotes, toPost) {
   return j([
     'You are a merge agent of ship wave ' + WAVE + ', working in the MAIN checkout. Merge worktree branch ' + branch + ' (ticket ' + t.ref + ') into ' + SHIP_BRANCH + '. Verify you are on ' + SHIP_BRANCH + ' first.',
     mergeNotes.length ? 'Unreconciled collision notes from the plan stage — you inherit these tensions:\n' + mergeNotes.map(n => '- ' + n).join('\n') : null,
+    RUN_RULES ? 'Rules for this run:\n' + RUN_RULES : null,
     'On conflict, resolve preserving BOTH tickets\' intent, then re-run the scoped unit invocations for the files you resolved. After the merge run the INTEGRATION invocations of the scoped set: the Scoping to a change rule below applied to the merged files (full suite where the rule says so; the whole scoped set when the recipes don\'t split unit from integration; the full suite when no rule exists and the suite is cheap).',
     TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
+    BUILD_SLOTS_RULE,
+    'Green means every required run finished and you saw it pass. A run still going, backgrounded and never read back, or cut off by a tool timeout is not green: wait for it to finish, and report each run\'s finishing line in runs.',
     'NEVER merge on red: a branch that cannot come green is parked — abort/revert the merge so ' + SHIP_BRANCH + ' stays green, comment the failure on the ticket, return status=parked.',
+    toPost ? 'Before closing or parking, post these on the ticket — the implementer worked in a worktree and could not:\n' + toPost : null,
     'On green: close the ticket with a comment linking its commits, remove in-progress. Tracker operations:',
     TRACKER_MECHANICS,
   ])
@@ -551,6 +646,7 @@ function fixAgentPrompt(batch) {
     'Anchor each edit by the proposal\'s quoted snippet. A finding whose staleAfter lists earlier IDs: those fixes may have invalidated this proposal\'s premise — re-ground it against the code as it now stands before applying; if it no longer holds, demote it, kind=other, saying why.',
     'After the whole batch: run the Green set once (the full test suite when no recipe names one); revert any finding-commit that breaks it and demote that finding, kind=test-failure, with the failure attached.',
     TEST_NOTES ? 'Test recipes (per /testing) — the Green section is the set to run:\n' + TEST_NOTES : null,
+    BUILD_SLOTS_RULE,
     'Batch:',
     JSON.stringify(batch.map(f => ({ id: f.id, file: f.file, description: f.description, proposal: f.proposal, sketch: f.sketch, pairWith: f.pairWith || null, dependsOn: f.dependsOn || [], staleAfter: f.staleAfter || [] }))),
   ])
@@ -593,6 +689,19 @@ function ledgerPrompt(escalations, digest) {
 }
 
 // ── Wave stages ──────────────────────────────────────────────────────────────
+
+// Run at most n of the thunks passed to the returned function at once; the rest queue in order.
+function limiter(n) {
+  let running = 0
+  const queue = []
+  const next = () => {
+    if (running >= n || !queue.length) return
+    running++
+    const { thunk, resolve } = queue.shift()
+    Promise.resolve().then(thunk).then(resolve, () => resolve(null)).then(() => { running--; next() })
+  }
+  return thunk => new Promise(resolve => { queue.push({ thunk, resolve }); next() })
+}
 
 const parked = []       // { ref, at, reason }
 const merged = []       // { ref, sha, testSummary }
@@ -640,16 +749,28 @@ if (!CLOSING) {
   // shared promise — strictly serialized, but the first-finished branch merges and
   // tests while the slowest ticket is still implementing. In-wave tickets are
   // dependency-free by construction, so completion order is safe.
+  //
+  // At most 2 × BUILD_SLOTS implementers run at once: each spends part of its time reading and
+  // editing, so twice the slots keeps the slots busy without a worktree per ticket on disk.
   let mergeLock = Promise.resolve()
+  const builderSlot = limiter(Math.max(1, 2 * BUILD_SLOTS))
+  if (active.length > 2 * BUILD_SLOTS) log('Wave ' + WAVE + ': ' + active.length + ' tickets, at most ' + 2 * BUILD_SLOTS + ' implementers at once')
   await parallel(active.map(({ t, plan }) => async () => {
-    const impl = await agent(implementerPrompt(t, plan, amendments.get(t.ref)),
-      { ...tier('executor'), schema: IMPL_SCHEMA, isolation: 'worktree', label: 'impl:' + t.ref, phase: 'Implement' })
+    const impl = await builderSlot(() => agent(implementerPrompt(t, plan, amendments.get(t.ref)),
+      { ...tier('executor'), schema: IMPL_SCHEMA, isolation: 'worktree', label: 'impl:' + t.ref, phase: 'Implement' }))
     if (!impl || impl.status === 'parked' || !impl.branch) {
-      parked.push({ ref: t.ref, at: 'implement', reason: impl ? impl.notes : 'implementer died' })
+      const reason = impl ? impl.notes : 'implementer died'
+      parked.push({ ref: t.ref, at: 'implement', reason })
+      // The implementer cannot write the tracker from its worktree, so its park is posted here,
+      // on the merge chain, which owns main-checkout writes.
+      const posted = mergeLock.then(() =>
+        agent(parkPrompt(t, reason, impl ? postings(plan, { ...impl, notes: '' }) : ''), { ...tier('executor'), effort: 'low', label: 'park:' + t.ref, phase: 'Merge' }))
+      mergeLock = posted.catch(() => null)
+      await posted
       return
     }
     const myTurn = mergeLock.then(() =>
-      agent(mergePrompt(t, impl.branch, collisionNotes), { ...tier('executor'), schema: MERGE_SCHEMA, label: 'merge:' + t.ref, phase: 'Merge' }))
+      agent(mergePrompt(t, impl.branch, collisionNotes, postings(plan, impl)), { ...tier('executor'), schema: MERGE_SCHEMA, label: 'merge:' + t.ref, phase: 'Merge' }))
     mergeLock = myTurn.catch(() => null) // a failed merge never blocks the chain
     const m = await myTurn
     if (m && m.status === 'merged') merged.push({ ref: t.ref, sha: m.sha, testSummary: m.testSummary })
