@@ -15,6 +15,8 @@ Resolve once per session, in this order:
 2. **GitHub** (default): the repo has a GitHub remote (infer from `git remote -v`; `gh` does this automatically inside a clone) and `gh` is available → the GitHub implementation below.
 3. **Local markdown** (fallback): no GitHub remote, or no `gh` → the local implementation below.
 
+**A `/wayfinder` effort is the exception**: its tickets always live in the effort's own store, whatever the repo's tracker — see *Wayfinder efforts* below.
+
 ## The contract
 
 What every implementation must define. A repo override implements (or overrides pieces of) exactly this.
@@ -28,14 +30,14 @@ Triage roles: `needs-triage` (maintainer must evaluate), `needs-info` (waiting o
 Workflow roles:
 
 - `in-progress` — a session is actively working the ticket. Applying it is the **claim** (always the session's first write, before any work); removing it unclaims. An open ticket without it is up for grabs.
-- `spec` — a spec issue, published by `/specify` or created as a `/wayfinder` plan.
-- `spec-reviewed` — applied to a spec by `/spec-review` when it survives the full read and the codebase grounding.
-- `impl` — an implementation ticket (a child of its spec), published by `/tickets` or planned as a `/wayfinder` piece.
+- `spec` — a spec issue: what a change should deliver, which `/diff-review` reviews it against.
+- `impl` — a child ticket of a spec or a `/wayfinder` plan: a plan's piece, or a review-finding fix under a spec.
 - `review-finding` — a ticket published from a review-gate finding (per `/finding-pipeline`): carried by spec-child fix tickets (alongside `impl`) and by standalone repo-wide cleanup tickets.
 - `effort-seed` — an idea parked for a future `/iterate` effort, published by `/seed`; closed when an effort kicks off from it.
 - `hitl` / `afk` — a wayfinder risk's or task's mode: waiting on the human (escalated, or a task only they can do), or agent-worked. Each carries exactly one.
 - `friction` — a decision carrying friction notes (per `/deciding`) not yet acted on; cleared when its reconsideration opens.
-- `wayfinder:plan`, `wayfinder:risk`, `wayfinder:task` — a `/wayfinder` plan (a spec), a risk a spike answers, and a task only the human can do. Risks and tasks are **linked** to their plan, never its children, so they stay off the plan's frontier.
+- `wayfinder:plan`, `wayfinder:risk`, `wayfinder:task`, `wayfinder:decision` — a `/wayfinder` plan, a risk a spike answers, a task only the human can do, and a decision several of its pieces build on. Risks, tasks, and decisions are **linked** to their plan, never its children, so they stay off the plan's frontier.
+- `wayfinder:defect`, `wayfinder:parked` — a piece filed from a failed verification, and a piece its build stopped on, with the reason in a comment.
 
 ### Ticket operations
 
@@ -55,7 +57,7 @@ Workflow roles:
 
 ### Spec decisions
 
-A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed one line each in the spec body's Decision Index (see `/specify`). Two operations:
+A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed one line each in the spec body's Decision Index. Two operations:
 
 - **Publish decision**: attach one decision (ID, title, body) to a spec, in index order.
 - **Read**: reading a spec "in full" means the body plus every decision, in index order; a single decision is fetchable by ID. Decisions are **spec content**, distinct from process comments (wave summaries, review round summaries, spec-gap notes) — an implementation must keep the two tellable apart. A spec with no Decision Index is just its body.
@@ -64,7 +66,7 @@ A spec's implementation decisions are **addressable units**, `D1`…`Dn`, listed
 
 - **Claim / unclaim**: apply / remove `in-progress`. **Claim check**: query which of a set of tickets are claimed.
 - **Frontier query**: a parent's open **ticket** children, minus any with an open blocker, minus any claimed; first in parent order wins.
-- **Plan link**: a risk or task carries a `Plan: <ref>` line at the top of its body; listing a plan's risks and tasks is a query for that line plus the label.
+- **Plan link**: a risk, task, or decision carries a `Plan: <ref>` line at the top of its body; listing a plan's risks, tasks, or decisions is a query for that line plus the label.
 
 ## GitHub implementation (default)
 
@@ -76,17 +78,13 @@ Labeling with a label the repo lacks fails, on create and edit alike, so before 
 
 ```sh
 gh label create in-progress        --force -c "#fbca04" -d "A session is actively working this ticket"
-gh label create spec               --force -c "#0e8a16" -d "Spec issue (published by /specify)"
-gh label create spec-reviewed      --force -c "#0e8a16" -d "Spec read whole and grounded against the code (/spec-review)"
-gh label create impl               --force -c "#1d76db" -d "Implementation ticket (published by /tickets)"
+gh label create spec               --force -c "#0e8a16" -d "Spec issue: what a change should deliver"
+gh label create impl               --force -c "#1d76db" -d "Child ticket: a wayfinder piece or a review-finding fix"
 gh label create review-finding     --force -c "#e99695" -d "Ticket published from a review-gate finding"
 gh label create effort-seed        --force -c "#c2e0c6" -d "Idea parked for a future /iterate effort (/seed)"
 gh label create hitl               --force -c "#d93f0b" -d "Waiting on the human"
 gh label create afk                --force -c "#5319e7" -d "Agent can drive this alone"
 gh label create friction           --force -c "#fbca04" -d "Decision strained by later work; reconsideration pending"
-gh label create wayfinder:plan     --force -c "#006b75" -d "Wayfinder plan (a spec the run builds on its own)"
-gh label create wayfinder:risk     --force -c "#c5def5" -d "Wayfinder risk: a question a spike answers"
-gh label create wayfinder:task     --force -c "#c5def5" -d "Wayfinder task only the human can do"
 gh label create needs-triage       --force -c "#ededed" -d "Maintainer must evaluate"
 gh label create needs-info         --force -c "#ededed" -d "Waiting on reporter"
 gh label create ready-for-agent    --force -c "#bfd4f2" -d "Fully specified, ready for an AFK agent"
@@ -108,10 +106,6 @@ One **issue comment per decision** on the spec issue, posted in index order imme
 ### Workflow operations
 
 - **Frontier query**: the parent's open sub-issues (or task-list children); an open blocker shows as `issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line.
-
-### Wayfinding specifics
-
-The **plan** is a spec issue labelled `spec` and `wayfinder:plan`; its pieces are `impl` sub-issues. Risks and tasks are ordinary issues with the plan link line, never sub-issues; their blocking edges to pieces use the native dependency relationship.
 
 ## Local markdown implementation (fallback)
 
@@ -138,6 +132,8 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 - **Claim**: set `Status: in-progress` and save before any work; unclaim by reverting it. **Claim check**: read the `Status:` lines.
 - **Frontier query**: scan the spec's `issues/` directory for files that are open, unblocked, and unclaimed; first by number wins.
 
-### Wayfinding specifics
+## Wayfinder efforts
 
-The **plan** is `.scratch/<effort>/spec.md` with `Labels: spec, wayfinder:plan`, and its pieces are the files in `issues/`. Risks and tasks are `.scratch/<effort>/risks/NN-<slug>.md` — outside `issues/`, so the frontier scan never sees them — with `Labels: wayfinder:risk` or `wayfinder:task`, a `Mode:` line, and a `Status:` line. A piece blocked on one names it in its `Blocked by` line as `risks/NN`.
+A `/wayfinder` effort keeps its tickets in a local store inside the repo's git directory, reached only through the `wf.py` beside `/wayfinder`'s SKILL.md — never GitHub, never `.scratch/`. Every operation of the contract is a `wf.py` command (`wf.py --help` lists them): `issue create|show|list|edit|comment|label|close|reopen` for tickets and marking, `--parent <plan>` at create for parent/child, `issue block` for blocking edges, `dependents` for dependents, and `pieces` for the frontier. Vocabulary roles are labels with the same string, and there is nothing to bootstrap.
+
+The **plan** is the issue labelled `wayfinder:plan`; its pieces are `impl` issues whose parent is the plan. Risks, tasks, and decisions are ordinary issues with the plan link line, never children. `/wayfinder` owns the bodies and comment markers.

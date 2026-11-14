@@ -22,9 +22,9 @@ See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking g
 **Test only at pre-agreed seams.** Before writing any test, write down the seams under test and confirm them. You can't test everything — agreeing the seams up front is how testing effort lands on the critical paths and complex logic instead of every edge case. Confirmation takes one of two forms:
 
 - **Live session**: ask the user — "What's the public interface, and which seams should we test?" Describe each proposed seam at the interface level, in the project's domain language: what interface it is and what behaviour is observable there. Cite the code as `path:line` when the user asks to see it.
-- **AFK session driven by a spec** (a `/ship` agent, say): the spec's **Seams under test** list *is* the confirmation — it was settled upstream, in the `/wayfinder` plan or at `/specify` time. Don't re-ask, and don't widen it.
+- **AFK session driven by a spec**: the spec's **Seams under test** list *is* the confirmation — it was settled upstream, when the spec was written. Don't re-ask, and don't widen it.
 
-Either way, no test is written at an unconfirmed seam. An AFK agent whose work no listed seam covers has found a **spec gap** — park and report it per the ship discipline, never invent a seam.
+Either way, no test is written at an unconfirmed seam. An AFK agent whose work no listed seam covers has found a **spec gap** — park and report it per the run it's part of, never invent a seam.
 
 When the shape of that interface is itself in question — how deep the module is, where the seam belongs, what it should expose — consult `/codebase-design` as a reference, not a session to run.
 

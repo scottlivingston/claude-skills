@@ -10,8 +10,8 @@ export const meta = {
 }
 
 // Template for the /iterate build workflow. This file owns every build agent's
-// prompt; SKILL.md says what the build is for. The plan → collision → implement →
-// merge shape is /ship's wave, minus the tracker (the effort log is the spec, and
+// prompt; SKILL.md says what the build is for. It plans, collision-checks,
+// implements, and merges the parts without the tracker (the effort log is the spec, and
 // reports come back to the session, which alone writes the log) and minus
 // verification (that is the slice's Review stage). Each merge's test run is the
 // slice's test run; the Check phase runs the brief's Done when checks so the

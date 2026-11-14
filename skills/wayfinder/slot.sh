@@ -1,26 +1,27 @@
 #!/bin/sh
-# Run one build or test command in one of a fixed number of host-wide slots.
+# Run one command in one of a fixed number of host-wide slots.
 #
-# Usage: build-slot.sh <slots> <pool> -- <command> [args...]
+# Usage: slot.sh <slots> <pool> -- <command> [args...]
 #
-# Every agent of a ship run wraps its heavy commands in this script with the
-# same <slots> and <pool>, so at most <slots> of them run at once on the host
-# however many agents are working. A caller waits, polling every two seconds,
+# Every agent of a wayfinder effort wraps its heavy commands in this script:
+# builds and tests in the "build" pool, anything that runs a copy of the app in
+# the "drive-<app>" pool. With the same <slots> and <pool>, at most <slots> of
+# them run at once on the host however many agents are working. A caller waits, polling every two seconds,
 # until a slot frees. A slot whose holder died (killed agent, closed terminal)
 # is reclaimed on the next poll. Exits with the command's status; a TERM or
 # INT stops the command as well.
 set -u
 
-[ $# -ge 4 ] && [ "$3" = "--" ] || { echo "usage: build-slot.sh <slots> <pool> -- <command> [args...]" >&2; exit 64; }
+[ $# -ge 4 ] && [ "$3" = "--" ] || { echo "usage: slot.sh <slots> <pool> -- <command> [args...]" >&2; exit 64; }
 slots=$1
 pool=$(printf '%s' "$2" | tr -c 'A-Za-z0-9._-' '_')
 shift 3
-case $slots in ''|*[!0-9]*|0) echo "build-slot.sh: <slots> must be a positive integer" >&2; exit 64 ;; esac
+case $slots in ''|*[!0-9]*|0) echo "slot.sh: <slots> must be a positive integer" >&2; exit 64 ;; esac
 
 # /tmp is shared by every process on the host. Where a sandbox refuses it,
 # $TMPDIR is shared by every agent of the session, which is the run.
-dir=/tmp/build-slots/$pool
-mkdir -p "$dir" 2>/dev/null || { dir=${TMPDIR:-/tmp}/build-slots/$pool; mkdir -p "$dir" || exit 1; }
+dir=/tmp/wayfinder-slots/$pool
+mkdir -p "$dir" 2>/dev/null || { dir=${TMPDIR:-/tmp}/wayfinder-slots/$pool; mkdir -p "$dir" || exit 1; }
 
 held=""
 child=""
@@ -51,7 +52,7 @@ while [ -z "$held" ]; do
     i=$((i + 1))
   done
   if [ -z "$held" ]; then
-    [ "$waited" -eq 0 ] && echo "build-slot: all $slots slots of '$pool' busy, waiting" >&2
+    [ "$waited" -eq 0 ] && echo "slot: all $slots slots of '$pool' busy, waiting" >&2
     waited=1
     sleep 2
   fi

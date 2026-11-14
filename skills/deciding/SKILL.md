@@ -55,7 +55,7 @@ Everything else is decided and recorded. Escalate when:
 2. **It's a one-way door** — undoing it once built costs a migration, a broken external consumer, or a commitment outside the repo: persisted data shapes, public or cross-service interfaces, money, accounts, third parties, deleting anything.
 3. **It would change the human's inputs** — the call contradicts a principle or the design, or only makes sense if one of them changes.
 
-An escalation is drafted, never open: the question, the options with what each costs, the one you'd pick and the ground for it, written per `/hitl-questions`' cold-reader rules — so the human gives a verdict on concrete text. Where the decision lives on a ticket, its mode is switched from `afk` to `hitl` (per `/issue-tracker`), the draft is posted opening `<!-- escalation -->`, and a push notification goes out (load via `ToolSearch("select:PushNotification")`; skip silently if unavailable). Work that doesn't depend on the answer carries on. The human's answer is recorded as a decision record whose ground is the human, and if it states a rule that will recur, the rule goes to `PRINCIPLES.md` per `/principles`.
+An escalation is drafted, never open: the question, the options with what each costs, the one you'd pick and the ground for it, written per `/hitl-questions`' cold-reader rules — so the human gives a verdict on concrete text. Where the decision lives on a ticket, its mode is switched from `afk` to `hitl` (per `/issue-tracker`), the draft is posted opening `<!-- escalation -->`, and the lead puts it to the human in its own session. Work that doesn't depend on the answer carries on. The human's answer is recorded as a decision record whose ground is the human, and if it states a rule that will recur, the rule goes to `PRINCIPLES.md` per `/principles`.
 
 ## Friction notes
 
@@ -63,7 +63,7 @@ Compounding starts when a new call bends around an old one. When anything you de
 
 ```markdown
 <!-- friction -->
-**From:** <what you were doing — a decision, a ship park, a review finding, research, a checkpoint>, linked
+**From:** <what you were doing — a decision, a parked piece, a review finding, research, a checkpoint>, linked
 **Strain:** <what had to bend, and how>
 **Evidence:** <quoted — the line, the finding, the source>
 **Suggests:** <what may be wrong with the decision, if you can say>
@@ -73,4 +73,4 @@ Post it and carry on with your own work on the record as it stands; never quietl
 
 ## Answering a gate
 
-A review gate on a wayfinder plan — a ship wave or the plan review — is answered by an agent instead of the human. One decider agent (tier per `/model-policy`) takes the pending-questions comment and, per block, picks the verdict the gate admits from the grounds above, posting a decision record for any answer that decides something new. A block that hits one of the three cases stays for the human and is escalated as above; the rest act per the gate's own verdicts, and the gate's summary records which were agent-answered. An answer that departs from a plan decision posts a friction note on that decision.
+A review gate on a wayfinder plan — a change review's questions or a Steer decision review — is answered by an agent instead of the human. One decider agent (tier per `/model-policy`) takes the pending-questions comment and, per block, picks the verdict the gate admits from the grounds above, posting a decision record for any answer that decides something new. A block that hits one of the three cases stays for the human and is escalated as above; the rest act per the gate's own verdicts, and the gate's summary records which were agent-answered. An answer that departs from a plan decision posts a friction note on that decision.

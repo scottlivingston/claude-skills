@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Implement a piece of work based on a spec or set of tickets. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously."
+description: "Implement a piece of work based on a spec or set of tickets. Invoke only when the user explicitly asks for it — never spontaneously."
 ---
 
 Implement the work described by the user in the spec or tickets.
@@ -9,8 +9,8 @@ Implement the work described by the user in the spec or tickets.
 
 When the work comes from a ticket on the issue tracker (see `/issue-tracker`):
 
-- **Claim first**: label the ticket `in-progress` before any work, so concurrent sessions and `/ship` runs skip it. One ticket per session — never batch.
-- **Load bounded context**: when the ticket cites spec decision IDs (a `Decisions:` line or section), read the spec's **kernel** — its body, per `/specify` — plus exactly those decisions in full (the tracker doc's spec-decision read) — not the whole decision log. If mid-work you need a decision the ticket doesn't cite, look it up in the kernel's Decision Index, fetch it by ID, and note the missed routing in a ticket comment.
+- **Claim first**: label the ticket `in-progress` before any work, so concurrent sessions and `/wayfinder` runs skip it. One ticket per session — never batch.
+- **Load bounded context**: when the ticket cites spec decision IDs (a `Decisions:` line or section), read the spec's **kernel** — its body — plus exactly those decisions in full (the tracker doc's spec-decision read) — not the whole decision log. If mid-work you need a decision the ticket doesn't cite, look it up in the kernel's Decision Index, fetch it by ID, and note the missed routing in a ticket comment.
 - **On completion**: close the ticket with a comment linking its commits, and remove `in-progress`.
 - **If blocked or parked** (red tests, or a decision the spec doesn't hold): do NOT close it — remove `in-progress`, comment exactly what's missing, and if it was a spec gap, also comment the gap on the spec issue.
 
@@ -20,7 +20,7 @@ Use /tdd where possible, at pre-agreed seams.
 
 Load `/testing` and resolve the test recipes for the files the work touches before the first run: the *Scoping to a change* set is what you run while working, and the *Green* set passes once at the end, before the ticket closes. With no recipes, follow `/testing`'s fallback.
 
-Outside a `/ship` run, review the work with /diff-review once done; inside one, the wave verification reviews the merged diff — don't review your own worktree.
+Review the work with /diff-review once done, unless a workflow you're part of reviews it — then don't review your own worktree.
 
 Comments and docs state what the code does now, for a reader who never saw the old version: never "no longer", "used to", "the old X", the replaced mechanism's name, or a ticket or decision ID. In the files you touch, rewrite any comment or doc that narrates a past change or has gone false. What changed belongs in the commit message.
 

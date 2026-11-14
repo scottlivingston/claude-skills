@@ -1,17 +1,18 @@
 ---
 name: model-policy
-description: Which model every spawned agent runs on — three tiers (executor, decider, auditor), resolved from a policy file (repo, then home, then defaults) so the session's model never leaks into a workflow by accident. Consult before spawning any agent or filling any workflow template.
+description: Which model every spawned agent runs on — four tiers (executor, decider, auditor, planner), resolved from a policy file (repo, then home, then defaults) so the session's model never leaks into a workflow by accident. Consult before spawning any agent or filling any workflow template.
 ---
 
 # Model policy
 
 Every agent a skill spawns runs on a **tier**, and each tier resolves to one model from the policy below. The session's own model is never the implicit default for a fan-out, so an expensive session doesn't multiply itself.
 
-## The three tiers
+## The four tiers
 
 - **Executor** — an agent that carries out a fully specified brief under a net that catches its mistakes. Default: `sonnet`.
 - **Decider** — an agent whose judgment is the product. Default: `inherit` (the session's model).
-- **Auditor** — a run-once, single-agent, find-side read whose misses nothing downstream catches. It runs once per effort, so the strongest model is affordable here and nowhere else. Default: `inherit`.
+- **Auditor** — a run-once, single-agent, find-side read whose misses nothing downstream catches. It runs once per effort, so the strongest model is affordable here. Default: `inherit`.
+- **Planner** — an agent whose call shapes everything built after it and that runs only a handful of times per effort: drafting and attacking a plan, replanning, reconsidering a decision. Default: `inherit`.
 
 Which tier a given stage belongs to, and its effort, is the spawning skill's call and is stated there; this skill only says what each tier runs on.
 
@@ -21,16 +22,17 @@ Resolve once per session, in this order — first file found wins per key, and a
 
 1. **Repo policy**: `.claude/model-policy.md` in the repo.
 2. **User policy**: `~/.claude/model-policy.md`.
-3. **Defaults**: executor `sonnet`, decider `inherit`, auditor `inherit`.
+3. **Defaults**: executor `sonnet`, decider `inherit`, auditor `inherit`, planner `inherit`.
 
 Run [resolve-model-policy.sh](resolve-model-policy.sh) from this skill's directory, inside the repo: it applies this order and prints each tier's value with the file it came from, which is also the reporting line below.
 
-The file is three lines, one per tier:
+The file is one line per tier:
 
 ```
 executor: sonnet
 decider: opus
 auditor: fable
+planner: fable
 ```
 
 A value is anything the harness's `model` option accepts — an alias (`sonnet`, `opus`, `haiku`, `fable`), an alias with a context suffix (`opus[1m]`), or a full model ID — or the word `inherit`, meaning the session's model. `inherit` is spelled out, never implied by omission, so a cold reader of the file can see the tier is deliberately unpinned.
@@ -39,6 +41,6 @@ A value is anything the harness's `model` option accepts — an alias (`sonnet`,
 
 ## Applying it
 
-- **Workflow templates** carry three data slots, `EXECUTOR_MODEL`, `DECIDER_MODEL`, and `AUDITOR_MODEL`, filled with the resolved values (`inherit` fills as `null`). Every `agent()` call below a template's `FIXED BELOW THIS LINE` marker names its tier through the template's `tier()` helper, which passes `model` only when the tier is pinned. A fill agent resolves the policy itself — the files are readable from any checkout — and fills all three slots; the session that launches the workflow never threads a model through.
+- **Workflow templates** carry one data slot per tier they use — `EXECUTOR_MODEL`, `DECIDER_MODEL`, `AUDITOR_MODEL`, `PLANNER_MODEL` — filled with the resolved values (`inherit` fills as `null`). Every `agent()` call below a template's `FIXED BELOW THIS LINE` marker names its tier through the template's `tier()` helper, which passes `model` only when the tier is pinned. A fill agent resolves the policy itself — the files are readable from any checkout — and fills every tier slot; the session that launches the workflow never threads a model through.
 - **Skills that spawn with the `Agent` tool** pass `model` with the tier's resolved value, and omit it when the tier resolves to `inherit`.
 - **Reporting**: a skill that spawns agents — a workflow, a batch, or a single one — says which models the tiers resolved to, in one line, before spawning — so an unexpected `fable` is visible before it costs anything.

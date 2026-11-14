@@ -19,7 +19,7 @@ export const meta = {
 // ══════════════════ DATA SLOTS — fill every FILL before launching ══════════════════
 
 const COLD_READ_SKILL = FILL // absolute path of the installed cold-read skill's SKILL.md
-const DOCUMENTS = FILL       // repo-relative paths of the documents to sweep, e.g. ["skills/ship/SKILL.md"]
+const DOCUMENTS = FILL       // repo-relative paths of the documents to sweep, e.g. ["skills/wayfinder/SKILL.md"]
 
 const DECIDER_MODEL = FILL   // per /model-policy: the decider tier's resolved model, or null to inherit
 

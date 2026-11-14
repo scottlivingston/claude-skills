@@ -1,101 +1,113 @@
 ---
 name: wayfinder
-description: Build something too big for one agent session, on its own, from the destination, principles, and design the human sets at the start — agents plan it as a graph of pieces, prove only the risks that could sink it, build every ready piece in parallel, make the detailed calls as they go, and review their own decisions each round so a bad call is corrected before more is built on it. `/wayfinder <idea>` starts an effort; `/wayfinder <plan>` resumes one. Invoke only when the user explicitly asks for it or when /next routes to this stage — never spontaneously.
+description: Build something too big for one agent session, unattended, from the destination, principles, and design the human sets at the start — a lead session plans it as a graph of pieces in a local store, proves only the risks that could sink it, builds every ready piece as its own workflow with a change proposed for the effort branch, gates each change with review agents and CI run on this machine, drives the real app to verify it, steers from what landed, and hands back one branch to merge. Needs no GitHub and no remote. `/wayfinder <idea>` shapes an effort; `/wayfinder <slug>` runs or resumes its lead. Invoke only when the user explicitly asks for it — never spontaneously.
 ---
 
-The human gives an effort its **destination** — the working thing, what they will run when it's done — its principles, and its high-level design, in one setup session. From then on agents take it to running code without the human: one **conductor** session runs rounds, each building every piece that is ready, until the destination runs. The human is pulled back only for `/deciding`'s three escalation cases and for work only they can do, and the run carries on around both while it waits.
+The human gives an effort its **destination**, its **acceptance behaviors**, its principles, and its high-level design in one **Shape** session. From then on one **lead** session runs it unattended to a single effort branch and a closing report, which the human reviews at **Close**. Those are the only two places the human is in the loop. In between, agents decide the details per `/deciding` and reach the human only for its three escalation cases and for work only the human can do.
 
-**Running code is the measure.** A round that lands nothing is a problem to diagnose, not a lap to repeat. Plans, decisions, and reviews exist only to get the right code built; none of them is output.
+**Done is behaviors you can watch.** An effort is done when every acceptance behavior set at Shape is driven and proven on the real app through its `verify-<app>` skill (per `/create-verification-skill`). There is no test-first rule: tests follow the repo's `TESTING.md`, and proof is the app doing the thing.
+
+## The stages
+
+Every stage runs as a workflow filled from a template beside this file — the template owns its prompts, so the rails are reviewed code, never improvised. Only Shape and the lead are sessions.
+
+| Stage | Runs as | Does |
+| --- | --- | --- |
+| Shape | the human's session, per [SHAPE.md](SHAPE.md) | Writes the charter, settles the verification harness, passes preflight, hands off to the lead. |
+| Plan | [plan.template.js](plan.template.js) | Cuts the charter into pieces, risks, human tasks, and shared decisions; checks the graph; a critic attacks it; publishes it. |
+| Prove | [spike.template.js](spike.template.js), one per risk | Answers the risk with the cheapest experiment, records the answer as a decision. |
+| Build | [build.template.js](build.template.js), one per piece | Builds the piece until its behaviors verify, opens its change, waits for CI and fixes red CI in place; in fix mode, answers review findings or resolves a merge conflict. |
+| Review | [review.template.js](review.template.js), one per green change | Spec and standards reviewers through `/finding-pipeline`; posts the reviewer statuses. |
+| Verify | [verify.template.js](verify.template.js) | Drives every built behavior on one pinned commit of the effort branch; files a defect piece per failure. |
+| Steer | [steer.template.js](steer.template.js) | Replans, reviews recent decisions and reconsiders strained ones, checks progress and completion. |
+| Close | [close.template.js](close.template.js) | Whole-diff review, then the closing report. |
+
+The lead's loop, which launches all of these, is [LEAD.md](LEAD.md).
+
+## The local forge
+
+An effort needs no GitHub, no remote, and no hosted CI. [wf.py](wf.py) is its whole forge, and every agent reaches the effort through it and nothing else: `wf.py --help` lists the commands, and each takes `--effort <slug>`.
+
+- **The store** is `<git dir>/wayfinder/<slug>/`, shared by every worktree of the repo: issues, changes, commit statuses, CI logs, and the closing report. Only `wf.py` reads or writes it.
+- **An issue** is a record in the store's tracker: the plan, a piece, a risk, a human task, a shared decision, or a repo-wide review finding. Labels are `/issue-tracker`'s vocabulary.
+- **A change** is a piece branch proposed for the effort branch — what a pull request would be. It has a body, comments, and the statuses of its head commit. Changes are numbered apart from issues.
+- **CI** is the charter's `## CI` section: named shell commands, each run from the repo root of a clean checkout.
+- **The gate** is one long-running process, `wf.py gate`. It runs every CI job on each open change's head, and squash-merges a change into the effort branch once every required status passes and its piece has no open blocker. It never lands a parked piece. A change that conflicts with the effort branch gets a failed `wayfinder/merge` status instead.
+- **Protection** is a git hook: only the gate moves `effort/*`. Nothing checks the effort branch out, since the gate's own checkout holds it.
+
+## Where state lives
+
+Everything the lead needs to resume is in the store or the repo — never only in a session — so the lead can compact or die and pick up from the record alone.
+
+- **The repo, on the effort branch:** the charter at `docs/wayfinder/<slug>.md` (format: [CHARTER.md](CHARTER.md)) and the `verify-<app>` skill with its feature map. Both merge with the effort.
+- **Issues:** the plan, its pieces, risks, human tasks, and shared decisions.
+- **Changes:** a piece's code, its evidence, review comments, the reviewer statuses, and CI.
+
+The store is not part of any commit: it stays on this machine, and what must outlive the effort — the code, the charter, the closing report's follow-ups — leaves through the effort branch and the report.
+
+### Names
+
+- **Effort branch** `effort/<slug>`, protected: only the gate moves it. **Piece branch** `piece/<slug>/<n>`, where `<n>` is the piece's issue number; **spike branch** `spike/<slug>/<n>`, which keeps a spike's evidence and never merges. All are local branches of the one repo, so a commit is visible to every worktree at once.
+- **Worktrees** under `.claude/worktrees/<slug>/`: `piece-<n>` and `spike-<n>` (one per workflow, shared by its stages, removed when the piece merges or parks), `verify`, and `review-<change>`.
+- **Required statuses** on a change: one `ci/<job>` per CI job, `wayfinder/pr-format`, `wayfinder/spec`, and `wayfinder/standards`. Only the gate posts `ci/*` and `wayfinder/merge`; only `wf.py pr-lint` posts the format status; only the review workflow posts the other two.
+- **Behaviors** are numbered `B<n>` in the charter, and the same IDs head their feature-map files and every piece's acceptance.
+
+### Issues and their markers
+
+All labels are `/issue-tracker` vocabulary.
+
+- **The plan** — labelled `wayfinder:plan`, one per effort, in this body shape. Plan and Steer rewrite the behavior map and Where it stands, and nothing else:
+
+  ```markdown
+  Effort branch: effort/<slug>
+  Charter: docs/wayfinder/<slug>.md
+
+  ## Destination
+  <copied from the charter>
+
+  ## Behavior map
+  - **B<n>** <behavior> — <the pieces that cover it, or "not covered yet">
+
+  ## Where it stands
+  <what runs now, what landed and was learned lately, what's next>
+  ```
+- **A piece** — an `impl` issue whose parent is the plan, in this body shape, which [wf.py](wf.py) and every template read:
+
+  ```markdown
+  ## Goal
+  <what this piece delivers, in a paragraph>
+
+  ## Acceptance
+  - B<n>: <behavior> — <the observable end state that proves it>
+  - <any further criterion an agent can check>
+
+  ## Builds on
+  - #<decision issue> <title>
+  ```
+
+  A defect Verify filed also carries `wayfinder:defect`. A parked piece carries `wayfinder:parked` and a `<!-- wayfinder park -->` comment with the reason.
+- **A risk** (`wayfinder:risk` + `afk`) and **a human task** (`wayfinder:task` + `hitl`) — linked to the plan by a `Plan: #<plan>` first line, never children, so the frontier never holds them. Each blocks only the pieces that rest on it.
+- **A shared decision** — a call two or more pieces need — is its own issue labelled `wayfinder:decision`, linked the same way, its body the decision record per `/deciding`. Friction notes are comments on it. Every piece that builds on it lists it under **Builds on** and is blocked by it until it is closed, which it is when published. A call only one piece needs is a `<!-- decision-record -->` comment on that piece.
+- **Escalations** are `<!-- escalation -->` comments on the issue they concern, which is switched to `hitl`.
+
+Plan-level records are comments on the plan: `<!-- wayfinder verify <sha> -->` for each Verify report, `<!-- wayfinder steer <n> -->` for each Steer summary, `<!-- wayfinder reconsider <n> -->` for each decision Steer `<n>` reconsidered (on the decision issue), `<!-- wayfinder close <k> -->` for each Close review pass, `<!-- wayfinder redirect -->` for the human's redirects, and `<!-- wayfinder lead -->` when a lead starts. A review round is a `<!-- wayfinder review <round> -->` comment on its change; a piece's build plan is a `<!-- wayfinder build-plan -->` comment on the piece.
+
+### A piece's state is derived, never stored
+
+`wf.py pieces` works each piece's state out from the store, and every reader uses it rather than its own reckoning:
+
+| State | Derived from |
+| --- | --- |
+| `blocked` | an open blocker |
+| `parked` | the `wayfinder:parked` label |
+| `waiting` | the `hitl` label: an escalation on it waits on the human |
+| `ready` | open, unblocked, unclaimed |
+| `working` | claimed (`in-progress`), no open change |
+| `in-review` | an open change from its piece branch; `conflict` is set when it can't merge as it stands |
+| `landing` | that change has every required status passing: the gate merges it next |
+| `done` | closed by the gate when its change merged |
+| `dropped` | closed as not planned (Steer dropped it) |
 
 ## Refer by name
 
-In everything a human reads, refer to the plan, a piece, or a risk by its title, wrapping its link — never by a bare id, number, or slug.
-
-## The plan
-
-The plan is a **spec issue** (per `/issue-tracker`, labelled `spec` and `wayfinder:plan`), so `/ship` builds from it unchanged. Its body is `/specify`'s spec kernel, with three sections of its own first:
-
-```markdown
-## Destination
-
-<the working thing — one or two lines — and the check that shows it runs>
-
-## Design
-
-<the high-level design the human agreed at setup: the major parts, how they relate, the flows that matter. Only a human answer changes it>
-
-## Where it stands
-
-<rewritten every round: what runs now, what the last round landed and learned, what is next>
-```
-
-The effort's own principles go in the kernel's Further Notes as deltas over `PRINCIPLES.md` (per `/principles`), with the merge authorization and the machines and services the run may use. The kernel's **Seams under test** start with what the design names and grow as foundation pieces land.
-
-The plan has three kinds of work:
-
-- **Pieces** — the plan's `impl` children: a chunk of code sized to one agent session, with acceptance criteria an agent can check, the `D<n>` decisions it builds on, and blocking edges to the pieces whose code it needs. `/ship`'s frontier is the ready pieces.
-- **Risks** — issues labelled `wayfinder:risk`, linked from the plan but never its children, so `/ship` never sees them. Each blocks the pieces that rest on its answer, and nothing else.
-- **Human tasks** — issues labelled `wayfinder:task` and `hitl`, linked the same way: a precise checklist of something only the human can do (a run on hardware the agents can't reach, a credential, an account). Pieces that need the result are blocked on it; everything else builds.
-
-**Decisions live where they are used.** A call only one piece needs is made by the agent building it and recorded on that piece, per `/deciding`. A call two or more pieces need is published as a plan decision `D<n>` (per `/issue-tracker`'s spec decisions) before the pieces that cite it are built, and its record follows `/deciding`'s format.
-
-## Prove what could sink it, guess the rest
-
-A question becomes a **risk** only when building on a wrong guess would waste real work — the design might not hold up, the platform might not do what the design needs, or the answer would change the shape of many pieces. Everything else is decided by best guess: the call the principles and design most plainly imply, made by whichever agent needs it, recorded, and corrected later by the code if it was wrong.
-
-A risk is answered by one **spike** — a throwaway prototype per `/prototype`, or a lookup per `/research` — that stops the moment the question is answered, and its answer is recorded as a decision. The failure this prevents is proving things forever: a second prototype to measure a path the first already showed works, a ticket for what a reboot should do, a benchmark nobody's call depends on. A follow-up a spike suggests is a new risk only if it passes the test above on its own; otherwise it is a best guess for the piece that needs it.
-
-The same test applies whenever an agent is tempted to open a question instead of deciding: at setup, at every replan, and in every piece's build. A piece agent never stops to ask about a detail; it decides per `/deciding` and carries on.
-
-## Ordering for speed
-
-The graph should be **wide**. Cut pieces along the design's seams, so most pieces need only the foundations and never each other, and every piece whose blockers have landed builds in the same round.
-
-A **foundation** is a piece other pieces build on — a skeleton that runs end to end, the shared types, an interface two parts meet at. Foundations go first because their dependents need their code, not because they are first in some plan order, and they land as real code, not documents. An edge between two pieces exists only where one truly needs the other's code; two pieces that only touch the same files have no edge, since `/ship`'s collision check and serial merges handle that.
-
-Plan only as far as you can see clearly. The first plan holds the foundations, the pieces visible from the design, and the risks; each replan adds the pieces the landed code makes visible.
-
-## The round
-
-The conductor runs rounds until no piece, risk, or human task is open. It never asks the human whether to go on, and announces each round in one line: what's building, what's being proved, what's waiting on the human.
-
-1. **Reconcile.** Read the plan in full, its open pieces, risks, and human tasks, and the ledger `/ship` keeps on it. A piece or risk claimed by a session that is gone is unclaimed.
-2. **Build and prove, side by side.** Run one `/ship` wave over the ready pieces — its steps 2–3, starting on its bootstrap's branch, with the gate answered per `/deciding` and only what that escalates waiting on the human. Beside it, one background agent per open, unblocked risk works its spike on the **decider tier** (per `/model-policy`), running its builds through the same build slots as the wave. A round with no ready piece still proves its risks; a round with neither waits on the human, reports the queue, and ends the turn.
-3. **Check it runs.** On the merged branch, run the destination's check as far as the code now reaches, and the *Green* set per `/testing`. A red result becomes the first piece of the next round.
-4. **Replan.** One decider subagent reads the wave's ledger, its parked pieces, the spikes' answers, and the code, and updates the plan: rewrites **Where it stands**; records each spike's answer as a decision and closes the risk; fills each parked piece's gap per `/deciding` and unparks it; publishes the `D<n>` decisions the next pieces need; adds, splits, or drops pieces; adds the seams that landed.
-5. **Review.** Launch the plan review per [REVIEW.md](REVIEW.md) in the background over the decisions made since the last one. It runs beside the next round, so building never waits on it; what it finds lands in a later round as corrections (below).
-6. **Progress check.** A round must land a piece or retire a risk. A round that does neither is a **stall**: post a stall report on the plan — what was attempted, what blocked it, what's needed — notify, and escalate. A transient failure (an agent died, a flaky suite) gets one retry first.
-
-When nothing is open, run `/ship`'s closing pass and its done step over the whole branch, then merge or offer the PR per the merge authorization: with it, squash-merge on a clean closing pass; without it, offer the PR. Report the destination's check result and how to run the thing.
-
-## Correcting a decision
-
-Friction notes (per `/deciding`) and the plan review's tensions accumulate on decisions. A decision is **reconsidered** when it carries any friction from code — a parked piece or review finding that traces to it — a tension from the plan review, or two notes from anything else, counting only notes since its last reconsideration.
-
-A reconsideration is one decider agent that reads the decision, its friction, the pieces and decisions that rest on it, and what has been learned since, and returns a plan — **stands** (with why each strain is acceptable), **amend** (a clarification no dependent's code changes over), or **supersede** (a replacement, with every dependent marked unaffected or reworked). A fresh decider agent tries to refute the plan before it applies; a plan refuted twice escalates, and so does one that falls in `/deciding`'s three cases. Both agents' briefs give the path to `/deciding`'s SKILL.md and ask for a verdict that quotes each principle, design line or decision it turns on from the file it was read in, since a brief that only names the skill leaves the read undone.
-
-A superseding plan amends the plan decision (or the piece's record) and turns each reworked dependent into a piece: code not yet built takes the new decision as written, and code already built gets a **rework piece** that blocks whatever would build further on it. That bounds a bad call's cost to the code built in the rounds before it was caught.
-
-## Setup
-
-This is the one session that is the human's. Load `/grilling`, `/domain-modeling`, and `/hitl-questions`.
-
-1. **Name the destination**: what the human will run when it's done, and the check that shows it runs — confirmed in one or two lines.
-2. **Settle the principles.** Load `/principles` and read the governing `PRINCIPLES.md` files; draft what's missing with the human, asking which way they lean on the trade-offs this effort will hit. Done when you can predict their call on the hardest decisions you can foresee.
-3. **Agree the high-level design** — the major parts, how they relate, the flows that matter — at the altitude the human holds it.
-4. **Settle the run's limits**: whether it may merge to the default branch on a clean closing pass, which machines and services agents may use, how many builds and tests the machine can run at once (each ship wave's build slots), and the human tasks they will need to do.
-5. **Plan the first round**: the foundations, the pieces visible from the design, and the risks, each per the rules above. **If the whole effort fits one agent session**, it needs no plan: say so, and stop.
-6. **Create the plan** (run the tracker's bootstrap first): the spec issue with its body, then its pieces, risks, and human tasks, then the blocking edges in a second pass.
-7. **Hand off.** Load `/multiplexer` and hand off to a session of its own: the repo root, the plan's title as the label, and `/wayfinder <plan>` as the prompt; tell the human the label and stop. With no multiplexer, point at `/wayfinder <plan>` and stop.
-
-## Conducting
-
-`/wayfinder <plan>` from any session resumes as conductor at step 1 of the round: all state is on the tracker. The human cancels or redirects by saying so; record it as a comment on the plan so a later session sees it.
-
-The conductor's context holds the run, not its substance. It loads this skill, `/deciding`, `/issue-tracker`, `/model-policy`, and `/finding-pipeline`, and delegates everything heavier, each subagent on its tier per `/model-policy`:
-
-- **Fill agents** (executor tier) fill each workflow — the ship wave, the plan review — from the tracker, and the conductor launches it and reads only its typed return.
-- **The replan** and every reconsideration are decider subagents that return one line.
-- **Escalations** are posted durably on the issue they concern, opening `<!-- escalation -->`, and push-notified, per `/deciding`. The conductor routes around them; the human's answer, in any session, is recorded as a decision and the run picks it up next round.
-
-Re-read the plan from the tracker at every round boundary, so a long run is safe to summarize mid-session.
+In everything a human reads, refer to the plan, a piece, a risk, or a decision by its title followed by its number — `Core VM skeleton (#12)` — and a change the same way — `Core VM skeleton (change 5)`. Never a bare number or slug.

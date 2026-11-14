@@ -1,6 +1,6 @@
 export const meta = {
   name: 'doc-gate',
-  description: 'Find→validate→propose→validate→route pipeline over a document gate\'s material (a wayfinder plan\'s decisions, a spec, or the repo\'s defined docs) — auto-apply only provably derivable repairs, escalate intent',
+  description: 'Find→validate→propose→validate→route pipeline over a document gate\'s material (the repo\'s defined docs) — auto-apply only provably derivable repairs, escalate intent',
   phases: [
     { title: 'Read', detail: 'the gate\'s find-side readers over the material, in parallel' },
     { title: 'Label', detail: 'normalize reports into IDed findings; dedup vs prior summaries' },
@@ -11,7 +11,7 @@ export const meta = {
   ],
 }
 
-// Template for the document gates (/spec-review, /wayfinder's plan review). This file owns
+// Template for the document gates (/tend). This file owns
 // every stage prompt and the routing; /finding-pipeline owns the invariants;
 // each gate skill owns what its fill carries (defect list, derivable kinds,
 // escalation conditions, verdicts) and fills it here.
@@ -22,10 +22,10 @@ export const meta = {
 
 // ══════════════════ DATA SLOTS — fill every FILL before launching ══════════════════
 
-const GATE_NAME = FILL          // "plan-review" | "spec-review" — names the gate's markers: <!-- GATE_NAME pending-questions -->
-const ID_PREFIX = FILL          // finding-ID prefix: "MR" | "SR" — IDs run <prefix>-1, -2, ... per run
+const GATE_NAME = FILL          // the gate's name, e.g. "tend" — names the gate's markers: <!-- GATE_NAME pending-questions -->
+const ID_PREFIX = FILL          // finding-ID prefix, e.g. "TD" — IDs run <prefix>-1, -2, ... per run
 const GATE_PURPOSE = FILL       // one or two sentences: what this gate checks and what it never re-litigates (merits are settled)
-const MATERIAL_SOURCE = FILL    // one line: what is under review and in which mode ("the decisions since round 4 of plan #3")
+const MATERIAL_SOURCE = FILL    // one line: what is under review and in which mode ("the defined docs touched since main")
 const MATERIAL = FILL           // the full material as read in the skill's load step — every unit in full, each headed by its ref — one JSON string
 const SCOPE_NOTE = FILL         // one line: what a finding may anchor in, and what is context only ("the decisions made since the last review; earlier decisions are context")
 const READ_OP = FILL            // one-liner: how an agent fetches a ticket, decision, or comment by ref per /issue-tracker — "" if none
