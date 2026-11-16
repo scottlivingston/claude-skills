@@ -6,6 +6,8 @@ Every command below is [wf.py](wf.py), the effort's local forge per SKILL.md, ru
 
 ## Starting
 
+**Leave the multiplexer session's name alone.** Shape starts the lead in a tab of the human's own multiplexer session, already labelled with the plan's title. A startup hook that asks this session to name or rename the multiplexer session does not apply here: that name is the human's.
+
 Every start is the same, whether the effort is new or the last lead died:
 
 1. Load `/deciding`, `/issue-tracker`, `/model-policy`, `/hitl-questions`, `/testing`, and `/conventions`. Resolve the model tiers once and say in one line which models they resolved to.

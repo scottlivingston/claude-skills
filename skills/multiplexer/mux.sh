@@ -8,6 +8,9 @@
 #       focus, starts Claude Code there (on <model> when given), and gives it
 #       <prompt>. Prints
 #       mux=<name> TAB id=<workspace or session id> TAB label=<label>.
+#   mux.sh tab <dir> <label> <prompt> [model]
+#       The same hand-off, into a new tab of the session (Rex) or workspace
+#       (Herdr) this one runs in. Prints mux=<name> TAB id=<tab id> TAB label=<label>.
 #   mux.sh pane <dir> <label> <command> [args...]
 #       Opens a pane below this one running the command, without taking focus,
 #       kept open after it exits. Prints mux=<name> TAB pane=<pane id>.
@@ -36,8 +39,37 @@ rex_bin() {
 
 need_jq() { command -v jq >/dev/null || die "jq is required"; }
 
+# Starts Claude Code in a Herdr pane and gives it the prompt.
+herdr_start() {
+  local pane=$1 label=$2 prompt=$3 model=$4 name
+  # Agent names must match [a-z][a-z0-9_-]{0,31}.
+  name=$(printf '%s' "$label" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9_-' '-')
+  case "$name" in [a-z]*) ;; *) name="e-$name" ;; esac
+  name=${name:0:32}
+  herdr agent start "$name" --kind claude --pane "$pane" --timeout 60000 >/dev/null
+  [ -z "$model" ] || herdr agent prompt "$name" "/model $model" >/dev/null
+  herdr agent prompt "$name" "$prompt" >/dev/null
+}
+
+herdr_tab() {
+  local dir=$1 label=$2 prompt=$3 model=${4:-} opened pane
+  opened=$(herdr tab create --workspace "$HERDR_WORKSPACE_ID" --cwd "$dir" --label "$label" --no-focus)
+  pane=$(jq -r '.result.root_pane.pane_id // empty' <<< "$opened")
+  [ -n "$pane" ] || die "Herdr opened no pane: $opened"
+  herdr_start "$pane" "$label" "$prompt" "$model"
+  printf 'mux=herdr\tid=%s\tlabel=%s\n' "$(jq -r '.result.tab.tab_id // empty' <<< "$opened")" "$label"
+}
+
+rex_tab() {
+  local dir=$1 label=$2 prompt=$3 model=${4:-} created
+  local cmd=(claude)
+  [ -z "$model" ] || cmd+=(--model "$model")
+  created=$("$(rex_bin)" window new -s "$REX_SESSION" "$label" -c "$dir" --focus=false --keep-open --json -- "${cmd[@]}" "$prompt")
+  printf 'mux=rex\tid=%s\tlabel=%s\n' "$(jq -r '.window_id' <<< "$created")" "$label"
+}
+
 herdr_session() {
-  local dir=$1 label=$2 prompt=$3 model=${4:-} opened workspace pane name branch root common
+  local dir=$1 label=$2 prompt=$3 model=${4:-} opened workspace pane branch root common
   # A linked worktree opens through Herdr's worktree helper, so Herdr knows its branch.
   common=$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
   branch=$(git -C "$dir" branch --show-current 2>/dev/null || true)
@@ -54,13 +86,7 @@ herdr_session() {
   pane=$(jq -r '.result.root_pane.pane_id // ([.. | .pane_id? // empty] | first) // empty' <<< "$opened")
   [ -n "$pane" ] || die "Herdr opened no pane: $opened"
 
-  # Agent names must match [a-z][a-z0-9_-]{0,31}.
-  name=$(printf '%s' "$label" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9_-' '-')
-  case "$name" in [a-z]*) ;; *) name="e-$name" ;; esac
-  name=${name:0:32}
-  herdr agent start "$name" --kind claude --pane "$pane" --timeout 60000 >/dev/null
-  [ -z "$model" ] || herdr agent prompt "$name" "/model $model" >/dev/null
-  herdr agent prompt "$name" "$prompt" >/dev/null
+  herdr_start "$pane" "$label" "$prompt" "$model"
   printf 'mux=herdr\tid=%s\tlabel=%s\n' "$workspace" "$label"
 }
 
@@ -94,9 +120,9 @@ cmd=${1:-}; shift || true
 mux=$(which_mux)
 case "$cmd" in
   which) echo "$mux"; exit 0 ;;
-  session) [ $# -ge 3 ] && [ $# -le 4 ] || die "usage: mux.sh session <dir> <label> <prompt> [model]" ;;
+  session|tab) [ $# -ge 3 ] && [ $# -le 4 ] || die "usage: mux.sh $cmd <dir> <label> <prompt> [model]" ;;
   pane) [ $# -ge 3 ] || die "usage: mux.sh pane <dir> <label> <command> [args...]" ;;
-  *) die "usage: mux.sh which | session <dir> <label> <prompt> [model] | pane <dir> <label> <command...>" ;;
+  *) die "usage: mux.sh which | session|tab <dir> <label> <prompt> [model] | pane <dir> <label> <command...>" ;;
 esac
 [ "$mux" = none ] && { echo "mux: not running inside Herdr or Rex" >&2; exit 3; }
 need_jq

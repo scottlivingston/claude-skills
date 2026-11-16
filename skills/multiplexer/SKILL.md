@@ -14,10 +14,11 @@ The script resolves it from the session's environment: Herdr when `HERDR_ENV=1`,
 ## Operations
 
 - **Hand off** — `mux.sh session <dir> <label> <prompt> [model]`: opens the directory as its own Herdr workspace or Rex session, starts Claude Code there on the model when one is given, and gives it the prompt, without taking the human's focus. A linked git worktree opens through Herdr's worktree helper so Herdr tracks its branch. Tell the human the label it printed; the new session owns the work from here.
+- **Hand off to a tab** — `mux.sh tab <dir> <label> <prompt> [model]`: the same hand-off, into a new tab of the Rex session or Herdr workspace this session runs in, so the work stays beside the conversation that started it. The panes that session opens land in its tab.
 - **Side pane** — `mux.sh pane <dir> <label> <command> [args...]`: runs a command in a pane below this one, without taking focus, kept open after it exits. For what the human watches — a dev server, a watcher, a prototype — never for work whose result this session needs, which runs in its own shell.
 
 **Exit status 3 means no multiplexer**: the caller falls back to saying what to run, and never treats it as a failure. Any other failure leaves whatever was opened in place; report what the script printed.
 
 ## Adding a multiplexer
 
-A new one is a pair of functions in `mux.sh` — `<name>_session` and `<name>_pane` — and a detection line in `which_mux`; the operations above are the contract every backend meets.
+A new one is three functions in `mux.sh` — `<name>_session`, `<name>_tab`, and `<name>_pane` — and a detection line in `which_mux`; the operations above are the contract every backend meets.
