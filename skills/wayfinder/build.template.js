@@ -71,6 +71,11 @@ const CI_FIXES = 2     // fix attempts on red CI
 // The B<n> lines of the piece's Acceptance — every one needs proof and a Behaviors line.
 const ACCEPTANCE = (PIECE.body.split(/^## Acceptance\s*$/m)[1] || '').split(/^## /m)[0]
 const BEHAVIOR_IDS = [...new Set((ACCEPTANCE.match(/^- (B\d+)/gm) || []).map(s => s.slice(2)))]
+// A prover often returns a behavior's whole line ("B10: open a change…") where the schema asks for its ID.
+const behaviorId = line => {
+  const m = /^\s*(B\d+)(?![\w'])/.exec(line)
+  return m && BEHAVIOR_IDS.includes(m[1]) ? m[1] : line
+}
 
 function need(result, what) {
   if (!result) throw new Error(what + ' died; relaunching resumes from the worktree, branch and change')
@@ -513,6 +518,7 @@ for (let round = 1; round <= PROVE_ROUNDS; round++) {
 
   phase('Prove')
   proof = need(await agent(provePrompt(), { ...tier('executor'), schema: PROVE_SCHEMA, label: 'prove:#' + N + ':' + round, phase: 'Prove' }), 'the prover')
+  proof = { ...proof, results: proof.results.map(r => ({ ...r, line: behaviorId(r.line) })) }
   const reported = new Set(proof.results.map(r => r.line))
   const missing = BEHAVIOR_IDS.filter(id => !reported.has(id))
   const failed = proof.results.filter(r => !r.proven).map(r => r.line)
