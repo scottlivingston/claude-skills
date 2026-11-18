@@ -108,6 +108,9 @@ const COMMENT_RULE = 'Per /implement: Comments and docs state what the code does
 
 // /deciding's rules for a stage agent, in three parts: the plan and CI-fix stages take the
 // first two, the builder all three.
+// A load named deep in a long brief is skipped more often than not, so the build and CI-fix
+// briefs open with theirs.
+const loadFirst = (skills, why) => 'Before anything else, load ' + skills + ' with the Skill tool: ' + why + '.'
 const DECIDE_RULE = 'Load /deciding. A detail the piece, its decisions and the charter leave open is yours to decide: decide it from the grounds /deciding orders and return the call in decisions — the workflow posts each as a decision record on the piece. A detail is never a reason to park.'
 const PARK_RULE = 'Park instead — status=parked with exactly what is missing in reason — only when the piece cannot be built as written: it needs code another piece has not landed, or it conflicts with the charter\'s design or principles. A call that falls in one of /deciding\'s three escalation cases parks too, with the escalation drafted as /deciding says as the reason.'
 const FRICTION_RULE = 'When your work has to bend around one of the decisions above, or finds evidence that one is wrong, return a friction note on it in friction and carry on with the decision as it stands.'
@@ -317,6 +320,7 @@ function planPrompt() {
 function buildPrompt(plan, rework, conflict) {
   return j([
     CONTEXT,
+    loadFirst('/deciding and /testing', 'you will make calls the piece leaves open and run its tests, and both are done per them'),
     FIX
       ? 'You fix the piece\'s open change — from a review round, or from a conflict the gate reported with the effort branch. Apply every finding below: its validated proposed repair is the default, adapted where the code has moved; every answer below is binding and settles the finding it names. A finding you cannot apply as proposed without breaking the piece or the charter goes in notApplied with why — the next review round judges it — never silently skipped.\n' + FIX_INPUT
       : 'You build the piece.',
@@ -399,6 +403,7 @@ function ciWaitPrompt(change, toPost, fixSummary) {
 function ciFixPrompt(change, wait, attempt) {
   return j([
     CONTEXT,
+    loadFirst('/deciding', 'you may make a call the fix leaves open, and it is made per it'),
     'You fix red CI on change ' + change + ' (attempt ' + attempt + ' of ' + CI_FIXES + '). Failing checks on ' + wait.sha + ': ' + wait.failing.join(', ') + '. Each ci/<job> is one of the charter\'s ## CI commands, run by the gate on that commit in a clean checkout. Read their logs (' + WF_CMD + ' ci-log ' + change + ', run from ' + REPO_ROOT + '; --lines 0 prints a whole log), find the cause, and fix it in the worktree. These two commands are the only use of ' + WF_CMD + ' you make.',
     'When the failure is outside the piece and not caused by it — a network fetch that timed out, a host out of disk — rerun the failed jobs instead (' + WF_CMD + ' ci-rerun ' + change + ') and return status=rerun. A check that is red because of the piece\'s code is fixed, never rerun.',
     'Reproduce it locally where you can and run the scoped tests for the files you touched before you commit. ' + BUILD_SLOTS_RULE,
