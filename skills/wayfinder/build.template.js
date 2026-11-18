@@ -95,7 +95,10 @@ const CONTEXT = j([
 
 // Every build and test runs through the host's build slots, so the efforts and agents on
 // one host never run more than BUILD_SLOTS of them at once.
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command; every agent on this host shares those slots, so never run one outside them. Run a long one with run_in_background and wait for its completion notice; a run you have not seen finish has no result yet.'
+// A workflow agent's turn ending is its final report, so it waits on a long run in the
+// foreground, through await.sh beside slot.sh, never on a completion notice.
+const AWAIT_CMD = SLOT_CMD.replace(/slot\.sh$/, 'await.sh')
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command; every agent on this host shares those slots, so never run one outside them. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the slot command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 
 // Every running copy of the app holds a drive slot, so the host never runs more copies than
 // the verify skill says can live side by side.
@@ -389,7 +392,7 @@ function ciWaitPrompt(change, toPost, fixSummary) {
       : null,
     fixSummary ? 'Add one line to the change body\'s ## Deviations section (replacing a lone "none") saying what the CI fix changed: ' + fixSummary : null,
     'Run ' + WF_CMD + ' pr-lint ' + change + ' (the head may have moved, and the format status is per commit); report whether it passed and its output.',
-    'Then run ' + WF_CMD + ' ci-wait ' + change + ' with run_in_background and wait for its completion notice — it can take up to an hour. Report the result, sha and failing checks exactly as it printed them, and when the result is none, its note in problems. A run you have not seen finish has no result yet.',
+    'Then run ' + WF_CMD + ' ci-wait ' + change + ' --timeout 540 in the foreground, with the Bash timeout at its 600000 ms maximum. While it prints result none with the note "timed out" and nothing more, run it again, up to eight times — CI can take over an hour. Never end your turn to wait: your turn ending is your final report. Report the result, sha and failing checks exactly as it printed them, and when the result is none, its note in problems. A run you have not seen finish has no result yet.',
   ])
 }
 

@@ -57,7 +57,10 @@ const CONTEXT = j([
   BLOCKED.length ? 'The pieces it blocks: ' + BLOCKED.map(p => '#' + p.number + ' "' + p.title + '"').join(', ') + '. Read each one\'s issue.' : 'It blocks no piece yet.',
 ])
 
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the repo\'s test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command. Run a long one with run_in_background and wait for its completion notice; a run you have not seen finish has no result yet.'
+// A workflow agent's turn ending is its final report, so it waits on a long run in the
+// foreground, through await.sh beside slot.sh, never on a completion notice.
+const AWAIT_CMD = SLOT_CMD.replace(/slot\.sh$/, 'await.sh')
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the repo\'s test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the slot command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 const DRIVE_SLOTS_RULE = APP
   ? 'Start every copy of the app through the host\'s drive slots: sh ' + SLOT_CMD + ' ' + DRIVE_SLOTS + ' drive-' + APP + ' -- <the launch command>, run with run_in_background, so the slot is held exactly as long as the app runs; stop the app when you are done with it, which frees the slot. Where the app has no long-lived process, run each command that exercises it through the drive slots instead.'
   : null

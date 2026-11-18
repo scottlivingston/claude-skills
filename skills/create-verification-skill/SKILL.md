@@ -1,7 +1,6 @@
 ---
 name: create-verification-skill
-description: Generate a project-local skill per app that drives the real app the way a user does — web, CLI/TUI, desktop, service, any stack — and proves behavior with captured evidence. `/create-verification-skill [app...]` in a repo or monorepo with no scripted way to exercise its apps.
-disable-model-invocation: true
+description: Generate a project-local skill per app that drives the real app the way a user does — web, CLI/TUI, desktop, service, any stack — and proves behavior with captured evidence. `/create-verification-skill [app...]` in a repo or monorepo with no scripted way to exercise its apps. Invoke only when the user asks for it or another skill says to load it — never spontaneously.
 ---
 
 # Create a verification skill

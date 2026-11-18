@@ -52,7 +52,12 @@ A workflow that fails is relaunched once with the same inputs. A second failure 
 
 ### Filling and launching
 
-Every workflow is filled from its template by a **fill agent** (executor tier, via the `Agent` tool), never in the lead's own context. Its brief names the template, the effort's slug, and the one piece, risk, change, or commit in hand; the fill agent reads every input through `wf.py` and from the effort branch, fills every `FILL` slot per the template's header, writes the script to `$TMPDIR/wayfinder/<slug>/<kind>-<id>.js`, and returns that path plus a one-line manifest. The lead launches it with `Workflow({scriptPath})` in the background. Its return comes back as a notification; the lead reads only the typed return.
+The lead never fills a workflow in its own context, and never edits a filled script.
+
+- **Build and Review** are filled by `wf.py fill build <piece>` and `wf.py fill review <change>`, which read every slot from the store, the charter, and the model policy, and print the script's path. A build in fix mode takes `--fix-input <file>` holding the review round's number, its findings with their validated repairs, and every answer to its questions, verbatim — or, for a conflict, the failed `wayfinder/merge` status's description. `wf.py fill --help` lists the overrides for what the store can't settle.
+- **Every other workflow** is filled from its template by a **fill agent** (executor tier, via the `Agent` tool). Its brief names the template, the effort's slug, and the one risk or commit in hand; the fill agent reads every input through `wf.py` and from the effort branch, fills every `FILL` slot per the template's header, writes the script to `$TMPDIR/wayfinder/<slug>/<kind>-<id>.js`, and returns that path plus a one-line manifest.
+
+The lead launches the script with `Workflow({scriptPath})` in the background. Its return comes back as a notification; the lead reads only the typed return.
 
 ### What each return means
 

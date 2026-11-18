@@ -509,6 +509,128 @@ def cmd_ci_wait(a):
         waited += 10
 
 
+# ── filling a workflow template ──────────────────────────────────────────────
+
+MARKER = {"review": "<!-- wayfinder review ", "answers": "<!-- wayfinder review-answers ", "decision": "<!-- decision-record -->"}
+
+
+def model_tiers(root):
+    """Each tier's model per /model-policy's resolver; inherit is None."""
+    r = subprocess.run(["bash", str(HERE.parent / "model-policy" / "resolve-model-policy.sh"), str(root)],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        die(f"resolve-model-policy.sh: {r.stderr.strip()}")
+    tiers = dict(line.split("\t")[0].split("=", 1) for line in r.stdout.splitlines() if "=" in line)
+    return {k: (None if v == "inherit" else v) for k, v in tiers.items()}
+
+
+def files_named(ref, name):
+    out = git("ls-tree", "-r", "--name-only", ref).stdout.splitlines()
+    return sorted((f for f in out if f == name or f.endswith("/" + name)), key=lambda f: (f.count("/"), f))
+
+
+def scope_of(path):
+    return "repo root" if "/" not in path else path.rsplit("/", 1)[0]
+
+
+def test_notes(ref):
+    """Every TESTING.md on the ref, verbatim, each under the scope it binds."""
+    return "\n\n".join(f"# {f} (binds: {scope_of(f)})\n\n" + git("show", f"{ref}:{f}").stdout.strip()
+                       for f in files_named(ref, "TESTING.md"))
+
+
+def standards_sources(ref, base):
+    """The CONVENTIONS.md files on the ancestor paths of the files the ref changes."""
+    changed = git("diff", "--name-only", f"{base}...{ref}").stdout.splitlines()
+    dirs = {""} | {"/".join(f.split("/")[:n]) for f in changed for n in range(1, f.count("/") + 1)}
+    return [{"path": f, "scope": scope_of(f)} for f in files_named(ref, "CONVENTIONS.md")
+            if (f.rsplit("/", 1)[0] if "/" in f else "") in dirs]
+
+
+def verify_skill(e, ref, override):
+    """The verify skill's repo path: the charter's Verified through line, else the one on the ref."""
+    if override is not None:
+        return override.rstrip("/")
+    m = re.search(r"Verified through\s+`?([^`\s]*verify-[A-Za-z0-9._-]+)", e.charter())
+    if m:
+        return m.group(1).rstrip("/")
+    out = git("ls-tree", "-d", "--name-only", f"{ref}:.claude/skills", check=False).stdout.split()
+    found = [d for d in out if d.startswith("verify-")]
+    return f".claude/skills/{found[0]}" if len(found) == 1 else ""
+
+
+def builds_on(e, piece):
+    section = piece["body"].split("## Builds on", 1)[1] if "## Builds on" in piece["body"] else ""
+    return [e.issue(n) for n in re.findall(r"^\s*-\s*#(\d+)", section.split("\n## ", 1)[0], re.M)]
+
+
+def fill_slots(kind, values):
+    src = (HERE / f"{kind}.template.js").read_text()
+    slots = re.findall(r"^const (\w+) = FILL\b", src, re.M)
+    if missing := [s for s in slots if s not in values]:
+        die(f"{kind}.template.js has slots fill does not know: {', '.join(missing)}")
+    for name in slots:
+        src = src.replace(f"const {name} = FILL", f"const {name} = {json.dumps(values[name])}", 1)
+    return src
+
+
+def cmd_fill(a):
+    e = Effort.resolve(a.effort)
+    m = e.meta()
+    root = Path(m["repo"])
+    plan = e.issue(m["plan"]) if m.get("plan") else die("the effort has no plan yet")
+    tiers = model_tiers(root)
+    common = {
+        "CHARTER_PATH": m["charter"], "SLUG": e.slug, "EFFORT_BRANCH": e.branch, "REPO_ROOT": str(root),
+        "SLOT_CMD": str(SLOT_CMD), "BUILD_SLOTS": e.limit("Build slots", 2), "DRIVE_SLOTS": e.limit("Drive slots", 1),
+        "WF_CMD": f"python3 {HERE / 'wf.py'} --effort {e.slug}",
+        "EXECUTOR_MODEL": tiers["executor"], "DECIDER_MODEL": tiers["decider"],
+    }
+    if a.kind == "build":
+        piece = e.issue(a.number)
+        branch = f"piece/{e.slug}/{piece['number']}"
+        ref = branch if e.head(branch) else e.branch
+        skill = verify_skill(e, ref, a.verify_skill)
+        app = a.app or skill.rsplit("verify-", 1)[-1]
+        if not app:
+            die("no verify skill is named by the charter or on the branch: pass --app <app>, the app this piece's verify skill is for")
+        fix = Path(a.fix_input).read_text() if a.fix_input else ""
+        values = {**common, "PLAN_REF": f"#{plan['number']}",
+                  "PIECE": {k: piece[k] for k in ("number", "title", "body")},
+                  "DECISIONS": [{"ref": f"#{d['number']}", "title": d["title"], "body": d["body"]} for d in builds_on(e, piece)],
+                  "PIECE_BRANCH": branch, "WORKTREE": str(root / ".claude" / "worktrees" / e.slug / f"piece-{piece['number']}"),
+                  "MODE": "fix" if fix else "build", "FIX_INPUT": fix,
+                  "VERIFY_SKILL": skill, "APP": app, "TEST_NOTES": test_notes(ref)}
+        ident, manifest = piece["number"], {"piece": piece["number"], "mode": values["MODE"]}
+    else:
+        c = change_view(e, e.change(a.number))
+        if not c["head"]:
+            die(f"change {a.number} has no head")
+        piece = e.issue(c["piece"])
+        rounds = [(int(n), x) for x in c["comments"] for n in re.findall(r"^\s*<!-- wayfinder review (\d+) -->", x["body"])]
+        rnd = a.round or max((n for n, _ in rounds), default=0) + 1
+        first = min((x["at"] for _, x in rounds), default=None)
+        answers = [x["body"] for x in c["comments"] if x["body"].lstrip().startswith(MARKER["answers"])]
+        if first:
+            answers += [x["body"] for x in piece["comments"] if x["at"] >= first and MARKER["decision"] in x["body"]]
+        skill = verify_skill(e, c["head"], a.verify_skill)
+        values = {**common, "PLAN": {"number": plan["number"], "title": plan["title"]},
+                  "CHANGE": {"number": c["number"], "title": c["title"]}, "HEAD_SHA": c["head"],
+                  "PIECE": {k: piece[k] for k in ("number", "title", "body")},
+                  "DECISIONS": [{k: d[k] for k in ("number", "title", "body")} for d in builds_on(e, piece)],
+                  "ROUND": rnd, "PRIOR_ROUNDS": [x["body"] for n, x in rounds if n < rnd], "PRIOR_ANSWERS": answers,
+                  "STANDARDS_SOURCES": standards_sources(c["head"], e.branch),
+                  "VERIFY_SKILL": skill, "APP": a.app or skill.rsplit("verify-", 1)[-1],
+                  "WORKTREE": str(root / ".claude" / "worktrees" / e.slug / f"review-{c['number']}"),
+                  "TEST_NOTES": test_notes(c["head"])}
+        ident, manifest = c["number"], {"change": c["number"], "piece": piece["number"], "round": rnd, "head": c["head"]}
+    out = Path(a.out) if a.out else Path(os.environ.get("TMPDIR", "/tmp")) / "wayfinder" / e.slug / f"{a.kind}-{ident}.js"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(fill_slots(a.kind, values))
+    emit({"script": str(out), "kind": a.kind, **manifest, "decisions": [d["number"] for d in builds_on(e, piece)],
+          "verify_skill": values["VERIFY_SKILL"], "models": {"executor": tiers["executor"], "decider": tiers["decider"]}})
+
+
 # ── derived piece state ──────────────────────────────────────────────────────
 
 
@@ -938,6 +1060,15 @@ def main():
     s.set_defaults(fn=cmd_dependents)
 
     s = sub.add_parser("pieces", help="every piece of the plan with its derived state"); s.set_defaults(fn=cmd_pieces)
+
+    s = sub.add_parser("fill", help="fill the build or review workflow template from the store and print the script's path")
+    s.add_argument("kind", choices=["build", "review"]); s.add_argument("number", type=int, help="the piece (build) or the change (review)")
+    s.add_argument("--fix-input", help="build: a file holding the review round's findings and answers, or the conflict; makes it fix mode")
+    s.add_argument("--round", type=int, help="review: this round's number, when a dead run left a comment for it")
+    s.add_argument("--verify-skill", help="the verify skill's repo path, when the charter's line does not settle it; '' for the piece that builds it")
+    s.add_argument("--app", help="the <app> of verify-<app>, when no verify skill exists yet")
+    s.add_argument("--out", help="where to write the script (default: $TMPDIR/wayfinder/<slug>/<kind>-<number>.js)")
+    s.set_defaults(fn=cmd_fill)
 
     s = sub.add_parser("change", help="change records: a piece branch proposed for the effort branch")
     csub = s.add_subparsers(dest="op", required=True)

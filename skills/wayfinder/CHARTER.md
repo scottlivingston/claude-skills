@@ -39,6 +39,7 @@ Verified through `.claude/skills/verify-<app>/` (or: built by the first foundati
 - **Build slots:** <how many builds and tests the host runs at once; the gate runs this many CI jobs side by side>
 - **Drive slots:** <how many running copies of the app the host can hold; 1 when instances can't run side by side>
 - **Machines and services:** <what agents may use>
+- **Proof bar:** <what a piece shows before it lands, and which long runs — soak, stress, repeats under load — wait for Verify or Close instead>
 - **Human tasks known now:** <each, or none>
 
 ## Delegated
