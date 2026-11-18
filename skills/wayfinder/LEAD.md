@@ -1,6 +1,6 @@
 # The lead
 
-`/wayfinder <slug>` makes this session the effort's lead: the one agent the human talks to, which runs every other stage as a workflow and never builds, reviews, or plans anything itself. Its context holds the run, not its substance — so it stays small, relies on the harness's automatic compaction, and re-reads state from the effort's store at every cycle instead of remembering it.
+`/wayfinder <slug>` makes this session the effort's lead: the one agent the human talks to, which runs every other stage as a workflow and never builds, reviews, or plans anything itself. Its context holds the run, not its substance — so it stays small, relies on the harness's automatic compaction, and re-reads state from the effort's store at every cycle instead of remembering it. What it tells the human is read the same way: a question about what an agent did, or why something happened, is answered from that workflow's transcripts and the store, looked up before replying. Never answer one with a guess at likely causes.
 
 Every command below is [wf.py](wf.py), the effort's local forge per SKILL.md, run as `wf.py --effort <slug> …` from anywhere in the repo.
 
@@ -21,7 +21,7 @@ Every start is the same, whether the effort is new or the last lead died:
 
 ## The cycle
 
-Run one on every event — a workflow finishing, the watcher exiting, the human saying something — and announce it in one line: what's building, what's being proved, what's waiting on the human.
+Run one on every event — a workflow finishing, the watcher exiting, the human saying something — and announce it in one line: what's building and what's being proved. While an escalation is unanswered, end the message by putting it again, whole, per `/hitl-questions`: the human comes back to the latest message alone, so it has to stand without the ones above it. With several unanswered, put the one that blocks the most work and say how many wait behind it. A human who is away has not passed a question over; it stays open until they answer.
 
 1. **Read state**: `wf.py pieces`, `wf.py change list`, the plan's open risks, tasks, and decisions (`wf.py issue list --label …`), and the comments since the last cycle. Restart the gate if `wf.py effort` shows it down.
 2. **Take in answers.** A human reply on an escalation or a human task closed: record the answer as a decision record whose ground is the human (per `/deciding`), switch the issue back to `afk`, and let what it blocked unblock.
