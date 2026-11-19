@@ -28,7 +28,7 @@ Run one on every event — a workflow finishing, the watcher exiting, the human 
 3. **Act on what finished** — each workflow's typed return, per the table below.
 4. **Launch what's ready**, each its workflow's single claim (below):
    - **Plan**, when the plan has no pieces yet and no escalation on it is waiting on the human.
-   - **Build**, for each `ready` piece in plan order, until the charter's *Pieces at once* builds are running. Fix-mode builds count toward the limit.
+   - **Build**, for each `ready` piece in plan order, until the charter's *Pieces at once* builds are running. Fix-mode builds count toward the limit. No first build of a piece launches while a Steer is running: Steer edits, splits and drops ready and blocked pieces from the state it was filled with, so a build started under it can be building a scope Steer has just changed. Fix-mode builds still launch.
    - **Spike**, for each open, unblocked, unclaimed risk labelled `afk` — one switched to `hitl` is waiting on the human.
    - **Review**, for each `in-review` change whose head has every `ci/*` status passing and no `wayfinder/spec` status yet.
    - **Build in fix mode**, for each `in-review` piece with `conflict` set and no build running: its one finding is that the change conflicts with the effort branch, to be fixed by merging the effort branch into the piece branch. The new head gets CI and a review round of its own.

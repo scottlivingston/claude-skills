@@ -4,7 +4,7 @@ export const meta = {
   phases: [
     { title: 'Replan', detail: 'one decider-tier replanner turns defects, parks, landed code and redirects into ops, beside one decider-tier cross-read of the decisions since the last steer' },
     { title: 'Check', detail: 'structural checks by script on the replanned graph; one revision when they fail' },
-    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each amend or supersede attacked by a fresh planner-tier refuter; over-proved risks weighed for a best guess by decider-tier agents' },
+    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each amend or supersede attacked by a fresh planner-tier refuter, and a supersede that reworks the same piece as another settled again beside it; over-proved risks weighed for a best guess by decider-tier agents' },
     { title: 'Apply', detail: 'executor-tier agents create decisions, then pieces, risks and tasks, then every edit, unpark, drop, decision outcome and escalation' },
     { title: 'Record', detail: 'one executor-tier agent rewrites the plan body, removes finished worktrees, and posts the steer summary' },
   ],
@@ -254,10 +254,11 @@ const RECONSIDER_SCHEMA = {
     reworks: {
       type: 'array', description: 'supersede: one rework piece per reworked dependent that is built; [] otherwise',
       items: {
-        type: 'object', required: ['dependent', 'title', 'goal', 'acceptance', 'blocks'],
+        type: 'object', required: ['dependent', 'title', 'goal', 'acceptance', 'needs', 'blocks'],
         properties: {
           dependent: { type: 'string', description: '"#<n>" of the built dependent it reworks' },
           title: { type: 'string' }, goal: { type: 'string' }, acceptance: ACCEPTANCE,
+          needs: REFS('every other piece ("#<n>") not yet landed whose code it builds on; it waits on each, and on its dependent while that is in flight'),
           blocks: REFS('open pieces ("#<n>") that would build further on the code it reworks'),
         },
       },
@@ -499,7 +500,7 @@ function holdBack(ops, fails) {
 const PLAN_RULES = j([
   'How a wayfinder plan is cut:',
   '- Pieces are cut along the design\'s seams, each sized to one agent session — one builder reads it cold, builds it, proves its behaviors by driving the app, and opens one change — in SKILL.md\'s piece body shape: a Goal, an Acceptance naming the charter behaviors it proves as "<behavior> — <the observable end state that proves it>" plus any further criterion an agent can check, and the decisions it Builds on.',
-  '- An edge exists only where one piece needs another\'s code. Two pieces that only touch the same files get no edge.',
+  '- An edge exists where one piece needs another\'s code, and where two pieces change the same function: built apart, the second lands as a conflict with the first, so one waits on the other. Two pieces that only touch the same files get no edge.',
   '- A question becomes a risk only when building on a wrong guess would waste real work: the design might not hold up, the platform might not do what the design needs, or the answer would change the shape of many pieces. Everything else is a best guess the builder who needs it makes and records.',
   '- A human task is something only the human can do, written as an exact checklist.',
   '- A shared decision is a call two or more pieces need. Make each per /deciding: grounds quoted from the files you opened, the alternatives it beat, its reversal cost.',
@@ -568,24 +569,34 @@ function strains(t) {
   ])
 }
 
-function reconsiderPrompt(t, prior) {
+// What a reconsideration settled again is told about the supersedes that rework the same piece.
+function besideText(beside) {
+  return j([
+    'Settled earlier in this steer, and reworking a piece your own verdict would rework:',
+    ...beside.map(e => '### ' + e.v.title + ' (supersedes ' + e.t.ref + ')\n' + e.v.record.decision + '\nIts reworks:\n' + e.v.reworks.map(r => '- of ' + r.dependent + ': ' + r.title + ' — ' + r.goal).join('\n')),
+    'These land in this steer whatever you return.',
+  ])
+}
+
+function reconsiderPrompt(t, prior, beside) {
   return j([
     CONTEXT,
     'You reconsider one decision of this effort: ' + t.title + ' (' + t.ref + ', on #' + t.issue + '). Load /deciding and read its SKILL.md in full. Read the decision\'s full text, every friction note on it, its dependents — the pieces and decisions that rest on it (per /issue-tracker\'s Dependents, and every piece whose Builds on lists it) — and the code those dependents built.',
     'What strains it:',
     strains(t),
+    beside ? besideText(beside) + ' Your verdict and every rework it gives must hold beside them: none undoes, repeats, or assumes away what theirs build.' : null,
     j([
       'Return one verdict:',
       '- stands — the decision holds; say why each strain is acceptable.',
       '- amend — a clarification no dependent\'s code changes over; give the amended record.',
-      '- supersede — a replacement; give its title and record, mark every dependent unaffected or reworked, and give a rework piece for each reworked dependent that is built (its code has landed or is in an open change), blocking the open pieces that would build further on that code. A reworked dependent not yet built takes the new decision as written.',
+      '- supersede — a replacement; give its title and record, mark every dependent unaffected or reworked, and give a rework piece for each reworked dependent that is built (its code has landed or is in an open change), blocking the open pieces that would build further on that code. A rework waits on its dependent while that is still in flight; any other piece not yet landed whose code it builds on goes in its needs, because a Goal that says "after #<n> lands" orders nothing. A reworked dependent not yet built takes the new decision as written.',
     ]),
     'Quote each principle, design line, or decision your verdict turns on from the file or issue you read it in. When the verdict falls in one of /deciding\'s three escalation cases, name the case and draft the escalation.',
     prior ? 'Your first verdict was refuted. Answer the refutation — revise the verdict, or keep it and show why each reason fails.\nFirst verdict:\n' + JSON.stringify(prior.verdict) + '\nRefutation:\n' + prior.refutation.reasons : null,
   ])
 }
 
-function refutePrompt(t, v) {
+function refutePrompt(t, v, beside) {
   return j([
     CONTEXT,
     'You attack a reconsideration of one decision of this effort: ' + t.title + ' (' + t.ref + ', on #' + t.issue + '). You did not write it. Load /deciding and read its SKILL.md in full; read the decision, its dependents, and the code they built.',
@@ -593,6 +604,7 @@ function refutePrompt(t, v) {
     strains(t),
     'The verdict:',
     JSON.stringify(v),
+    beside ? besideText(beside) + ' A verdict or rework that cannot hold beside them is refuted.' : null,
     'Try to refute it: does it answer every strain; does a dependent marked unaffected in fact change (an amend that is really a supersede); is a rework missing, or one there that nothing needs; does the new call break a principle, the Design, or another decision; does it fall in one of /deciding\'s three escalation cases unflagged. Refuted only on a reason you can cite; otherwise it holds.',
   ])
 }
@@ -674,7 +686,11 @@ const target = (ref, issue, title) => {
 }
 for (const f of FRICTION) target(f.ref, f.issue, f.title).notes.push(...f.notes)
 for (const f of findings) if (['contradiction', 'broken-input', 'built-around', 'stale-ground'].includes(f.kind)) target(f.subject.ref, f.subject.issue, f.subject.title).tensions.push(f)
-const due = [...targets.values()].filter(t => t.tensions.length || t.notes.some(n => n.source !== 'other') || t.notes.length >= 2)
+// A decision on an issue the human answered since the last steer is not reconsidered in this one:
+// the answer is the decision and the replanner plans what it settles, so a reconsideration would
+// deliver it a second time. Friction notes on it wait for the next steer.
+const answered = new Set(HUMAN.filter(h => h.kind === 'answer').map(h => h.issue))
+const due = [...targets.values()].filter(t => !answered.has(t.issue) && (t.tensions.length || t.notes.some(n => n.source !== 'other') || t.notes.length >= 2))
 
 const overProved = findings.filter(f => f.kind === 'over-proving')
 const riskOf = f => RISKS.find(r => r.number === f.subject.issue)
@@ -684,26 +700,38 @@ const unweighed = overProved.filter(f => !weighable.includes(f))
 phase('Reconsider')
 // Each settles to stands, amend, supersede, escalate, or none (an agent died: nothing changes,
 // its friction stays for the next steer).
-async function settle(t) {
-  const opts = n => ({ ...tier('planner'), label: n + ':' + t.ref.replace(/^.*\//, ''), phase: 'Reconsider' })
-  let v = await agent(reconsiderPrompt(t, null), { ...opts('reconsider'), schema: RECONSIDER_SCHEMA })
+async function settle(t, beside) {
+  const opts = n => ({ ...tier('planner'), label: n + (beside ? '-again' : '') + ':' + t.ref.replace(/^.*\//, ''), phase: 'Reconsider' })
+  let v = await agent(reconsiderPrompt(t, null, beside), { ...opts('reconsider'), schema: RECONSIDER_SCHEMA })
   for (let round = 1; ; round++) {
     if (!v) return { t, outcome: 'none' }
     if (v.escalation.case !== 'none') return { t, outcome: 'escalate', v, draft: v.escalation.draft }
     if (v.verdict === 'stands') return { t, outcome: 'stands', v }
-    const r = await agent(refutePrompt(t, v), { ...opts('refute'), schema: REFUTE_SCHEMA })
+    const r = await agent(refutePrompt(t, v, beside), { ...opts('refute'), schema: REFUTE_SCHEMA })
     if (!r) return { t, outcome: 'none' }
     if (r.verdict === 'holds') return { t, outcome: v.verdict, v }
     if (round === 2) return { t, outcome: 'escalate', v, draft: r.escalationDraft || ('Refuted twice: ' + r.reasons) }
-    v = await agent(reconsiderPrompt(t, { verdict: v, refutation: r }), { ...opts('reconsider-2'), schema: RECONSIDER_SCHEMA })
+    v = await agent(reconsiderPrompt(t, { verdict: v, refutation: r }, beside), { ...opts('reconsider-2'), schema: RECONSIDER_SCHEMA })
   }
 }
-const [settled, weighed] = await parallel([
+const [settledApart, weighed] = await parallel([
   () => parallel(due.map(t => () => settle(t))),
   () => parallel(weighable.map(f => () => agent(riskPrompt(riskOf(f), f), { ...tier('decider'), schema: RISK_SCHEMA, label: 'risk:' + f.subject.issue, phase: 'Reconsider' }).then(w => ({ f, w })))),
 ])
 
+// Reconsiderations run apart, so two supersedes can rework the same built piece in ways that
+// cannot both hold. The later one is settled again with the earlier in hand.
+const reworked = s => (s.outcome === 'supersede' ? s.v.reworks.map(r => r.dependent) : [])
+const settled = []
+for (const s of settledApart) {
+  const clash = settled.filter(e => reworked(e).some(d => reworked(s).includes(d)))
+  if (clash.length) log('Steer ' + STEER + ': ' + s.t.ref + ' and ' + clash.map(e => e.t.ref).join(', ') + ' rework the same piece; settling ' + s.t.ref + ' again')
+  settled.push(clash.length ? await settle(s.t, clash) : s)
+}
+
 // Decision outcomes as ops.
+// A rework builds on its dependent's code, so it waits on a dependent whose change has not landed.
+const reworkNeeds = r => [...new Set((IN_FLIGHT.includes(pieceState.get(r.dependent)) ? [r.dependent] : []).concat(r.needs || []))]
 const outcomeOps = []
 settled.forEach((s, i) => {
   if (s.outcome === 'none') return
@@ -718,7 +746,7 @@ settled.forEach((s, i) => {
   }
   s.v.reworks.forEach((r, k) => outcomeOps.push({
     type: 'piece', key: key + '-rework-' + (k + 1), title: r.title, goal: r.goal, acceptance: r.acceptance,
-    buildsOn: [key], needs: [], blocks: r.blocks.filter(b => EDITABLE.includes(pieceState.get(b))), why: 'reworks ' + r.dependent + ' for ' + s.v.title, group,
+    buildsOn: [key], needs: reworkNeeds(r), blocks: r.blocks.filter(b => EDITABLE.includes(pieceState.get(b))), why: 'reworks ' + r.dependent + ' for ' + s.v.title, group,
   }))
   outcomeOps.push({ type: 'outcome', target: s.t, verdict: 'supersede', why: s.v.why, record: s.v.record, replacement: key, group })
 })
@@ -812,10 +840,11 @@ for (const id of edited) {
   const body = secs.map(s => (s.heading === null ? s.lines : ['## ' + s.heading, ...s.lines]).join('\n')).join('\n').trim()
   const whys = kept.filter(o => o.type === 'edit' && o.ref === id).map(o => o.why).join('; ')
   actions.push('Replace the body of ' + id + ' (' + whys + ') with:\n' + body)
-  for (const n of after.needs.filter(n => !before.needs.includes(n))) actions.push(edge(id, n, true))
-  for (const n of before.needs.filter(n => !after.needs.includes(n))) actions.push(edge(id, n, false))
-  for (const d of after.buildsOn.filter(d => !before.buildsOn.includes(d))) actions.push(edge(id, d, true))
-  for (const d of before.buildsOn.filter(d => !after.buildsOn.includes(d))) actions.push(edge(id, d, false))
+  // One blocking edge serves both lists, so it goes only when neither holds it any longer:
+  // a piece moved out of Builds on and kept in needs is still waited on.
+  const edges = p => [...new Set(p.needs.concat(p.buildsOn))]
+  for (const n of edges(after).filter(n => !edges(before).includes(n))) actions.push(edge(id, n, true))
+  for (const n of edges(before).filter(n => !edges(after).includes(n))) actions.push(edge(id, n, false))
 }
 for (const o of kept.filter(o => o.type === 'drop')) actions.push('Drop ' + o.ref + ': close it as not planned with the comment "Dropped at steer ' + STEER + ': ' + o.why + '".')
 for (const o of kept.filter(o => o.type === 'unpark')) actions.push('Unpark ' + o.ref + ': post this gap-fill record as a comment on it, verbatim, then remove its wayfinder:parked label.\n' + renderRecord(o.record))

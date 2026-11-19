@@ -16,7 +16,7 @@ Shape is the one session that's yours. It pins down the **destination** — the 
 
 The **lead** is the only agent you talk to. It never builds or reviews anything; it launches workflows, reads their typed results, and reacts to what changes in the effort's store. Every stage runs as a workflow filled from a template, so the agents stay on rails:
 
-- **Plan** cuts the charter into pieces sized to one agent session, with blocking edges only where one piece needs another's code, plus the risks that could sink it and the tasks only you can do. Script checks prove the graph covers every behavior; a critic tries to break it.
+- **Plan** cuts the charter into pieces sized to one agent session, with blocking edges only where one piece needs another's code or two pieces change the same function, plus the risks that could sink it and the tasks only you can do. Script checks prove the graph covers every behavior; a critic tries to break it.
 - **Prove** answers each risk with the cheapest spike, and only the pieces resting on it wait.
 - **Build** runs one workflow per ready piece, up to a limit: plan, build, drive the piece's behaviors through the verify skill, open a change for the effort branch, wait for CI, and fix red CI in place.
 - **Review** gates each green change with spec and standards reviewers through the finding pipeline. The spec reviewer re-drives a behavior itself. Their verdicts are required statuses, so the gate merges a change the moment they pass, and findings send the piece back through its build in fix mode.
