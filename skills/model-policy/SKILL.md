@@ -12,7 +12,7 @@ Every agent a skill spawns runs on a **tier**, and each tier resolves to one mod
 - **Executor** — an agent that carries out a fully specified brief under a net that catches its mistakes. Default: `sonnet`.
 - **Decider** — an agent whose judgment is the product. Default: `inherit` (the session's model).
 - **Auditor** — a run-once, single-agent, find-side read whose misses nothing downstream catches. It runs once per effort, so the strongest model is affordable here. Default: `inherit`.
-- **Planner** — an agent whose call shapes everything built after it and that runs only a handful of times per effort: drafting and attacking a plan, replanning, reconsidering a decision. Default: `inherit`.
+- **Planner** — an agent whose call shapes everything built after it and that runs only a handful of times per effort: drafting and attacking a plan, reconsidering a decision. A stage that runs every cycle of an effort is not one, however much rests on it. Default: `inherit`.
 
 Which tier a given stage belongs to, and its effort, is the spawning skill's call and is stated there; this skill only says what each tier runs on.
 

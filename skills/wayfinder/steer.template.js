@@ -2,9 +2,9 @@ export const meta = {
   name: 'wayfinder-steer',
   description: 'One wayfinder Steer: replan from what landed ∥ cross-read the recent decisions → structural checks → reconsider each strained decision, a fresh refuter on every amend or supersede → apply every op in the effort store → progress and completion by script',
   phases: [
-    { title: 'Replan', detail: 'one planner-tier replanner turns defects, parks, landed code and redirects into ops, beside one planner-tier cross-read of the decisions since the last steer' },
+    { title: 'Replan', detail: 'one decider-tier replanner turns defects, parks, landed code and redirects into ops, beside one decider-tier cross-read of the decisions since the last steer' },
     { title: 'Check', detail: 'structural checks by script on the replanned graph; one revision when they fail' },
-    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each amend or supersede attacked by a fresh planner-tier refuter; over-proved risks weighed for a best guess' },
+    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each amend or supersede attacked by a fresh planner-tier refuter; over-proved risks weighed for a best guess by decider-tier agents' },
     { title: 'Apply', detail: 'executor-tier agents create decisions, then pieces, risks and tasks, then every edit, unpark, drop, decision outcome and escalation' },
     { title: 'Record', detail: 'one executor-tier agent rewrites the plan body, removes finished worktrees, and posts the steer summary' },
   ],
@@ -55,11 +55,14 @@ const RISKS_CLOSED_SINCE = FILL // risks closed in the same span
 const WF_CMD = FILL            // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model, or null to inherit
+const DECIDER_MODEL = FILL     // per /model-policy: the decider tier's resolved model, or null to inherit
 const PLANNER_MODEL = FILL     // per /model-policy: the planner tier's resolved model, or null to inherit
 
 // ═══════════ FIXED BELOW THIS LINE — edit only when the run genuinely deviates ═══════════
 
-const TIER_MODEL = { executor: EXECUTOR_MODEL, planner: PLANNER_MODEL }
+// Replan and the decision review run on every Steer, so they are decider-tier; the planner tier
+// is kept for reconsidering a strained decision, which is rare and reworks built code when wrong.
+const TIER_MODEL = { executor: EXECUTOR_MODEL, decider: DECIDER_MODEL, planner: PLANNER_MODEL }
 const tier = t => (TIER_MODEL[t] ? { model: TIER_MODEL[t] } : {})
 const j = lines => lines.filter(s => s !== null && s !== undefined && s !== '').join('\n')
 
@@ -644,8 +647,8 @@ function recordPrompt(map, where, worktrees, summary) {
 
 phase('Replan')
 const [replan0, review] = await parallel([
-  () => agent(replanPrompt(null, []), { ...tier('planner'), schema: REPLAN_SCHEMA, label: 'replan', phase: 'Replan' }),
-  () => agent(reviewPrompt(), { ...tier('planner'), schema: REVIEW_SCHEMA, label: 'decision-review', phase: 'Replan' }),
+  () => agent(replanPrompt(null, []), { ...tier('decider'), schema: REPLAN_SCHEMA, label: 'replan', phase: 'Replan' }),
+  () => agent(reviewPrompt(), { ...tier('decider'), schema: REVIEW_SCHEMA, label: 'decision-review', phase: 'Replan' }),
 ])
 if (!replan0) throw new Error('the replanner returned nothing; nothing was applied')
 
@@ -654,7 +657,7 @@ let replan = replan0
 let built = replanOps(replan)
 let fails = structuralChecks(graphWith(built.ops), BEHAVIORS, GREENFIELD)
 if (fails.length) {
-  const rev = await agent(replanPrompt(replan, fails), { ...tier('planner'), schema: REPLAN_SCHEMA, label: 'replan:revise', phase: 'Check' })
+  const rev = await agent(replanPrompt(replan, fails), { ...tier('decider'), schema: REPLAN_SCHEMA, label: 'replan:revise', phase: 'Check' })
   if (rev) { replan = rev; built = replanOps(replan); fails = structuralChecks(graphWith(built.ops), BEHAVIORS, GREENFIELD) }
 }
 log('Steer ' + STEER + ': replan has ' + built.ops.length + ' ops, ' + fails.length + ' structural failures')
@@ -697,7 +700,7 @@ async function settle(t) {
 }
 const [settled, weighed] = await parallel([
   () => parallel(due.map(t => () => settle(t))),
-  () => parallel(weighable.map(f => () => agent(riskPrompt(riskOf(f), f), { ...tier('planner'), schema: RISK_SCHEMA, label: 'risk:' + f.subject.issue, phase: 'Reconsider' }).then(w => ({ f, w })))),
+  () => parallel(weighable.map(f => () => agent(riskPrompt(riskOf(f), f), { ...tier('decider'), schema: RISK_SCHEMA, label: 'risk:' + f.subject.issue, phase: 'Reconsider' }).then(w => ({ f, w })))),
 ])
 
 // Decision outcomes as ops.
