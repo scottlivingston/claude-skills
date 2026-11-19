@@ -1,0 +1,19 @@
+id: test-name
+language: Rust
+severity: error
+message: A test is named with a sentence about the behavior it proves, not a `test_` label.
+note: Rename it to say what holds, e.g. `a_grant_round_trips_its_roles_through_the_text_array`. Whether the name reads as a sentence is the reviewer's call; this rule bans only the `test_` prefix.
+rule:
+  kind: function_item
+  has:
+    field: name
+    regex: ^test_
+  follows:
+    kind: attribute_item
+    regex: '^#\[\s*(\w+\s*::\s*)*test\s*(\(.*\))?\s*\]$'
+    stopBy:
+      not:
+        any:
+          - kind: attribute_item
+          - kind: line_comment
+          - kind: block_comment

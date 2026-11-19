@@ -1,0 +1,93 @@
+[settings]
+lockfile = true
+
+[tools]
+rust = { version = "PIN", mr_boxington = true }
+"mr-boxington" = "PIN"
+"ast-grep" = "PIN"
+"cargo:dprint" = "PIN"
+"cargo:cargo-deny" = "PIN"
+"cargo:cargo-nextest" = "PIN"
+
+[env]
+CLIPPY_TEST_ALLOWS = "-A clippy::unwrap_used -A clippy::panic -A clippy::todo -A clippy::unimplemented"
+
+[tasks.check]
+description = "Type-check the workspace, every target, without building"
+run = "cargo check --workspace --all-targets"
+
+[tasks.build]
+description = "Build in release mode"
+run = "cargo build --release"
+
+[tasks.test]
+description = "Run every workspace test with nextest"
+run = "cargo nextest run --workspace"
+
+[tasks.fmt]
+description = "Format with dprint (rustfmt for Rust, plus TOML, Markdown and JSON)"
+run = "dprint fmt"
+
+[tasks."fmt:check"]
+description = "Check formatting with dprint, writing nothing"
+run = "dprint check"
+
+[tasks.lint]
+description = "Every deterministic check, each failing on any finding: formatting, RustSec advisories, Clippy, the config drift checks, module layout, comment caps, doc links and the ast-grep rules. vendor/ and archived/ are never linted."
+depends = [
+  "fmt:check",
+  "lint:deny",
+  "lint:clippy",
+  "lint:clippy-config",
+  "lint:lints-config",
+  "lint:layout",
+  "lint:comments",
+  "lint:docs",
+  "lint:ast-grep",
+]
+
+[tasks."lint:deny"]
+description = "RustSec advisories against Cargo.lock (cargo-deny, deny.toml). Fails on an advisory with no entry in deny.toml's ignore list; an entry there carries a comment saying why it is safe and when to remove it."
+run = "cargo deny check advisories"
+
+[tasks."lint:clippy"]
+description = "Clippy with warnings denied: [workspace.lints] from Cargo.toml plus clippy.toml. Production targets get the whole set; test targets allow $CLIPPY_TEST_ALLOWS."
+run = [
+  "cargo clippy --workspace --lib --bins --examples -- -D warnings",
+  "cargo clippy --workspace --tests -- -D warnings $CLIPPY_TEST_ALLOWS",
+]
+
+[tasks."lint:clippy-config"]
+description = "Fails when a scoped clippy.toml does not start with the root clippy.toml verbatim: Clippy reads only the nearest file and never merges."
+run = 'bash "{{config_root}}/mise-tasks/lint.d/clippy-config.sh"'
+
+[tasks."lint:lints-config"]
+description = "Fails when another workspace root carries [workspace.lints] tables that differ from the root Cargo.toml's: a crate can only inherit lints from its own workspace."
+run = 'bash "{{config_root}}/mise-tasks/lint.d/lints-config.sh"'
+
+[tasks."lint:layout"]
+description = "Module layout: a lib.rs, mod.rs or foo.rs-beside-foo/ holds only mod declarations, pub use re-exports and its //! header (#[proc_macro] entry points excepted); a mod.rs alone in its directory becomes <dir>.rs; a crate's tests/*.rs opens with //!; no types.rs. Its fixtures run first."
+run = [
+  'bash "{{config_root}}/mise-tasks/lint.d/layout-selftest.sh"',
+  'bash "{{config_root}}/mise-tasks/lint.d/layout.sh"',
+]
+
+[tasks."lint:comments"]
+description = "Comment caps, IDs and banners over every *.rs, tests included: a contiguous block over its cap in prose lines (inline 2, item docs 4, module headers 6; fenced examples don't count) fails, as does a ticket, decision or review ID (#67, D8, W7-SPEC-1) or a section banner (a run of 8+ = or -). Its fixtures run first."
+run = [
+  'bash "{{config_root}}/mise-tasks/lint.d/comments-selftest.sh"',
+  'bash "{{config_root}}/mise-tasks/lint.d/comments.sh"',
+]
+
+[tasks."lint:docs"]
+description = "Docs build of the workspace with private items documented and broken intra-doc links denied, so a doc link to deleted or renamed code fails. Its fixtures run first."
+env = { RUSTDOCFLAGS = "-D rustdoc::broken_intra_doc_links -A rustdoc::private_intra_doc_links" }
+run = [
+  'bash "{{config_root}}/mise-tasks/lint.d/docs-selftest.sh"',
+  "cargo doc --workspace --no-deps --document-private-items --keep-going",
+]
+
+[tasks."lint:ast-grep"]
+description = "ast-grep rules (one per file in lint/ast-grep/rules, wired by sgconfig.yml): `ast-grep test` proves each rule against its cases and snapshot in lint/ast-grep/tests, then `ast-grep scan` fails on any finding outside vendor/ and archived/."
+dir = "{{config_root}}"
+run = ["ast-grep test", "ast-grep scan --globs '!vendor/**' --globs '!archived/**'"]

@@ -1,0 +1,27 @@
+id: test-name
+valid:
+  - |
+      #[test]
+      fn parses_an_empty_file() {}
+  - |
+      fn test_entry() -> u8 { 1 }
+  - |
+      pub async fn test_connection() {}
+  - |
+      #[server]
+      pub async fn test_fansly_chat() {}
+invalid:
+  - |
+      #[test]
+      fn test_encode() {}
+  - |
+      #[tokio::test]
+      async fn test_actor() {}
+  - |
+      #[test]
+      #[ignore]
+      fn test_load() {}
+  - |
+      #[tokio::test(flavor = "multi_thread")]
+      /// doc
+      async fn test_x() {}

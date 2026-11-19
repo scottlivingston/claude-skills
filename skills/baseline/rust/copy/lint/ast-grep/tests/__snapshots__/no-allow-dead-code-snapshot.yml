@@ -1,0 +1,26 @@
+id: no-allow-dead-code
+snapshots:
+  "#![allow(dead_code)]\n":
+    labels:
+    - source: "#![allow(dead_code)]"
+      style: primary
+      start: 0
+      end: 20
+  "#[allow(dead_code)]\nfn f() {}\n":
+    labels:
+    - source: "#[allow(dead_code)]"
+      style: primary
+      start: 0
+      end: 19
+  "#[allow(unused, dead_code)]\nfn f() {}\n":
+    labels:
+    - source: "#[allow(unused, dead_code)]"
+      style: primary
+      start: 0
+      end: 27
+  "#[expect(dead_code, reason = \"later\")]\nstruct S;\n":
+    labels:
+    - source: "#[expect(dead_code, reason = \"later\")]"
+      style: primary
+      start: 0
+      end: 38

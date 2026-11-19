@@ -1,0 +1,11 @@
+id: no-allow-dead-code
+language: Rust
+severity: error
+message: Dead code is removed, not suppressed.
+note: Delete the unused item. If it is used only under a feature or in tests, gate it with the same `#[cfg(...)]` as its users. A crate's tests/common/ is exempt with a reason, since each tests/*.rs compiles it separately.
+rule:
+  any:
+    - kind: attribute_item
+    - kind: inner_attribute_item
+  regex: '^#!?\[\s*(allow|expect)\s*\((.*[\s,(])?dead_code\b'
+ignores: ["**/tests/common/**"]

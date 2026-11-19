@@ -1,0 +1,20 @@
+id: no-allow-dead-code
+valid:
+  - |
+      #[allow(clippy::too_many_arguments, reason = "kernel launch signature")]
+      fn f() {}
+  - |
+      #[cfg(feature = "automation")]
+      fn g() {}
+invalid:
+  - |
+      #[allow(dead_code)]
+      fn f() {}
+  - |
+      #[allow(unused, dead_code)]
+      fn f() {}
+  - |
+      #[expect(dead_code, reason = "later")]
+      struct S;
+  - |
+      #![allow(dead_code)]

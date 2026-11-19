@@ -1,0 +1,4 @@
+target/
+.dprint/
+.mise.local.toml
+.claude/worktrees/

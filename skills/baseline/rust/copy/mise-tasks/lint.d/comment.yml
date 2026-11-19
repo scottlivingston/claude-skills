@@ -1,0 +1,13 @@
+# The comment rule behind `mise run lint:comments` (comments.sh passes it every .rs file;
+# it lives here, not under lint/ast-grep/rules, so the repo-wide `ast-grep scan`
+# never reports every comment). Severity hint keeps scan's exit status at 0:
+# comments.sh decides what counts as a finding. tree-sitter does the
+# tokenizing, so `//` inside a string or raw string is never a comment.
+id: comment
+language: rust
+severity: hint
+message: A comment.
+rule:
+  any:
+    - kind: line_comment
+    - kind: block_comment

@@ -1,0 +1,46 @@
+# The module-root rule behind `mise run lint:layout` (layout.sh passes it the module
+# roots by name; it lives here, not under lint/ast-grep/rules, so the repo-wide
+# `ast-grep scan` never applies it to every .rs file).
+id: module-root-holds-only-declarations
+language: rust
+severity: error
+message: >-
+  A module root holds only `mod` declarations, `pub use` re-exports and its
+  `//!` header. Move this code to a named sibling file and re-export it.
+rule:
+  inside:
+    kind: source_file
+  any:
+    # A proc-macro entry point must sit at the crate root; its body can't move.
+    - kind: function_item
+      not:
+        follows:
+          kind: attribute_item
+          regex: '^#\[proc_macro(_derive|_attribute)?\b'
+          stopBy:
+            not:
+              any:
+                - kind: attribute_item
+                - kind: line_comment
+                - kind: block_comment
+    - kind: function_signature_item
+    - kind: struct_item
+    - kind: enum_item
+    - kind: union_item
+    - kind: impl_item
+    - kind: trait_item
+    - kind: const_item
+    - kind: static_item
+    - kind: type_item
+    - kind: macro_invocation
+    - kind: macro_definition
+    - kind: expression_statement
+    - kind: extern_crate_declaration
+    - kind: foreign_mod_item
+    - kind: mod_item
+      has:
+        kind: declaration_list
+    - kind: use_declaration
+      not:
+        has:
+          kind: visibility_modifier

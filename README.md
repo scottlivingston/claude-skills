@@ -104,6 +104,7 @@ Used by the workflow, and useful on their own:
 - **codebase-design** — shared vocabulary for deep modules: module, interface, depth, seam, adapter, leverage, locality
 - **prototype** — throwaway code that answers a design question (a shareable single-file HTML logic demo, or switchable UI variants)
 - **wizard** — generate an interactive bash wizard that walks a human through steps only they can perform (credentials, provisioning, cutovers)
+- **baseline** — `/baseline` seeds a repo with the default rules — mise for every command, the lint gate, comment and test standards, the doc set — from global defaults plus one file per language (Rust today), so the repo enforces them itself; run it again to bring a seeded repo back to the defaults
 - **create-verification-skill** — generate a `verify-<app>` skill per app (monorepo apps included, all in the root `.claude/skills/`) that launches the real app, drives it the way a user does, and captures evidence, seeded with a feature map and proved by one end-to-end run before hand-off
 - **maintain-verification-skill** — the upkeep pass for a verification skill: one source reader per feature, one live pass driving every feature, and at most one PR of proven map and harness corrections, with product regressions reported to you instead of papered over
 - **research** — background-agent research against primary sources, captured as a cited markdown file in the repo
