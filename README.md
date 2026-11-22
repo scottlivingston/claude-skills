@@ -23,7 +23,7 @@ The **lead** is the only agent you talk to. It never builds or reviews anything;
 - **Verify** drives every built behavior on one pinned commit of the effort branch and files a defect piece for each failure — it's how pieces that each passed review but break each other get caught.
 - **Steer** replans from what landed, fills parked pieces' gaps, and reviews recent decisions.
 
-Builds and tests from every agent queue for a fixed number of host-wide build slots, and running copies of the app for drive slots, so the machine is never oversubscribed. A status pane beside the lead shows every piece's state, worked out from the store, and a second pane runs the gate: the one process that runs CI on every change and merges what passes.
+Builds and tests from every agent queue in Sous Chef's (`sc`) build pool, and running copies of the app in a drive pool, so the machine is never oversubscribed. A pane beside the lead runs `sc tui`, which shows every piece's state, every change's statuses, and the questions waiting on you; `sc`'s gate runs CI on every change and lands what passes.
 
 **Prove what could sink it, guess the rest.** A question becomes a risk only when building on a wrong guess would waste real work. Everything else is decided by best guess — the call the principles and design most plainly imply — by whichever agent needs it, and the code corrects it if it was wrong.
 
@@ -53,7 +53,7 @@ The memory is an **effort log** in the repo (`docs/efforts/<slug>/` by default) 
 
 ## The opinions
 
-**The store is the memory, not the chat.** A big effort outlives any one context window, so all durable state — the plan, pieces, decisions, blocking edges, claims, changes, reviews — lives in a local store inside the repo's git directory, written only through `wf.py`, and every piece's state is worked out from it rather than stored. The lead compacts freely and can die; a new one picks up from the store alone.
+**The forge is the memory, not the chat.** A big effort outlives any one context window, so all durable state — the plan, pieces, decisions, blocking edges, claims, changes, reviews — lives in `sc`, the local forge, and every piece's state is worked out from it rather than stored. The lead compacts freely and can die; a new one picks up from that record alone.
 
 **Behaviors you can watch are the measure.** Plans, decisions, and reviews exist only to get the right code built, and done means the app doing the thing, driven and observed — not a test suite written up front. A Steer cycle that lands nothing is a stall to diagnose, never a lap to repeat.
 
@@ -79,7 +79,7 @@ The memory is an **effort log** in the repo (`docs/efforts/<slug>/` by default) 
 
 What must be true of your project and working style for this workflow to fit:
 
-- **Your CI runs as commands on your machine.** `/wayfinder` needs git and Python 3 and nothing hosted: the charter lists the CI jobs as shell commands, and `wf.py` supplies the tracker, the changes, the statuses, the branch protection, and the gate that runs CI and merges. The `issue-tracker` skill defines the tracker contract the other skills speak, on GitHub or in local markdown.
+- **Your CI runs as commands on your machine.** `/wayfinder` needs git, Python 3.11 or later, and Sous Chef (`sc`) on your `PATH`, and nothing hosted: `sc.toml` lists the CI jobs as shell commands, and `sc` supplies the tracker, the changes, the statuses, the branch protection, the build queue, and the gate that runs CI and lands changes. The `issue-tracker` skill defines the tracker contract the other skills speak, on GitHub or in local markdown.
 - **The effort is bigger than one context window.** That's what the plan is for. If the whole thing fits one session, Shape tells you to use `/iterate` instead.
 - **You can state your principles.** Agents decide against the destination, principles, and design you give at setup; where you can't yet say which way you lean on the effort's big trade-offs, the decisions will escalate or drift. A feature whose shape you need to discover by building it belongs in `/iterate`.
 - **Your app can be driven by an agent.** Done is proven through a `verify-<app>` skill that launches the real app and exercises it the way a user does. A `TESTING.md` (the `testing` skill holds the convention) tells agents which slice of the suite a change has to pass.
@@ -116,7 +116,7 @@ Used by the workflow, and useful on their own:
 - **diff-review** — review any branch, PR, or diff since a fixed point; works outside the chain with any issue as the Spec source
 - **finding-pipeline** — the find → validate → propose → validate → route contract every review gate above runs; consult it when authoring or resuming one
 - **hitl-questions** — the presentation contract for every question put to the human: the opening where the human states their design before the agent proposes anything, facts vs decisions, cold-reader blocks, one topic per block, domain language, recommendations, escape hatches
-- **multiplexer** — open a hand-off session or a side pane in whichever agent multiplexer you're running inside (Herdr or Rex), or carry on without one; `/iterate` kickoff and `/wayfinder`'s Shape hand their effort to a session of its own through it, and the lead opens its status pane with it
+- **multiplexer** — open a hand-off session or a side pane in whichever agent multiplexer you're running inside (Herdr or Rex), or carry on without one; `/iterate` kickoff and `/wayfinder`'s Shape hand their effort to a session of its own through it, and the lead opens its `sc tui` pane with it
 - **issue-tracker** — the tracker contract every workflow skill speaks, with GitHub and local-markdown implementations and a per-repo override
 - **model-policy** — which model every spawned agent runs on: four tiers (executor, decider, auditor, planner) resolved from `.claude/model-policy.md`, then `~/.claude/model-policy.md`, then defaults — so a session on an expensive model never fans it out by accident
 - **deciding** — the contract for an agent deciding on your behalf: the grounds it cites, the decision record, the three escalation cases, friction notes, agent-answered gates

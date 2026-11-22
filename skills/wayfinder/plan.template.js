@@ -29,13 +29,12 @@ export const meta = {
 
 const PLAN = FILL            // the plan issue's number, e.g. 12
 const PLAN_TITLE = FILL      // the plan issue's title, verbatim
-const REPO_ROOT = FILL       // absolute path of the repo's main checkout — agents run git and WF_CMD from here
-const SLUG = FILL            // the effort's slug (wf.py effort prints it)
+const REPO_ROOT = FILL       // absolute path of the repo's main checkout — agents run git and sc from here
+const SLUG = FILL            // the effort's slug (effort.py show prints it)
 const EFFORT_BRANCH = FILL   // "effort/<slug>"
 const CHARTER = FILL         // the charter's full text, verbatim from docs/wayfinder/<slug>.md on the effort branch
 const BEHAVIORS = FILL       // every acceptance behavior in the charter: [{ id: "B1", text: "<the behavior line after the ID, verbatim>" }]
 const VERIFY_SKILL = FILL    // the charter's verification line: repo path of the verify-<app> skill, e.g. ".claude/skills/verify-shop/" — "" when the charter says the first foundation piece builds it (greenfield)
-const WF_CMD = FILL          // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
 
 const EXECUTOR_MODEL = FILL  // per /model-policy: the executor tier's resolved model, or null to inherit
 const PLANNER_MODEL = FILL   // per /model-policy: the planner tier's resolved model, or null to inherit
@@ -352,8 +351,9 @@ function revisePrompt(plan, findings, fails) {
 }
 
 const PUBLISH_RULES = j([
-  'This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + ', passing each body with --body-file.',
-  'A relaunched run may find some of this already done: before creating an issue, look for one already linked to plan #' + PLAN + ' with the same title (a piece of the plan — issue list --parent ' + PLAN + ' --state all — or an issue whose body opens with "Plan: #' + PLAN + '" — issue list --state all --search "Plan: #' + PLAN + '"); reuse it instead of creating a second, and make its body and labels match. An edge or link that already exists counts as made.',
+  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
+  'A relaunched run may find some of this already done: before creating an issue, look for one already linked to plan #' + PLAN + ' with the same title (a piece of the plan — sc issue list --parent ' + PLAN + ' --json — or an issue whose body opens with "Plan: #' + PLAN + '" — sc issue list --json lists every issue, open and closed, with its title, and sc issue view <n> --json has the body); reuse it instead of creating a second, and make its body and labels match. An edge or link that already exists counts as made.',
+  'Every issue you create or reuse with the label hitl also needs a question in sc, which is what shows it to the human as waiting on them. Unless sc question list --json already has an open one naming that issue, ask: sc question ask "<the issue\'s title> (#<n>) is a task only you can do; its checklist is the issue\'s body. Tell the lead when it is done." --issue <n>.',
   'Post every body exactly as given. Report every issue number you created or reused, and every operation that failed with its error.',
 ])
 

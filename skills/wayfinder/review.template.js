@@ -33,7 +33,7 @@ export const meta = {
 
 const PLAN = FILL              // the plan issue: { number: 12, title: "its title" }
 const CHANGE = FILL            // the piece's change: { number: 5, title: "its title" } — change numbers are their own sequence, separate from issue numbers
-const HEAD_SHA = FILL          // the change head commit under review, full sha — the one whose CI is green (the head that WF_CMD change show <change> prints)
+const HEAD_SHA = FILL          // the change head commit under review, full sha — the one whose CI is green (the head that sc change view <change> prints)
 const PIECE = FILL             // the piece the change closes: { number: 41, title, body: "the issue body verbatim — Goal, Acceptance, Builds on" }
 const DECISIONS = FILL         // every decision under the piece's Builds on, full text: [{ number: 30, title, body: "the decision issue body verbatim" }] — [] when it builds on none
 const CHARTER_PATH = FILL      // the plan body's Charter: line, e.g. "docs/wayfinder/<slug>.md" — agents read it from the review worktree
@@ -46,10 +46,7 @@ const VERIFY_SKILL = FILL      // the verify-<app> skill's path from the repo ro
 const APP = FILL               // the <app> of verify-<app> (the app's workspace or directory name), e.g. "web" — names the drive pool
 const REPO_ROOT = FILL         // absolute path of the main checkout
 const WORKTREE = FILL          // absolute path of the review worktree: <REPO_ROOT>/.claude/worktrees/<slug>/review-<change number>
-const SLOT_CMD = FILL          // absolute path of the installed wayfinder skill's slot.sh
-const BUILD_SLOTS = FILL       // the charter's Limits → Build slots, as a number
-const DRIVE_SLOTS = FILL       // the charter's Limits → Drive slots, as a number
-const WF_CMD = FILL            // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
+const AWAIT_CMD = FILL         // absolute path of the installed wayfinder skill's await.sh
 const TEST_NOTES = FILL        // per /testing: the governing TESTING.md sections verbatim (Typecheck, Unit, Integration, Scoping to a change, Green — each with the scope it binds), or "" when the repo has none
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model, or null to inherit
@@ -68,7 +65,7 @@ const STANDARDS_IDLE = !STANDARDS_SOURCES.length
 // Nothing has a link: a human reads an issue as its title and number, a change as its title and change number.
 const ref = x => x.title + ' (#' + x.number + ')'
 const changeRef = x => x.title + ' (change ' + x.number + ')'
-const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary.'
+const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary.'
 
 // Set by the Locate stage: the change's merge-base with the effort branch.
 let BASE = ''
@@ -79,18 +76,17 @@ const logCmd = () => 'git log ' + BASE + '..' + HEAD_SHA
 const SCOPE_RULE = 'SCOPE — the diff is the material. A finding must name something the diff DID: a line it added, changed, or removed. Code the diff never touched is out of scope however wrong it is, and whether or not an issue already covers it. You will legitimately see far more code than you may report on — diff context lines, the repo grep behind a repo-wide flag, the files you open to check a rule — and none of it is reportable on its own. Two cases are in scope and only look like exceptions: a requirement this piece was meant to deliver and did not (an absence has no anchor), and the repo-wide counts, which are evidence about a pattern the diff instantiates, never findings about the untouched instances.'
 
 // A workflow agent's turn ending is its final report, so it waits on a long run in the
-// foreground, through await.sh beside slot.sh, never on a completion notice.
-const AWAIT_CMD = SLOT_CMD.replace(/slot\.sh$/, 'await.sh')
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the slot command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
+// foreground, through await.sh, never on a completion notice.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the sc run command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 
-const DRIVE_SLOTS_RULE = 'Run every copy of the app through the host\'s drive slots: start it with its Launch command as sh ' + SLOT_CMD + ' ' + DRIVE_SLOTS + ' drive-' + APP + ' -- <launch command>, run_in_background, so the slot is held for as long as that copy runs; drive it; then tear it down per the skill\'s Cleanup, which ends the command and frees the slot. An app with no long-running process (a short-lived CLI) wraps each drive command the same way instead. Never drive a copy you did not start.'
+const DRIVE_SLOTS_RULE = 'Run every copy of the app through the host\'s drive slots: start it with its Launch command as sc run --pool drive-' + APP + ' -- <launch command>, run_in_background, so the slot is held for as long as that copy runs; drive it; then tear it down per the skill\'s Cleanup, which ends the command and frees the slot. A copy started this way outlives the shell that started it: when it is still running after Cleanup, end it with sc job cancel <the job id sc run printed>. An app with no long-running process (a short-lived CLI) wraps each drive command the same way instead. Never drive a copy you did not start.'
 
 // Every agent after Locate works in the review worktree, detached at the head.
 function common() {
   return j([
     SCOPE_RULE,
     'Work in the review worktree ' + WORKTREE + ', detached at the change head ' + HEAD_SHA + ' — run every command there, and leave it as you found it: no commits, no edits that outlive your run. ' + changeRef(CHANGE) + ' proposes its piece branch for ' + EFFORT_BRANCH + ', a local branch: there is no remote, so never fetch or push, and never check ' + EFFORT_BRANCH + ' out, commit to it or move it. ' + FORGE_RULE,
-    'Diff under review (run it yourself): ' + diffCmd() + '. Commits under review: ' + logCmd() + ' — full messages. The change body (' + WF_CMD + ' change show ' + CHANGE.number + ') carries the builder\'s evidence per behavior, its Decisions and its Deviations.',
+    'Diff under review (run it yourself): ' + diffCmd() + '. Commits under review: ' + logCmd() + ' — full messages. The change body (sc change view ' + CHANGE.number + ') carries the builder\'s evidence per behavior, its Decisions and its Deviations.',
   ])
 }
 
@@ -101,7 +97,7 @@ const PIECE_CONTEXT = j([
     ? 'Full text of the decisions the piece builds on — binding, the same authority as the Acceptance:\n' + DECISIONS.map(d => '### ' + d.title + ' (#' + d.number + ')\n' + d.body).join('\n\n')
     : 'The piece builds on no shared decision.',
   'The effort\'s charter — Destination, Acceptance behaviors, Principles, Design, Out of scope — is ' + CHARTER_PATH + ' in the worktree: it is the context the piece was cut from, and a diff that breaks its Principles or Design is a spec finding.',
-  'The builder\'s own calls are <!-- decision-record --> comments on the piece (' + WF_CMD + ' issue show ' + PIECE.number + ' prints them), each named in the change body\'s Decisions. A call recorded with grounds is the builder\'s to make where the Acceptance and the decisions are silent; it is a finding only where it contradicts them, the charter\'s Principles or Design, or its own grounds.',
+  'The builder\'s own calls are <!-- decision-record --> comments on the piece (sc issue view ' + PIECE.number + ' prints them), each named in the change body\'s Decisions. A call recorded with grounds is the builder\'s to make where the Acceptance and the decisions are silent; it is a finding only where it contradicts them, the charter\'s Principles or Design, or its own grounds.',
   PRIOR_ANSWERS.length
     ? 'Answers to earlier rounds\' questions — BINDING, the same authority as a decision; a finding one of these directly governs diverges from the answer, it never raises the question again:\n' + PRIOR_ANSWERS.join('\n---\n')
     : null,
@@ -245,7 +241,7 @@ const BLOCKS_SCHEMA = {
 const POST_SCHEMA = {
   type: 'object', required: ['posted', 'comment', 'issues', 'statuses', 'worktreeRemoved', 'problem'],
   properties: {
-    posted: { type: 'boolean', description: 'true when the round comment and both statuses are in the effort\'s store' },
+    posted: { type: 'boolean', description: 'true when the round comment and both statuses are posted' },
     comment: { type: 'integer', description: 'the id of the round comment on the change; 0 when it was not posted' },
     issues: { type: 'array', items: { type: 'object', required: ['id', 'title', 'number'], properties: { id: { type: 'string', description: 'the finding ID' }, title: { type: 'string' }, number: { type: 'integer', description: 'the filed issue\'s number' } } } },
     statuses: { type: 'array', items: { type: 'string' }, description: 'each status posted, as "<context> <state>"' },
@@ -259,7 +255,7 @@ const POST_SCHEMA = {
 function locatePrompt() {
   return j([
     'You are the locate agent of a wayfinder review round — git mechanics only, no review. Work from the main checkout ' + REPO_ROOT + '.',
-    '1. Read change ' + CHANGE.number + '\'s current head: ' + WF_CMD + ' change show ' + CHANGE.number + ' (its head field; run ' + WF_CMD + ' --help first). There is no remote and nothing to fetch: every worktree shares one repo, so ' + HEAD_SHA + ' and the local branch ' + EFFORT_BRANCH + ' are already here. Never check ' + EFFORT_BRANCH + ' out.',
+    '1. Read change ' + CHANGE.number + '\'s current head: sc change view ' + CHANGE.number + ' (its head field, with --json; run sc --help first). There is no remote and nothing to fetch: every worktree shares one repo, so ' + HEAD_SHA + ' and the local branch ' + EFFORT_BRANCH + ' are already here. Never check ' + EFFORT_BRANCH + ' out.',
     '2. Put the review worktree ' + WORKTREE + ' at ' + HEAD_SHA + ', detached: create it with git worktree add --detach when it does not exist; when it does (an earlier round or a dead run), clean it (reset and remove untracked files) and check out ' + HEAD_SHA + ' detached there.',
     '3. Find the merge-base: git merge-base ' + EFFORT_BRANCH + ' ' + HEAD_SHA + ', and list the changed files with git diff --name-only <base>...' + HEAD_SHA + '.',
     'Report whether the change\'s head is still ' + HEAD_SHA + '. Any step that fails: ok=false with exactly what failed.',
@@ -302,7 +298,7 @@ function labelPrompt(axisPrefix, axisName, reports) {
     PRIOR_ROUNDS.length
       ? 'Dedup against this change\'s earlier review rounds, below. A finding a prior round refuted, filed as an issue, or settled by an answer the code now honors is already decided → dedup=already-adjudicated, dedupRef=the prior ID and outcome. A finding a prior round sent back for fixing that the code at this head still shows → dedup=still-open-from-prior, dedupRef=the prior ID (it stays in: the fix did not land). An uncertain match → possibly-duplicates (stays in).\n' + PRIOR_ROUNDS.join('\n---\n')
       : 'This is the change\'s first review round — no prior rounds to dedup against.',
-    'Then list the open review-finding issues yourself (' + WF_CMD + ' issue list --label review-finding --state open; ' + WF_CMD + ' issue show <n> for one\'s body) and dedup against them conservatively, at the rule or pattern level: a subject that predates this diff and matches one → dedup=already-ticketed, dedupRef=#N; one this diff introduces that matches a filed pattern → dedup=instance-of-open, dedupRef=#N (stays in — new instances of a known pattern are new debt). A visible duplicate is recoverable; a silent suppression is not.',
+    'Then list the open review-finding issues yourself (sc issue list --label review-finding --state open --json; sc issue view <n> for one\'s body) and dedup against them conservatively, at the rule or pattern level: a subject that predates this diff and matches one → dedup=already-ticketed, dedupRef=#N; one this diff introduces that matches a filed pattern → dedup=instance-of-open, dedupRef=#N (stays in — new instances of a known pattern are new debt). A visible duplicate is recoverable; a silent suppression is not.',
   ])
 }
 
@@ -403,10 +399,10 @@ function postPrompt(body, repoWide) {
   return j([
     'You are the post agent of a wayfinder review round — tracker mechanics only, no review. Work from the main checkout ' + REPO_ROOT + '. ' + FORGE_RULE + ' Do the steps in this order.',
     repoWide.length
-      ? '1. File one standalone issue per repo-wide finding below (' + WF_CMD + ' issue create with no --parent, so it is never a piece of the plan; no Plan: line) — labelled review-finding and needs-triage. Title it by the pattern in plain words. Body: the pattern and the rule it breaks (title, gist, quoted sentence), the grep and its governed counts inside and outside the diff, the validated proposal, and where it was found: ' + changeRef(CHANGE) + ' for ' + ref(PIECE) + ' in ' + ref(PLAN) + '. Say it does not block that CHANGE. Findings:\n' + JSON.stringify(repoWide)
+      ? '1. File one standalone issue per repo-wide finding below (sc issue create with no --parent, so it is never a piece of the plan; no Plan: line) — labelled review-finding and needs-triage. Title it by the pattern in plain words. Body: the pattern and the rule it breaks (title, gist, quoted sentence), the grep and its governed counts inside and outside the diff, the validated proposal, and where it was found: ' + changeRef(CHANGE) + ' for ' + ref(PIECE) + ' in ' + ref(PLAN) + '. Say it does not block that CHANGE. Findings:\n' + JSON.stringify(repoWide)
       : '1. No repo-wide findings this round — file nothing.',
-    '2. Post the round comment below on change ' + CHANGE.number + ' (' + WF_CMD + ' change comment ' + CHANGE.number + ' --body-file <file>), verbatim, after replacing each {{issue:<ID>}} with the filed issue\'s title followed by its number, as Title (#N). If the change already has a comment opening with <!-- wayfinder review ' + ROUND + ' --> (a dead run of this round), replace that comment with this body (--edit <its id>) instead of adding another.',
-    '3. Post the reviewer statuses on ' + HEAD_SHA + ' with ' + WF_CMD + ' status set <sha> <context> <state> "<description>", exactly these two:\n' + statusLines().map(s => '- ' + s.context + ' ' + s.state + ' "' + s.description + '"').join('\n'),
+    '2. Post the round comment below on change ' + CHANGE.number + ' (sc change comment ' + CHANGE.number + ' --body "$(cat <file>)"), verbatim, after replacing each {{issue:<ID>}} with the filed issue\'s title followed by its number, as Title (#N). If the change already has a comment opening with <!-- wayfinder review ' + ROUND + ' --> (a dead run of this round), post this one all the same: sc replaces no comment, and the newest comment for a round is the round\'s.',
+    '3. Post the reviewer statuses on ' + HEAD_SHA + ' with sc status set <sha> <name> <state> --description "<description>", exactly these two:\n' + statusLines().map(s => '- ' + s.context + ' ' + s.state + ' "' + s.description + '"').join('\n'),
     '4. Remove the review worktree: git worktree remove --force ' + WORKTREE + '.',
     'posted is true only when step 2 and both statuses of step 3 succeeded.',
     'The round comment:\n' + body,
@@ -697,11 +693,11 @@ const verdict = questions.length ? 'questions' : changes.length ? 'changes' : 'p
 function statusLines() {
   const blocking = axis => all.filter(f => axisOf(f) === axis && (f.route === 'changes' || f.route === 'question')).length
   const line = (axis, context, idle) => {
-    if (idle) return { context, state: 'success', description: 'standards axis idle' }
+    if (idle) return { context, state: 'pass', description: 'standards axis idle' }
     const n = blocking(axis)
     return n
-      ? { context, state: 'failure', description: 'review round ' + ROUND + ': ' + n + ' ' + axis + ' finding' + (n > 1 ? 's' : '') + ' sent back or questioned' }
-      : { context, state: 'success', description: 'review round ' + ROUND + ': no ' + axis + ' finding stands' }
+      ? { context, state: 'fail', description: 'review round ' + ROUND + ': ' + n + ' ' + axis + ' finding' + (n > 1 ? 's' : '') + ' sent back or questioned' }
+      : { context, state: 'pass', description: 'review round ' + ROUND + ': no ' + axis + ' finding stands' }
   }
   return [line('spec', 'wayfinder/spec', false), line('standards', 'wayfinder/standards', std.idle)]
 }

@@ -1,8 +1,8 @@
 # The lead
 
-`/wayfinder <slug>` makes this session the effort's lead: the one agent the human talks to, which runs every other stage as a workflow and never builds, reviews, or plans anything itself. Its context holds the run, not its substance — so it stays small, relies on the harness's automatic compaction, and re-reads state from the effort's store at every cycle instead of remembering it. What it tells the human is read the same way: a question about what an agent did, or why something happened, is answered from that workflow's transcripts and the store, looked up before replying. Never answer one with a guess at likely causes.
+`/wayfinder <slug>` makes this session the effort's lead: the one agent the human talks to, which runs every other stage as a workflow and never builds, reviews, or plans anything itself. Its context holds the run, not its substance — so it stays small, relies on the harness's automatic compaction, and re-reads state from `sc` at every cycle instead of remembering it. What it tells the human is read the same way: a question about what an agent did, or why something happened, is answered from that workflow's transcripts and `sc`, looked up before replying. Never answer one with a guess at likely causes.
 
-Every command below is [wf.py](wf.py), the effort's local forge per SKILL.md, run as `wf.py --effort <slug> …` from anywhere in the repo.
+Every `sc` command below is the local forge SKILL.md describes, run from anywhere in the repo; every `effort.py` command is [effort.py](effort.py), run as `effort.py --effort <slug> …`.
 
 ## Starting
 
@@ -11,42 +11,41 @@ Every command below is [wf.py](wf.py), the effort's local forge per SKILL.md, ru
 Every start is the same, whether the effort is new or the last lead died:
 
 1. Load `/deciding`, `/issue-tracker`, `/model-policy`, `/hitl-questions`, `/testing`, and `/conventions`. Resolve the model tiers once and say in one line which models they resolved to.
-2. Run `wf.py effort`, which names the plan, the branch, the charter, and the CI jobs. Read the plan (`wf.py issue show <plan>`) and the charter (`git show effort/<slug>:<charter>`). Run `wf.py pieces`.
-3. **Free every claim.** Nothing this lead launched is running yet, so every `in-progress` label on the plan's pieces, risks, and the plan itself belongs to a lead that's gone: remove them. Each build or spike workflow picks up where its piece left off when it's relaunched.
+2. Run `effort.py show`, which names the plan, the branch, the base, the charter, the CI jobs, and the gate. Read the plan (`sc issue view <plan>`) and the charter (`git show effort/<slug>:<charter>`). Run `effort.py pieces`.
+3. **Free every claim.** Nothing this lead launched is running yet, so every assignee on the plan's pieces, risks, and the plan itself belongs to a lead that's gone: unassign them. Each build or spike workflow picks up where its piece left off when it's relaunched.
 4. Post `<!-- wayfinder lead -->` on the plan, saying a lead started and what it found.
-5. **Start the gate** unless `wf.py effort` shows `gate_running`. Load `/multiplexer` and open a side pane running `wf.py --effort <slug> gate`, labelled `<slug> gate`. With no multiplexer, run it yourself with `run_in_background`. Nothing gets CI and nothing merges while the gate is down.
-6. Open a second side pane running `wf.py --effort <slug> status-pane`, labelled with the plan's title. With no multiplexer, tell the human the command.
-7. Start the watcher: `wf.py --effort <slug> watch` with `run_in_background`. It exits when the gate merges a change or reports a conflict, and when the human comments on or closes something from their own terminal.
-8. Run a cycle.
+5. Load `/multiplexer` and open a side pane running `sc tui`, labelled with the plan's title: its Work screen shows every piece's state and every change's statuses, and its Questions screen what waits on the human. With no multiplexer, tell the human the command. The gate needs no pane: it runs in `sc`'s daemon, which any `sc` command starts.
+6. Start the watcher: `sc watch --json` with `run_in_background`. It exits when the gate lands a change, when a change comes into conflict, and when a question is asked.
+7. Run a cycle.
 
 ## The cycle
 
 Run one on every event — a workflow finishing, the watcher exiting, the human saying something — and announce it in one line: what's building and what's being proved. While an escalation is unanswered, end the message by putting it again, whole, per `/hitl-questions`: the human comes back to the latest message alone, so it has to stand without the ones above it. With several unanswered, put the one that blocks the most work and say how many wait behind it. A human who is away has not passed a question over; it stays open until they answer.
 
-1. **Read state**: `wf.py pieces`, `wf.py change list`, the plan's open risks, tasks, and decisions (`wf.py issue list --label …`), and the comments since the last cycle. Restart the gate if `wf.py effort` shows it down.
-2. **Take in answers.** A human reply on an escalation or a human task closed: record the answer as a decision record whose ground is the human (per `/deciding`), switch the issue back to `afk`, and let what it blocked unblock.
+1. **Read state**: `effort.py pieces`, the plan's open risks, tasks, and decisions (`sc issue list --label …`), the open questions (`sc question list`), and the comments since the last cycle.
+2. **Take in answers.** The human answering an escalation, or saying a task of theirs is done: record the answer with `sc question answer`, which ends the issue's `waiting`, and as a decision record whose ground is the human (per `/deciding`); switch the issue back to `afk`, or close the task; and let what it blocked unblock. A question the human answered themselves from another terminal is no longer in `sc question list`: take its answer from `sc question view`.
 3. **Act on what finished** — each workflow's typed return, per the table below.
 4. **Launch what's ready**, each its workflow's single claim (below):
    - **Plan**, when the plan has no pieces yet and no escalation on it is waiting on the human.
    - **Build**, for each `ready` piece in plan order, until the charter's *Pieces at once* builds are running. Fix-mode builds count toward the limit. No first build of a piece launches while a Steer is running: Steer edits, splits and drops ready and blocked pieces from the state it was filled with, so a build started under it can be building a scope Steer has just changed. Fix-mode builds still launch.
    - **Spike**, for each open, unblocked, unclaimed risk labelled `afk` — one switched to `hitl` is waiting on the human.
-   - **Review**, for each `in-review` change whose head has every `ci/*` status passing and no `wayfinder/spec` status yet.
-   - **Build in fix mode**, for each `in-review` piece with `conflict` set and no build running: its one finding is that the change conflicts with the effort branch, to be fixed by merging the effort branch into the piece branch. The new head gets CI and a review round of its own.
-   - **Verify**, when the effort branch has merges since the last `<!-- wayfinder verify <sha> -->` report and no Verify is running. Merges that land during a run wait for the next one.
+   - **Review**, for each `in-review` piece whose change has every `ci/*` status passing and no `wayfinder/spec` status yet.
+   - **Build in fix mode**, for each `in-review` piece with `conflict` set and no build running: its one finding is that the change conflicts with the effort branch, to be fixed by merging the effort branch into the piece branch. The gate runs no CI on a head in conflict, so the new head gets CI and a review round of its own.
+   - **Verify**, when the effort branch has landings since the last `<!-- wayfinder verify <sha> -->` report and no Verify is running. Changes that land during a run wait for the next one.
    - **Steer**, when a Steer trigger has fired since the last `<!-- wayfinder steer <n> -->` summary and none is running: a new Verify report, a parked piece, a spike's answer, a decision labelled `friction`, or the human's redirect.
 5. **Restart the watcher** if it exited.
 
 ### One claim per workflow
 
-What's in flight is read off the store, never remembered, so a compacted or restarted lead can tell. Every workflow holds exactly one claim, taken by the lead as it launches. A label claim is released by the lead when the workflow returns — whatever it returns, and also when it fails. A status claim is released by the workflow itself, whose final statuses replace the `pending` ones; when that workflow fails, the lead sets those statuses to `error` and relaunches it explicitly, since the trigger that launched it no longer fires:
+What's in flight is read off `sc`, never remembered, so a compacted or restarted lead can tell. Every workflow holds exactly one claim, taken by the lead as it launches. An assignee claim (`sc issue assign <n> lead`) is released by the lead when the workflow returns — whatever it returns, and also when it fails. A status claim is released by the workflow itself, whose final statuses replace the `pending` ones; when that workflow fails, the lead sets those statuses to `fail`, saying the workflow died, and relaunches it explicitly, since the trigger that launched it no longer fires:
 
 | Workflow | Its claim |
 | --- | --- |
-| Build (either mode) | `in-progress` on the piece |
-| Spike | `in-progress` on the risk |
-| Review | `pending` on `wayfinder/spec` and `wayfinder/standards` at the change's head (`wf.py status set`) |
+| Build (either mode) | the piece's assignee |
+| Spike | the risk's assignee |
+| Review | `pending` on `wayfinder/spec` and `wayfinder/standards` at the change's head (`sc status set`) |
 | Verify | `pending` on `wayfinder/verify` at the pinned commit |
-| Plan, Steer, Close | `in-progress` on the plan |
+| Plan, Steer, Close | the plan's assignee |
 
 A workflow that fails is relaunched once with the same inputs. A second failure parks its piece (or, for a risk, the lead records a best guess per `/deciding` and closes it) with a stall note saying what failed.
 
@@ -54,8 +53,8 @@ A workflow that fails is relaunched once with the same inputs. A second failure 
 
 The lead never fills a workflow in its own context, and never edits a filled script.
 
-- **Build and Review** are filled by `wf.py fill build <piece>` and `wf.py fill review <change>`, which read every slot from the store, the charter, and the model policy, and print the script's path. A build in fix mode takes `--fix-input <file>` holding the review round's number, its findings with their validated repairs, and every answer to its questions, verbatim — or, for a conflict, the failed `wayfinder/merge` status's description. `wf.py fill --help` lists the overrides for what the store can't settle.
-- **Every other workflow** is filled from its template by a **fill agent** (executor tier, via the `Agent` tool). Its brief names the template, the effort's slug, and the one risk or commit in hand; the fill agent reads every input through `wf.py` and from the effort branch, fills every `FILL` slot per the template's header, writes the script to `$TMPDIR/wayfinder/<slug>/<kind>-<id>.js`, and returns that path plus a one-line manifest.
+- **Build and Review** are filled by `effort.py fill build <piece>` and `effort.py fill review <change>`, which read every slot from `sc`, the charter, and the model policy, and print the script's path. A build in fix mode takes `--fix-input <file>` holding the review round's number, its findings with their validated repairs, and every answer to its questions, verbatim — or, for a conflict, the failing `sc/merge` status's description. `effort.py fill --help` lists the overrides for what the record can't settle.
+- **Every other workflow** is filled from its template by a **fill agent** (executor tier, via the `Agent` tool). Its brief names the template, the effort's slug, and the one risk or commit in hand; the fill agent reads every input through `sc`, `effort.py`, and the effort branch, fills every `FILL` slot per the template's header, writes the script to `$TMPDIR/wayfinder/<slug>/<kind>-<id>.js`, and returns that path plus a one-line manifest.
 
 The lead launches the script with `Workflow({scriptPath})` in the background. Its return comes back as a notification; the lead reads only the typed return.
 
@@ -82,7 +81,7 @@ The lead launches the script with `Workflow({scriptPath})` in the background. It
 
 ## Escalations
 
-An escalation is posted durably on the issue it concerns per `/deciding`, and also put to the human here, in this session, per `/hitl-questions` — that is the only notification there is. The run never waits on it: everything that doesn't depend on the answer keeps building. When the human answers here, post their answer on the issue before acting on it, so the record stays whole. A human away from this session can answer from any terminal with `wf.py issue comment <n> --human --body …`, or close a task with `wf.py issue close <n> --human`; either reaches the lead through the watcher.
+An escalation is posted durably on the issue it concerns per `/deciding`, asked in `sc` (`sc question ask "…" --issue <n>`, unless the workflow that posted it already did) so the issue shows `waiting` and the question lists in `sc tui`, and also put to the human here, in this session, per `/hitl-questions`. The run never waits on it: everything that doesn't depend on the answer keeps building. When the human answers here, post their answer on the issue and record it with `sc question answer` before acting on it, so the record stays whole. Nothing wakes the lead when a question is answered from another terminal, so the human answers here.
 
 A human telling the lead to redirect, stop, or change course is recorded as a `<!-- wayfinder redirect -->` comment on the plan, which triggers Steer. Only the human changes the charter; a redirect that does commits the change to it on a branch of its own and lands it through a change like any other, attached to a piece filed for it.
 
@@ -93,7 +92,7 @@ When Steer returns `complete`:
 1. Launch the Close workflow in review mode over the whole branch. Findings come back as pieces, which puts the run back in the cycle; Steer returns `complete` again once they land.
 2. Clean: load `/tend` and run it `--since` the effort's merge-base with the default branch, with the plan issue as its gate home, answering its gate per `/deciding`.
 3. Launch Verify once more, pinned to the effort branch's head.
-4. Launch the Close workflow in report mode. It stores the closing report (`wf.py report show` prints it).
-5. Hand the effort to the human: show them the report, and give them the two commands that take it — `git diff <base>...effort/<slug>` to review, and `git merge effort/<slug>` on the base branch to accept. What they say back is a redirect: Steer turns it into pieces and the run continues. When they say it's merged, post a final `<!-- wayfinder lead -->` saying the effort is done, run `wf.py finish` — which stops the gate and removes its checkouts and the hook; add `--force` when they squashed it — stop the watcher, and stop.
+4. Launch the Close workflow in report mode. It posts the closing report as the newest `<!-- wayfinder report -->` comment on the plan.
+5. Hand the effort to the human: show them the report, and give them the two commands that take it — `git diff <base>...effort/<slug>` to review, and `git merge effort/<slug>` on the base branch to accept — or, when `sc` protects the base branch too, `sc change open --target <base>` from a branch at the effort's head. What they say back is a redirect: Steer turns it into pieces and the run continues. When they say it's merged, post a final `<!-- wayfinder lead -->` saying the effort is done, and run `effort.py finish`, adding `--force` when they squashed it. It closes what is still open into the effort branch, takes the branch out of the main checkout's `sc.toml`, and has `sc` stop protecting it; tell the human to commit that `sc.toml` edit on the base branch. Then stop the watcher, and stop.
 
 Two Close passes in a row that each find new problems mean the plan or the standards have a systematic gap: the second report says so, and the effort goes to the human with its known issues rather than looping again.

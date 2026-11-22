@@ -5,7 +5,7 @@ export const meta = {
     { title: 'Review', detail: 'review mode: an auditor-tier cross-piece sweeper and an auditor-tier requirements union over the whole diff; a decider-tier checker per suspect' },
     { title: 'Validate', detail: 'review mode: fresh decider-tier validators try to refute each finding, in chunks of five' },
     { title: 'File', detail: 'review mode: one executor-tier agent files the survivors as pieces and posts the close summary on the plan' },
-    { title: 'Report', detail: 'report mode: one decider-tier writer composes the closing report; one executor-tier agent stores it with wf.py report set' },
+    { title: 'Report', detail: 'report mode: one decider-tier writer composes the closing report; one executor-tier agent posts it on the plan' },
   ],
 }
 
@@ -31,7 +31,7 @@ const PLAN_REF = FILL        // the plan issue as "#<n>", e.g. "#12"
 const CHARTER = FILL         // the charter's full text verbatim, read from the effort branch at the path on the plan body's Charter: line
 const BEHAVIORS = FILL       // every charter behavior, in charter order: [{ id: "B1", text: "the charter's B1 line verbatim" }]
 const EFFORT_BRANCH = FILL   // the plan body's Effort branch: line, e.g. "effort/<slug>"
-const BASE_BRANCH = FILL     // the branch the effort started from and returns to, e.g. "main" — `wf.py effort` prints it as base
+const BASE_BRANCH = FILL     // the branch the effort started from and returns to, e.g. "main" — `effort.py show` prints it as base
 const BASE_SHA = FILL        // the effort's base: git merge-base <BASE_BRANCH> <EFFORT_BRANCH>
 const HEAD_SHA = FILL        // the effort branch's head at fill time — the diff and the report describe this commit
 const REPO_ROOT = FILL       // absolute path of the main checkout of the repo
@@ -40,7 +40,6 @@ const PRIOR_SUMMARIES = FILL // every <!-- wayfinder close <k> --> comment on th
 const DECISIONS = FILL       // every wayfinder:decision issue of the plan: [{ number: 33, title: "..." }] — [] if none
 const VERIFY_REPORT = FILL   // report mode: the latest <!-- wayfinder verify <sha> --> comment on the plan, verbatim, with "comment <id> on #<plan>" on a first line of its own; "" in review mode
 const VERIFY_SKILL = FILL    // repo path of the verify-<app> skill: the one the charter's verification line names, or, for a greenfield charter, the .claude/skills/verify-* directory on the effort branch that the walking-skeleton piece built, e.g. ".claude/skills/verify-web"
-const WF_CMD = FILL          // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
 
 const EXECUTOR_MODEL = FILL  // per /model-policy: the executor tier's resolved model, or null to inherit
 const DECIDER_MODEL = FILL   // per /model-policy: the decider tier's resolved model, or null to inherit
@@ -63,7 +62,7 @@ const SYSTEMIC_LINE = '**Systemic gap:** '
 
 const CONTEXT = j([
   'You are an agent of a wayfinder effort: a build too big for one session, run unattended by agents from a charter the human wrote, as many pieces built in parallel and merged into ' + EFFORT_BRANCH + '. The plan is issue ' + PLAN_REF + '. Every piece has landed and the latest Verify proved every charter behavior; this is Close, the last look before the effort goes to the human, who takes ' + EFFORT_BRANCH + ' into ' + BASE_BRANCH + '.',
-  'Work from ' + REPO_ROOT + ', and read the effort at ' + HEAD_SHA + ' without checking anything out: git show ' + HEAD_SHA + ':<path> for a file, git grep <pattern> ' + HEAD_SHA + ' to search. Change nothing in the repo. The effort\'s issues and changes are read with ' + WF_CMD + ' (run it with --help first) — never gh: this effort has no GitHub.',
+  'Work from ' + REPO_ROOT + ', and read the effort at ' + HEAD_SHA + ' without checking anything out: git show ' + HEAD_SHA + ':<path> for a file, git grep <pattern> ' + HEAD_SHA + ' to search. Change nothing in the repo. The effort\'s issues and changes are read with sc (run it with --help first) — never gh: this effort has no GitHub.',
   'The charter:',
   CHARTER,
 ])
@@ -133,7 +132,7 @@ const REPORT_SCHEMA = {
 const STORE_SCHEMA = {
   type: 'object', required: ['report', 'problems'],
   properties: {
-    report: { type: 'string', description: 'the path report set printed; "" when the report could not be stored' },
+    report: { type: 'string', description: 'where the report is, as "comment <id> on #<plan>", its id being its position among the plan\'s comments counted from 1; "" when it could not be posted' },
     problems: { type: 'string', description: 'any step you could not complete, and why; "" when every step landed' },
   },
 }
@@ -154,7 +153,7 @@ function unionPrompt() {
     CONTEXT,
     'You are the requirements union. Read every acceptance behavior and the whole Design section of the charter above against the effort diff\'s FILE LIST (' + DIFF_CMD + ' --stat), not the full diff, and list every requirement you suspect is implemented nowhere — a behavior, a part, an interface, or a flow the Design names.',
     SCOPE,
-    DECISIONS.length ? 'The effort\'s shared decisions, which say how some requirements were met (read any you need with ' + WF_CMD + ' issue show <n>):\n' + DECISIONS.map(d => '- #' + d.number + ' ' + d.title).join('\n') : null,
+    DECISIONS.length ? 'The effort\'s shared decisions, which say how some requirements were met (read any you need with sc issue view <n>):\n' + DECISIONS.map(d => '- #' + d.number + ' ' + d.title).join('\n') : null,
     'Return only the suspects, each with the charter line it comes from — each goes to a checker before it becomes a finding. Absent from the changed files does not prove unimplemented; err toward listing a suspect over silence.',
   ])
 }
@@ -195,7 +194,7 @@ function pieceBody(f) {
 
 function filePrompt(survivors, summary) {
   return j([
-    'You publish a wayfinder Close review. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a piece with the same title open under the plan, the summary already posted — reuse it rather than repeating it.',
+    'You publish a wayfinder Close review. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a piece with the same title open under the plan, the summary already posted — reuse it rather than repeating it.',
     survivors.length
       ? '1. Create each piece below as a piece of the plan — issue create with --parent set to the plan\'s number, labelled impl — with exactly the title and body given. Add no blocking edges.\n' + survivors.map(f => '--- ' + f.id + ' ---\nTitle: ' + f.title + '\nBody:\n' + pieceBody(f)).join('\n')
       : '1. There are no pieces to create.',
@@ -213,14 +212,14 @@ function writerPrompt(systemic) {
     VERIFY_REPORT,
     DECISIONS.length ? 'The effort\'s shared decisions:\n' + DECISIONS.map(d => '- ' + d.title + ' (#' + d.number + ')').join('\n') : 'The effort has no shared decisions.',
     PRIOR_SUMMARIES.length ? 'The close passes, verbatim, oldest first:\n' + PRIOR_SUMMARIES.join('\n---\n') : null,
-    'Read what else you need with ' + WF_CMD + ' from ' + REPO_ROOT + ': the merged changes into ' + EFFORT_BRANCH + ' (change list --state merged, then change show — their Decisions and Deviations sections), the decision-record comments and friction notes on the plan\'s pieces and decisions, the plan\'s steer summaries, and its open issues (issue list), including every open issue labelled review-finding.',
+    'Read what else you need with sc from ' + REPO_ROOT + ': the landed changes into ' + EFFORT_BRANCH + ' (change list --state landed --json, then change view — their Decisions and Deviations sections), the decision-record comments and friction notes on the plan\'s pieces and decisions, the plan\'s steer summaries, and its open issues (issue list), including every open issue labelled review-finding.',
     'The report has these sections, in this order:',
     '- **What was built** — the destination as delivered, in a paragraph, and the major parts as the Design names them.',
     '- **Acceptance behaviors** — every charter behavior, by its ID and line, with its status and the evidence the Verify report gives for it, naming that report by the comment reference on its first line.',
     '- **Decisions that mattered** — the calls a reviewer would want to know were made: one-way doors, calls a principle settled between real alternatives, and decisions that were amended or superseded. Each one line, naming the decision and where its record is (comment <id> on #<n> for a call recorded on a piece). Leave out the routine.',
     '- **Deviations from the charter** — every place the effort departs from its Design, Principles, or Out of scope, and why; "none" when there are none.',
     '- **Known issues** — open issues the effort left (escalations still unanswered, pieces still open), and anything the Verify report shows short of proven.',
-    '- **Follow-ups** — every open issue labelled review-finding, each with its title, number and one line of what it asks. They were filed for later and live only in this effort\'s store, so this list is where the human finds them; "none" when there are none.',
+    '- **Follow-ups** — every open issue labelled review-finding, each with its title, number and one line of what it asks. They were filed for later and live only in sc on this machine, so this list is where the human finds them; "none" when there are none.',
     systemic ? '- **Systemic gap** — two close passes in a row found new problems, which means the plan or the standards have a gap the run could not close on its own. Say so plainly, name the pattern across the two passes\' findings, and say the effort comes to the human with these known issues rather than looping again.' : null,
     '- **How to run it** — from the Launch section of the verify skill at ' + VERIFY_SKILL + ' (git show ' + HEAD_SHA + ':' + VERIFY_SKILL + '/SKILL.md): the commands a human runs to see it working.',
     '- **How to take it** — the last section, exactly these steps: review the whole effort with git diff ' + BASE_SHA + '...' + EFFORT_BRANCH + ' (the report describes ' + HEAD_SHA + '); merge ' + EFFORT_BRANCH + ' into ' + BASE_BRANCH + '; then tell the lead it is merged, or tell the lead what to change instead.',
@@ -230,11 +229,11 @@ function writerPrompt(systemic) {
 
 function storePrompt(report) {
   return j([
-    'You store the closing report of a wayfinder effort. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary. The plan is issue ' + PLAN_REF + '.',
-    'Write the report below to a file under $TMPDIR, verbatim — the title as a level-one heading, then the body — and store it with ' + WF_CMD + ' report set --body-file <that file>, which replaces any report an earlier run stored. Report the path it prints.',
+    'You store the closing report of a wayfinder effort. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary. The plan is issue ' + PLAN_REF + '.',
+    'Write the report below to a file under $TMPDIR, verbatim — the title as a level-one heading, then the body — with <!-- wayfinder report --> on a first line of its own above it, and post that file as one comment on the plan (sc issue comment <plan> --body "$(cat <that file>)"). The newest such comment is the effort\'s closing report, so post it even when an earlier run posted one. Report where it is.',
     'Title: ' + report.title,
     'Body:\n' + report.body,
-    'Then comment on the plan, one line: the closing report for ' + HEAD_SHA + ' is stored and ' + EFFORT_BRANCH + ' is ready for the human to take into ' + BASE_BRANCH + '.',
+    'Then comment on the plan, one line: the closing report for ' + HEAD_SHA + ' is posted and ' + EFFORT_BRANCH + ' is ready for the human to take into ' + BASE_BRANCH + '.',
   ])
 }
 
@@ -249,7 +248,7 @@ if (MODE === 'report') {
   const stored = await agent(storePrompt(report), { ...tier('executor'), schema: STORE_SCHEMA, label: 'store:closing-report', phase: 'Report' })
   if (!stored || !stored.report) throw new Error('The closing report was not stored' + (stored && stored.problems ? ': ' + stored.problems : ''))
   if (stored.problems) log('Closing report: ' + stored.problems)
-  log('Closing report stored at ' + stored.report + (systemic ? ', with the systemic gap noted' : ''))
+  log('Closing report posted as ' + stored.report + (systemic ? ', with the systemic gap noted' : ''))
   return { status: 'reported', report: stored.report }
 }
 

@@ -15,7 +15,7 @@ Resolve once per session, in this order:
 2. **GitHub** (default): the repo has a GitHub remote (infer from `git remote -v`; `gh` does this automatically inside a clone) and `gh` is available → the GitHub implementation below.
 3. **Local markdown** (fallback): no GitHub remote, or no `gh` → the local implementation below.
 
-**A `/wayfinder` effort is the exception**: its tickets always live in the effort's own store, whatever the repo's tracker — see *Wayfinder efforts* below.
+**A `/wayfinder` effort is the exception**: its tickets always live in `sc`, whatever the repo's tracker — see *Wayfinder efforts* below.
 
 ## The contract
 
@@ -134,6 +134,6 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 ## Wayfinder efforts
 
-A `/wayfinder` effort keeps its tickets in a local store inside the repo's git directory, reached only through the `wf.py` beside `/wayfinder`'s SKILL.md — never GitHub, never `.scratch/`. Every operation of the contract is a `wf.py` command (`wf.py --help` lists them): `issue create|show|list|edit|comment|label|close|reopen` for tickets and marking, `--parent <plan>` at create for parent/child, `issue block` for blocking edges, `dependents` for dependents, and `pieces` for the frontier. Vocabulary roles are labels with the same string, and there is nothing to bootstrap.
+A `/wayfinder` effort keeps its tickets in Sous Chef, the `sc` command — never GitHub, never `.scratch/`. Every operation of the contract is an `sc issue` command (`sc issue --help` lists them, and every read takes `--json`): `create|view|list|edit|comment|label|close` for tickets and marking, `--parent <plan>` for parent/child, `block` and `unblock` for blocking edges, and the `blocks` field of `sc issue view <n> --json` for dependents. Vocabulary roles are labels with the same string, with one exception: the claim is the issue's assignee (`sc issue assign`, `sc issue unassign`), never an `in-progress` label. The frontier is the pieces `sc issue list --parent <plan> --state ready` lists. There is nothing to bootstrap.
 
 The **plan** is the issue labelled `wayfinder:plan`; its pieces are `impl` issues whose parent is the plan. Risks, tasks, and decisions are ordinary issues with the plan link line, never children. `/wayfinder` owns the bodies and comment markers.

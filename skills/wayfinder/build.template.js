@@ -20,7 +20,7 @@ export const meta = {
 // piece's open change. This file owns every stage's
 // prompt; SKILL.md says what the Build stage is for and LEAD.md says how the
 // lead launches it and acts on its return. The lead holds the piece's
-// in-progress claim for the whole run; this workflow never takes or releases it.
+// claim (it is the piece's assignee) for the whole run; this workflow never takes or releases it.
 // A dead agent throws, so the run fails and the lead's relaunch picks up from
 // what the worktree, branch and change already hold.
 //
@@ -37,19 +37,17 @@ const PLAN_REF = FILL      // the plan issue, as "#<n>"
 const PIECE = FILL         // { number: <n>, title: "<issue title>", body: "<issue body verbatim>" }
 const DECISIONS = FILL     // every decision issue under the piece's Builds on: [{ ref: "#<n>", title, body: "<issue body verbatim>" }] — [] when none
 const CHARTER_PATH = FILL  // the plan body's Charter: line, e.g. "docs/wayfinder/<slug>.md"
-const SLUG = FILL          // the effort's slug (wf.py effort prints it)
+const SLUG = FILL          // the effort's slug (effort.py show prints it)
 const EFFORT_BRANCH = FILL // "effort/<slug>"
 const PIECE_BRANCH = FILL  // "piece/<slug>/<piece number>"
 const WORKTREE = FILL      // absolute path: <REPO_ROOT>/.claude/worktrees/<slug>/piece-<piece number>
 const REPO_ROOT = FILL     // absolute path of the repo's main checkout
 const MODE = FILL          // "build" for a ready piece; "fix" when the lead is sending a review round back, or the gate reported the change in conflict with the effort branch
-const FIX_INPUT = FILL     // fix mode: the review round number, its findings with their validated proposed repairs, and every answer to its questions, verbatim from the review's return and the answers posted; for a conflict, the failed wayfinder/merge status's description — "" in build mode
+const FIX_INPUT = FILL     // fix mode: the review round number, its findings with their validated proposed repairs, and every answer to its questions, verbatim from the review's return and the answers posted; for a conflict, the failing sc/merge status's description — "" in build mode
 const VERIFY_SKILL = FILL  // the verify skill's directory relative to the repo root, from the charter's Verified through line, e.g. ".claude/skills/verify-web" — "" when this piece is the one that builds it
 const APP = FILL           // the <app> of verify-<app> — from VERIFY_SKILL, or, when this piece builds the skill, the app name its Goal or the charter names
-const SLOT_CMD = FILL      // absolute path of the installed wayfinder skill's slot.sh
-const BUILD_SLOTS = FILL   // the charter's Limits: Build slots value, as an integer
-const DRIVE_SLOTS = FILL   // the charter's Limits: Drive slots value, as an integer
-const WF_CMD = FILL        // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
+const AWAIT_CMD = FILL     // absolute path of the installed wayfinder skill's await.sh
+const EFFORT_CMD = FILL    // the effort's own command for what sc leaves to wayfinder: "python3 <absolute path of the installed wayfinder skill's effort.py> --effort <slug>"
 const TEST_NOTES = FILL    // per /testing: the governing TESTING.md sections verbatim (Typecheck, Unit, Integration, Scoping to a change, Green — each with the scope it binds), or "" when the repo has none
 
 const EXECUTOR_MODEL = FILL // per /model-policy: the executor tier's resolved model, or null to inherit
@@ -86,7 +84,7 @@ function need(result, what) {
 const GIT_RULE = 'There is no remote: never fetch or push — every worktree shares one repo, so a commit on a branch is visible to all at once. The code as it stands is the local branch ' + EFFORT_BRANCH + '. Never check that branch out (the gate\'s own checkout holds it), commit to it, or move it — a hook refuses. Read it with git show ' + EFFORT_BRANCH + ':<path> or git diff ' + EFFORT_BRANCH + '...<ref>.'
 
 // The one sentence that introduces the forge to an agent that touches the tracker.
-const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '.'
+const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '.'
 
 const CONTEXT = j([
   'You are one stage of the build workflow for one piece of a wayfinder effort: piece #' + N + ' "' + PIECE.title + '" of plan ' + PLAN_REF + '. The effort runs unattended. The human set its destination, acceptance behaviors, principles and design in the charter, ' + CHARTER_PATH + ' (read it in the worktree); agents make every call in between per /deciding.',
@@ -98,16 +96,15 @@ const CONTEXT = j([
     : 'It builds on no decision issue.',
 ])
 
-// Every build and test runs through the host's build slots, so the efforts and agents on
-// one host never run more than BUILD_SLOTS of them at once.
+// Every build and test runs through sc's build pool, so the efforts and agents on
+// one host never run more of them at once than the pool has slots.
 // A workflow agent's turn ending is its final report, so it waits on a long run in the
-// foreground, through await.sh beside slot.sh, never on a completion notice.
-const AWAIT_CMD = SLOT_CMD.replace(/slot\.sh$/, 'await.sh')
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command; every agent on this host shares those slots, so never run one outside them. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the slot command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
+// foreground, through await.sh, never on a completion notice.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again; every agent and every CI job on this host shares that pool, so never run one outside it. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the sc run command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 
 // Every running copy of the app holds a drive slot, so the host never runs more copies than
 // the verify skill says can live side by side.
-const DRIVE_SLOTS_RULE = 'Run every copy of the app through the host\'s drive slots: start it with sh ' + SLOT_CMD + ' ' + DRIVE_SLOTS + ' drive-' + APP + ' -- <the verify skill\'s launch command>, with run_in_background, so the slot is held for as long as that copy runs, and stop it per the skill\'s Cleanup when you are done. A launch command that returns while the app keeps running holds no slot: wrap a command that lasts the whole session instead. For an app with no long-running process, wrap each drive command the same way. Never drive a copy you did not start this way.'
+const DRIVE_SLOTS_RULE = 'Run every copy of the app through the host\'s drive slots: start it with sc run --pool drive-' + APP + ' -- <the verify skill\'s launch command>, with run_in_background, so the slot is held for as long as that copy runs, and stop it per the skill\'s Cleanup when you are done. A copy started this way outlives the shell that started it: when it is still running after Cleanup, end it with sc job cancel <the job id sc run printed>. A launch command that returns while the app keeps running holds no slot: wrap a command that lasts the whole session instead. For an app with no long-running process, wrap each drive command the same way. Never drive a copy you did not start this way.'
 
 const COMMENT_RULE = 'Per /implement: Comments and docs state what the code does now, for a reader who never saw the old version: never "no longer", "used to", "the old X", the replaced mechanism\'s name, or a ticket or decision ID. In the files you touch, rewrite any comment or doc that narrates a past change or has gone false. What changed belongs in the commit message.'
 
@@ -192,11 +189,11 @@ const LOCATE_SCHEMA = {
     ready: { type: 'boolean', description: 'the worktree exists at the path, on the piece branch' },
     problem: { type: 'string', description: 'what stopped it when ready=false; "" otherwise' },
     commitsAhead: { type: 'integer', description: 'commits on the piece branch that the effort branch does not have' },
-    change: { type: 'integer', description: 'the newest change for the piece that is open or merged; 0 when none' },
-    changeState: { enum: ['open', 'merged', 'none'] },
+    change: { type: 'integer', description: 'the newest change for the piece that is open or landed; 0 when none' },
+    changeState: { enum: ['open', 'landed', 'none'] },
     headSha: { type: 'string', description: 'the change\'s head sha; "" when no change' },
     ci: { enum: ['green', 'red', 'pending', 'none'], description: 'the ci/* statuses on the change\'s head; none when no change or no ci/* status yet' },
-    conflict: { type: 'boolean', description: 'the open change\'s head carries a failed wayfinder/merge status: the gate found it in conflict with the effort branch' },
+    conflict: { type: 'boolean', description: 'the open change\'s head carries a failing sc/merge status: the gate found it in conflict with the effort branch' },
     buildPlan: { type: 'string', description: 'the newest <!-- wayfinder build-plan --> comment on the piece, verbatim; "" when none' },
   },
 }
@@ -266,9 +263,9 @@ const CHANGE_SCHEMA = {
 const CI_WAIT_SCHEMA = {
   type: 'object', required: ['result', 'sha', 'failing', 'lintPassed', 'problems'],
   properties: {
-    result: { enum: ['green', 'red', 'none'], description: 'ci-wait\'s result, as it printed it' },
+    result: { enum: ['green', 'red', 'none'], description: 'green when sc change wait exited 0, red when 1, none otherwise' },
     sha: { type: 'string' },
-    failing: { type: 'array', items: { type: 'string' }, description: 'the failing ci/<job> checks, as ci-wait printed them' },
+    failing: { type: 'array', items: { type: 'string' }, description: 'the failing statuses sc change wait printed: each ci/<job> that failed, or sc/merge' },
     lintPassed: { type: 'boolean' },
     problems: { type: 'array', items: { type: 'string' }, description: 'pr-lint\'s output when it fails' },
   },
@@ -306,8 +303,8 @@ function locatePrompt() {
     '- The branch does not exist → ' + (FIX ? 'report the missing branch as the problem; fix mode needs the piece\'s existing branch.' : 'create it from the effort branch\'s current head with its worktree: git worktree add -b ' + PIECE_BRANCH + ' ' + WORKTREE + ' ' + EFFORT_BRANCH + '.'),
     'Then report:',
     '- commitsAhead: commits on ' + PIECE_BRANCH + ' that ' + EFFORT_BRANCH + ' does not have.',
-    '- The newest change for the piece that is open or merged (' + WF_CMD + ' change list --piece ' + N + ' --state all); a closed change counts as none. For an open one: its head sha; the state of the ci/* statuses on that head (green when every one is success, red when any is failure or error, pending when any is pending, none when there is none yet); and conflict — whether that head carries a failed wayfinder/merge status.',
-    '- The newest comment on issue #' + N + ' opening with <!-- wayfinder build-plan -->, verbatim, or "" (' + WF_CMD + ' issue show ' + N + ').',
+    '- The newest change into ' + EFFORT_BRANCH + ' whose issue is ' + N + ' and whose state is open or landed (sc change list --json); a closed change counts as none. For an open one (sc change view <change> --json): its head sha; the state of the ci/* statuses on that head (green when every one is pass, red when any is fail, pending when any is pending, none when there is none yet); and conflict — whether that head carries a failing sc/merge status.',
+    '- The newest comment on issue #' + N + ' opening with <!-- wayfinder build-plan -->, verbatim, or "" (sc issue view ' + N + ').',
     'Leave the tracker, the labels and every other branch as you found them.',
   ])
 }
@@ -316,7 +313,7 @@ function planPrompt() {
   return j([
     CONTEXT,
     'You write the piece\'s build plan. Read the code in the worktree — the effort branch\'s current head — and plan from the code as it stands now, not from the plan issue\'s picture of it. Write: where the work lands, the approach, the seams and files it touches, the tests TESTING.md calls for, and how each Acceptance line will be shown working through the verify skill (' + (BUILDS_SKILL ? 'which this piece builds, at ' + SKILL_DIR : SKILL_DIR) + '). One screen at most: the builder gets exactly this.',
-    'Write no code and commit nothing. Post the plan as one comment on issue #' + N + ' whose first line is <!-- wayfinder build-plan --> (' + WF_CMD + ' issue comment ' + N + ' --body-file <file>) and return it in plan. ' + FORGE_RULE,
+    'Write no code and commit nothing. Post the plan as one comment on issue #' + N + ' whose first line is <!-- wayfinder build-plan --> (sc issue comment ' + N + ' --body "$(cat <file>)") and return it in plan. ' + FORGE_RULE,
     DECIDE_RULE + ' State each call in the plan too.',
     PARK_RULE + ' When you park, post no plan.',
   ])
@@ -329,7 +326,7 @@ function buildPrompt(plan, rework, conflict) {
     FIX
       ? 'You fix the piece\'s open change — from a review round, or from a conflict the gate reported with the effort branch. Apply every finding below: its validated proposed repair is the default, adapted where the code has moved; every answer below is binding and settles the finding it names. A finding you cannot apply as proposed without breaking the piece or the charter goes in notApplied with why — the next review round judges it — never silently skipped.\n' + FIX_INPUT
       : 'You build the piece.',
-    conflict ? 'The gate could not land the piece\'s change: its head conflicts with ' + EFFORT_BRANCH + ' (a failed wayfinder/merge status). Merge ' + EFFORT_BRANCH + ' into ' + PIECE_BRANCH + ' in the worktree (git merge ' + EFFORT_BRANCH + ') and resolve every conflict so that both sides\' behavior holds — what already landed on the effort branch stays as it landed unless the piece\'s Acceptance requires otherwise. Never rebase and never touch ' + EFFORT_BRANCH + ' itself. Commit the merge; that new head is what CI and review judge next.' : null,
+    conflict ? 'The gate could not land the piece\'s change: its head conflicts with ' + EFFORT_BRANCH + ' (a failed sc/merge status). Merge ' + EFFORT_BRANCH + ' into ' + PIECE_BRANCH + ' in the worktree (git merge ' + EFFORT_BRANCH + ') and resolve every conflict so that both sides\' behavior holds — what already landed on the effort branch stays as it landed unless the piece\'s Acceptance requires otherwise. Never rebase and never touch ' + EFFORT_BRANCH + ' itself. Commit the merge; that new head is what CI and review judge next.' : null,
     plan ? 'The build plan:\n' + plan : null,
     rework ? 'The prover drove the piece through the verify skill and these did not prove. Fix them; the prover runs again after you:\n' + rework : null,
     'The branch may already hold commits or uncommitted changes from an earlier run that died: read them first and continue from them, never start over. Earlier calls named in those commit messages that are not yet decision records on issue #' + N + ' go in your decisions too.',
@@ -372,7 +369,7 @@ function changePrompt(built, proof, toPost, resume) {
       ? 'Change ' + resume + ' for ' + PIECE_BRANCH + ' is already open from an earlier run. Keep its body; only repair its format where pr-lint fails. A Behaviors line with no evidence is never filled in by you: report it in problems.'
       : null,
     toPost.length
-      ? 'First post these, each as one comment, verbatim (' + WF_CMD + ' issue comment <n> --body-file <file>), keeping the comment id it prints for each:\n' + toPost.map((p, i) => (i + 1) + '. On ' + p.where + (p.label ? ' (then add the label ' + p.label + ' to that issue)' : '') + ':\n' + p.body).join('\n\n')
+      ? 'First post these, each as one comment, verbatim (sc issue comment <n> --body "$(cat <file>)"), keeping each one\'s id — its position among that issue\'s comments, counted from 1, as sc issue view <n> --json lists them:\n' + toPost.map((p, i) => (i + 1) + '. On ' + p.where + (p.label ? ' (then add the label ' + p.label + ' to that issue)' : '') + ':\n' + p.body).join('\n\n')
       : null,
     !resume
       ? j([
@@ -384,11 +381,11 @@ function changePrompt(built, proof, toPost, resume) {
           '- Decisions: one line per decision record you posted above, naming its comment' + (FIX ? '; keep every Decisions and Deviations line already in the change body.' : '.'),
           '- Deviations:\n' + (built.deviations.concat(built.notApplied.map(x => 'review finding ' + x.finding + ' not applied as proposed: ' + x.reason)).map(d => '  - ' + d).join('\n') || '  - none'),
           FIX
-            ? 'The change for ' + PIECE_BRANCH + ' is open (' + WF_CMD + ' change list --piece ' + N + '): replace its body with this one (' + WF_CMD + ' change edit <change> --body-file <file>).'
-            : 'Open the change: ' + WF_CMD + ' change open --piece ' + N + ' --branch ' + PIECE_BRANCH + ' --title "' + PIECE.title + '" --body-file <file> — or, when one is already open for that branch, replace its body (' + WF_CMD + ' change edit <change> --body-file <file>).',
+            ? 'The change for ' + PIECE_BRANCH + ' is open (sc change list --state open --json shows it by its branch): replace its body with this one (sc change edit <change> --body "$(cat <file>)").'
+            : 'Open the change from ' + WORKTREE + ', since sc proposes the branch checked out where it runs: sc change open --target ' + EFFORT_BRANCH + ' --issue ' + N + ' --title "' + PIECE.title + '" --body "$(cat <file>)" — or, when one is already open for that branch, replace its body (sc change edit <change> --body "$(cat <file>)").',
         ])
       : null,
-    'Then run ' + WF_CMD + ' pr-lint <change>. When it fails, fix the body for each problem it prints and run it again, up to three runs. Report the last run\'s output in problems when it still fails.',
+    'Then run ' + EFFORT_CMD + ' pr-lint <change>. When it fails, fix the body for each problem it prints and run it again, up to three runs. Report the last run\'s output in problems when it still fails.',
   ])
 }
 
@@ -397,11 +394,11 @@ function ciWaitPrompt(change, toPost, fixSummary) {
     'You are the CI wait of the build workflow for piece #' + N + ' of plan ' + PLAN_REF + ' — tracker mechanics, no code. The gate runs the charter\'s CI jobs on the change\'s head as ci/<job> statuses; you only wait for them.',
     FORGE_RULE,
     toPost.length
-      ? 'A CI fix just landed on change ' + change + '. First post these on issue #' + N + ', each as one comment, verbatim, then add one line per comment to the change body\'s ## Decisions section naming it as "comment <id> on #' + N + '" (' + WF_CMD + ' change edit ' + change + ' --body-file <file>):\n' + toPost.map(p => p.body).join('\n\n---\n\n')
+      ? 'A CI fix just landed on change ' + change + '. First post these on issue #' + N + ', each as one comment, verbatim, then add one line per comment to the change body\'s ## Decisions section naming it as "comment <id> on #' + N + '", its id being its position among the issue\'s comments, counted from 1 (sc change edit ' + change + ' --body "$(cat <file>)"):\n' + toPost.map(p => p.body).join('\n\n---\n\n')
       : null,
     fixSummary ? 'Add one line to the change body\'s ## Deviations section (replacing a lone "none") saying what the CI fix changed: ' + fixSummary : null,
-    'Run ' + WF_CMD + ' pr-lint ' + change + ' (the head may have moved, and the format status is per commit); report whether it passed and its output.',
-    'Then run ' + WF_CMD + ' ci-wait ' + change + ' --timeout 540 in the foreground, with the Bash timeout at its 600000 ms maximum. While it prints result none with the note "timed out" and nothing more, run it again, up to eight times — CI can take over an hour. Never end your turn to wait: your turn ending is your final report. Report the result, sha and failing checks exactly as it printed them, and when the result is none, its note in problems. A run you have not seen finish has no result yet.',
+    'Run ' + EFFORT_CMD + ' pr-lint ' + change + ' (the head may have moved, and the format status is per commit); report whether it passed and its output.',
+    'Then wait for the gate\'s CI on the change\'s head. sc change wait ' + change + ' --json blocks until every CI job has finished, which can take over an hour, so start it with run_in_background as sc change wait ' + change + ' --json; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished, up to eight times. Never end your turn to wait: your turn ending is your final report. Report result from its exit status — 0 green, 1 red, anything else none — with the head it printed as sha and, when red, every status it printed as fail in failing (sc/merge when that is what fails). When the result is none, put what it printed, or that it never finished, in problems. A wait you have not seen finish has no result yet.',
   ])
 }
 
@@ -409,8 +406,8 @@ function ciFixPrompt(change, wait, attempt) {
   return j([
     CONTEXT,
     loadFirst('/deciding', 'you may make a call the fix leaves open, and it is made per it'),
-    'You fix red CI on change ' + change + ' (attempt ' + attempt + ' of ' + CI_FIXES + '). Failing checks on ' + wait.sha + ': ' + wait.failing.join(', ') + '. Each ci/<job> is one of the charter\'s ## CI commands, run by the gate on that commit in a clean checkout. Read their logs (' + WF_CMD + ' ci-log ' + change + ', run from ' + REPO_ROOT + '; --lines 0 prints a whole log), find the cause, and fix it in the worktree. These two commands are the only use of ' + WF_CMD + ' you make.',
-    'When the failure is outside the piece and not caused by it — a network fetch that timed out, a host out of disk — rerun the failed jobs instead (' + WF_CMD + ' ci-rerun ' + change + ') and return status=rerun. A check that is red because of the piece\'s code is fixed, never rerun.',
+    'You fix red CI on change ' + change + ' (attempt ' + attempt + ' of ' + CI_FIXES + '). Failing checks on ' + wait.sha + ': ' + wait.failing.join(', ') + '. Each ci/<job> is the job of that name in the head\'s sc.toml, run by the gate on that commit in a clean checkout. Read the log of each (sc change logs ' + change + ' <job>, run from ' + REPO_ROOT + '), find the cause, and fix it in the worktree. A failing sc/merge is not a job: the head conflicts with ' + EFFORT_BRANCH + ', so no CI ran — merge ' + EFFORT_BRANCH + ' into ' + PIECE_BRANCH + ' in the worktree (git merge ' + EFFORT_BRANCH + '; never rebase) and resolve every conflict so that both sides\' behavior holds. Reading logs and the rerun below are the only use of sc you make.',
+    'When the failure is outside the piece and not caused by it — a network fetch that timed out, a host out of disk — rerun the failed jobs instead (sc change rerun ' + change + ') and return status=rerun. A check that is red because of the piece\'s code is fixed, never rerun.',
     'Reproduce it locally where you can and run the scoped tests for the files you touched before you commit. ' + BUILD_SLOTS_RULE,
     TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : null,
     COMMENT_RULE,
@@ -426,9 +423,9 @@ function parkPrompt(reason, changeNumber) {
     FORGE_RULE,
     'The piece cannot go on. What is missing:',
     reason,
-    '1. Add the label wayfinder:parked to issue #' + N + '. Leave in-progress alone; the lead releases it.',
+    '1. Add the label wayfinder:parked to issue #' + N + '. Leave its assignee alone: that is the lead\'s claim, and the lead releases it.',
     '2. Post one comment on issue #' + N + ' whose first line is <!-- wayfinder park -->, then exactly what is missing as above, written so whoever fills the gap needs nothing else.',
-    changeNumber ? '3. Change ' + changeNumber + ' is open: leave it open. The gate never lands a parked piece.' : null,
+    changeNumber ? '3. Change ' + changeNumber + ' is open: leave it open. It cannot land while a required status on its head is failing or missing.' : null,
     'Then commit any uncommitted work in ' + WORKTREE + ' to ' + PIECE_BRANCH + ' as one commit titled "WIP at park", so nothing is lost, and remove the worktree (git worktree remove --force ' + WORKTREE + '). The branch stays.',
   ])
 }
@@ -459,7 +456,7 @@ async function landCi(change) {
     fixSummary = ''
     if (!wait.lintPassed) return park('The body of change ' + change + ' fails pr-lint:\n' + wait.problems.map(p => '- ' + p).join('\n'), change)
     if (wait.result === 'green') return { status: 'green', change, sha: wait.sha, reason: '' }
-    if (wait.result === 'none') return park('The gate\'s CI did not finish on change ' + change + ' (head ' + wait.sha + '): ' + (wait.problems.join('; ') || 'ci-wait timed out') + '. Either the charter\'s ## CI lists no job or the gate is not running (' + WF_CMD + ' effort shows gate_running).', change)
+    if (wait.result === 'none') return park('The gate\'s CI did not finish on change ' + change + ' (head ' + wait.sha + '): ' + (wait.problems.join('; ') || 'the wait for CI timed out') + '. Either the head\'s sc.toml lists no job or the sc daemon is not running its gate (sc gate list shows it).', change)
     if (attempt === CI_FIXES) return park('CI is still red on change ' + change + ' (head ' + wait.sha + ') after ' + CI_FIXES + ' fix attempts. Failing: ' + wait.failing.join(', '), change)
     const fix = need(await agent(ciFixPrompt(change, wait, attempt + 1), { ...tier('decider'), schema: CI_FIX_SCHEMA, label: 'ci-fix:change-' + change + ':' + (attempt + 1), phase: 'CI' }), 'the CI fix agent')
     if (fix.status === 'parked') return park(fix.reason, change)
@@ -474,8 +471,8 @@ async function landCi(change) {
 phase('Locate')
 const loc = need(await agent(locatePrompt(), { ...tier('executor'), schema: LOCATE_SCHEMA, label: 'locate:#' + N, phase: 'Locate' }), 'the locate agent')
 if (!loc.ready) return await park('The build workflow could not set up its worktree: ' + loc.problem, loc.changeState === 'open' ? loc.change : 0)
-if (loc.changeState === 'merged') {
-  log('Piece #' + N + ': change ' + loc.change + ' already merged')
+if (loc.changeState === 'landed') {
+  log('Piece #' + N + ': change ' + loc.change + ' already landed')
   return { status: 'green', change: loc.change, sha: loc.headSha, reason: '' }
 }
 if (FIX && loc.changeState !== 'open') return await park('Fix mode found no open change for ' + PIECE_BRANCH + ' to apply its findings to.', 0)

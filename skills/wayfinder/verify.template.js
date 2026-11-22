@@ -31,13 +31,10 @@ const REPO_ROOT = FILL       // absolute path of the main checkout of the repo
 const WORKTREE = FILL        // absolute path of the verify worktree: <REPO_ROOT>/.claude/worktrees/<slug>/verify
 const VERIFY_SKILL = FILL    // repo path of the verify-<app> skill: the one the charter's verification line names, or, for a greenfield charter, the .claude/skills/verify-* directory on the effort branch that the walking-skeleton piece built, e.g. ".claude/skills/verify-web"
 const BEHAVIORS = FILL       // every charter behavior, in charter order: [{ id: "B1", text: "the charter's B1 line verbatim", built: true, pieces: [40, 41] }]
-                             // built = a piece whose Acceptance carries the ID is done (wf.py pieces); pieces = every piece whose Acceptance carries it
+                             // built = a piece whose Acceptance carries the ID is done (effort.py pieces); pieces = every piece whose Acceptance carries it
 const OPEN_DEFECTS = FILL    // the plan's open wayfinder:defect pieces: [{ number, title, behaviors: ["B3"], harness: false }] — behaviors = the B<n> IDs in its Acceptance; harness = it fixes the verify harness; [] if none
 const FINAL = FILL           // true only for Close's last run on the commit the human will be asked to accept; false otherwise
-const WF_CMD = FILL          // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
-const SLOT_CMD = FILL        // absolute path of the installed wayfinder skill's slot.sh
-const BUILD_SLOTS = FILL     // the charter's Limits "Build slots" value, as a number
-const DRIVE_SLOTS = FILL     // the charter's Limits "Drive slots" value, as a number
+const AWAIT_CMD = FILL       // absolute path of the installed wayfinder skill's await.sh
 const TEST_NOTES = FILL      // per /testing: the governing TESTING.md sections verbatim (Green included), or "" when the repo has none
 
 const EXECUTOR_MODEL = FILL  // per /model-policy: the executor tier's resolved model, or null to inherit
@@ -56,10 +53,9 @@ const HARNESS_PREREQ = 'the verify harness'
 const clean = t => t.replace(/\*\*/g, '').replace(/^\s*-\s*/, '').trim()
 
 // A workflow agent's turn ending is its final report, so it waits on a long run in the
-// foreground, through await.sh beside slot.sh, never on a completion notice.
-const AWAIT_CMD = SLOT_CMD.replace(/slot\.sh$/, 'await.sh')
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, e2e sections, anything from the test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the slot command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
-const DRIVE_SLOTS_RULE = 'Start the app through the host\'s drive slots: sh ' + SLOT_CMD + ' ' + DRIVE_SLOTS + ' drive-' + APP + ' -- <the skill\'s launch command>, run with run_in_background, so the slot is held exactly as long as the app runs; the skill\'s Cleanup stops it and frees the slot. Where the app has no long-lived process, run each command that drives it through the drive slots instead. Any build the launch needs goes through the build slots first.'
+// foreground, through await.sh, never on a completion notice.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, e2e sections, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the sc run command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
+const DRIVE_SLOTS_RULE = 'Start the app through the host\'s drive slots: sc run --pool drive-' + APP + ' -- <the skill\'s launch command>, run with run_in_background, so the slot is held exactly as long as the app runs; the skill\'s Cleanup stops it and frees the slot. A copy started this way outlives the shell that started it: when it is still running after Cleanup, end it with sc job cancel <the job id sc run printed>. Where the app has no long-lived process, run each command that drives it through the drive slots instead. Any build the launch needs goes through the build slots first.'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -135,7 +131,7 @@ function drivePrompt(batch, first) {
 function testPrompt() {
   return j([
     'You run the repo\'s tests for a wayfinder Verify, in ' + WORKTREE + ', which is at ' + SHA + ', detached. Confirm HEAD is ' + SHA + ' first. Load /testing and run its Green set — what must pass before a change lands — once, every lane of it. You report; you never fix — change no code and commit nothing.',
-    TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : 'The repo has no TESTING.md: take Green from the charter\'s ## CI jobs (' + WF_CMD + ' effort prints them) and run every one.',
+    TEST_NOTES ? 'Test recipes (per /testing):\n' + TEST_NOTES : 'The repo has no TESTING.md: take Green from the jobs in the sc.toml at ' + SHA + ' (git show ' + SHA + ':sc.toml) and run every one\'s command.',
     BUILD_SLOTS_RULE,
     'Green means every command passed on this run. A test that fails and then passes on a rerun is red, with both runs reported. Stop anything you started.',
   ])
@@ -147,7 +143,7 @@ function defectBody(goal, acceptance) {
 
 function reportPrompt(reportBody, toFile, toComment) {
   return j([
-    'You publish a wayfinder Verify report. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a defect piece with the same title open under the plan, the report comment already posted — reuse it rather than repeating it.',
+    'You publish a wayfinder Verify report. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a defect piece with the same title open under the plan, the report comment already posted — reuse it rather than repeating it.',
     toFile.length
       ? '1. Create each defect piece below as a piece of the plan — issue create with --parent set to the plan\'s number, labelled impl and wayfinder:defect — with exactly the title and body given:\n' + toFile.map(d => '--- key ' + d.key + ' ---\nTitle: ' + d.title + '\nBody:\n' + d.body).join('\n')
       : '1. There are no new defect pieces to create.',
@@ -155,7 +151,7 @@ function reportPrompt(reportBody, toFile, toComment) {
       ? '2. Comment on each open defect piece below with the new run\'s evidence, verbatim:\n' + toComment.map(c => '--- #' + c.number + ' ---\n' + c.comment).join('\n')
       : '2. There are no open defect pieces to comment on.',
     '3. Post this comment on the plan, replacing each {{defect:<key>}} with the piece created for that key as its title followed by its number — Title (#<n>) — and each {{open:<n>}} with that open piece the same way; report the comment\'s id as reportComment:\n' + reportBody,
-    '4. Post the verify status on the pinned commit: ' + WF_CMD + ' status set ' + SHA + ' wayfinder/verify ' + (STATUS_OK ? 'success "every built behavior proven, suite green"' : 'failure "' + STATUS_FAIL + '"'),
+    '4. Post the verify status on the pinned commit: sc status set ' + SHA + ' wayfinder/verify ' + (STATUS_OK ? 'pass --description "every built behavior proven, suite green"' : 'fail --description "' + STATUS_FAIL + '"'),
   ])
 }
 
@@ -259,7 +255,7 @@ const reportBody = [
   '',
   '**Suite (Green per TESTING.md):** ' + (test ? test.result + ' — ' + test.summary : 'not run — the test agent died') + (ref.suite ? ' — ' + ref.suite : ''),
   '',
-  '**wayfinder/verify:** ' + (STATUS_OK ? 'success' : 'failure — ' + STATUS_FAIL),
+  '**wayfinder/verify:** ' + (STATUS_OK ? 'pass' : 'fail — ' + STATUS_FAIL),
 ].filter(x => x !== null).join('\n')
 
 phase('Report')

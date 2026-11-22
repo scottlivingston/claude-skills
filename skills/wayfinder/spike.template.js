@@ -26,17 +26,14 @@ export const meta = {
 
 const PLAN_REF = FILL        // the plan issue as "#<n>", e.g. "#12"
 const RISK = FILL            // { number: 31, title: "the risk issue's title", body: "the risk issue's body verbatim — its question, stop condition, and blocked pieces" }
-const BLOCKED = FILL         // the pieces this risk blocks, the issues `wf.py dependents <risk>` lists: [{ number: 40, title: "..." }] — [] if none
+const BLOCKED = FILL         // the pieces this risk blocks, the issues under `blocks` in `sc issue view <risk> --json`: [{ number: 40, title: "..." }] — [] if none
 const CHARTER_PATH = FILL    // the plan body's Charter: line, e.g. "docs/wayfinder/<slug>.md"
-const SLUG = FILL            // the effort's slug — `wf.py effort` prints it
+const SLUG = FILL            // the effort's slug — `effort.py show` prints it
 const EFFORT_BRANCH = FILL   // the plan body's Effort branch: line, e.g. "effort/<slug>"
 const REPO_ROOT = FILL       // absolute path of the main checkout of the repo
 const WORKTREE = FILL        // absolute path of this risk's worktree: <REPO_ROOT>/.claude/worktrees/<slug>/spike-<risk number>
 const VERIFY_SKILL = FILL    // repo path of the verify-<app> skill the charter's verification line names, e.g. ".claude/skills/verify-web" — "" when the charter says a foundation piece will build it
-const WF_CMD = FILL          // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
-const SLOT_CMD = FILL        // absolute path of the installed wayfinder skill's slot.sh
-const BUILD_SLOTS = FILL     // the charter's Limits "Build slots" value, as a number
-const DRIVE_SLOTS = FILL     // the charter's Limits "Drive slots" value, as a number
+const AWAIT_CMD = FILL       // absolute path of the installed wayfinder skill's await.sh
 
 const EXECUTOR_MODEL = FILL  // per /model-policy: the executor tier's resolved model, or null to inherit
 const DECIDER_MODEL = FILL   // per /model-policy: the decider tier's resolved model, or null to inherit
@@ -58,11 +55,10 @@ const CONTEXT = j([
 ])
 
 // A workflow agent's turn ending is its final report, so it waits on a long run in the
-// foreground, through await.sh beside slot.sh, never on a completion notice.
-const AWAIT_CMD = SLOT_CMD.replace(/slot\.sh$/, 'await.sh')
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the repo\'s test recipes — through the host\'s build slots: sh ' + SLOT_CMD + ' ' + BUILD_SLOTS + ' build -- <command>. It waits for a free slot, then runs the command. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the slot command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
+// foreground, through await.sh, never on a completion notice.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the repo\'s test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the sc run command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 const DRIVE_SLOTS_RULE = APP
-  ? 'Start every copy of the app through the host\'s drive slots: sh ' + SLOT_CMD + ' ' + DRIVE_SLOTS + ' drive-' + APP + ' -- <the launch command>, run with run_in_background, so the slot is held exactly as long as the app runs; stop the app when you are done with it, which frees the slot. Where the app has no long-lived process, run each command that exercises it through the drive slots instead.'
+  ? 'Start every copy of the app through the host\'s drive slots: sc run --pool drive-' + APP + ' -- <the launch command>, run with run_in_background, so the slot is held exactly as long as the app runs; stop the app when you are done with it, which frees the slot. A copy started this way outlives the shell that started it: when it is still running after you stopped it, end it with sc job cancel <the job id sc run printed>. Where the app has no long-lived process, run each command that exercises it through the drive slots instead.'
   : null
 
 // /deciding's decision-record format, rendered from DECISION_ITEM. /deciding owns the format;
@@ -182,7 +178,7 @@ function guessPrompt(reports) {
 function recordPrompt(a, guessed, escalate) {
   const linkLine = 'Plan: ' + PLAN_REF
   return j([
-    'You record the answer to one risk of a wayfinder effort in its tracker. This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary. Work from ' + REPO_ROOT + ', passing each body with --body-file. The plan is issue ' + PLAN_REF + '; the risk is issue #' + RISK.number + ' "' + RISK.title + '". Do every step below exactly once: if an earlier run of this step already did one — a decision issue whose body links this risk, a Builds on line already present, a comment already posted — reuse it rather than repeating it.',
+    'You record the answer to one risk of a wayfinder effort in its tracker. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary. Work from ' + REPO_ROOT + '. The plan is issue ' + PLAN_REF + '; the risk is issue #' + RISK.number + ' "' + RISK.title + '". Do every step below exactly once: if an earlier run of this step already did one — a decision issue whose body links this risk, a Builds on line already present, a comment already posted — reuse it rather than repeating it.',
     'The spike\'s finding:',
     a.summary,
     a.evidence.length ? 'Evidence:\n' + a.evidence.map(e => '- ' + e.what + ' — ' + e.where).join('\n') : null,
@@ -192,7 +188,8 @@ function recordPrompt(a, guessed, escalate) {
         'This answer escalates — ' + (a.designHolds ? 'it falls in /deciding\'s "' + a.escalation + '" case' : 'it breaks the charter\'s design: ' + a.designBreak) + '. Only the human can settle it, so:',
         '1. Leave the risk open. Switch it from afk to hitl.',
         '2. Post this comment on the risk, verbatim:\n<!-- escalation -->\n' + a.escalationDraft + '\n\n**What the spike found:** ' + a.summary + (a.evidence.length ? '\n\n**Evidence:**\n' + a.evidence.map(e => '- ' + e.what + ' — ' + e.where).join('\n') : ''),
-        '3. Publish no decision and touch no piece.',
+        '3. Then ask it in sc, so the issue shows as waiting on the human: sc question ask "<the question in one or two sentences, ending: the options are in the newest comment on ' + RISK.title + ' (#' + RISK.number + ')>" --issue ' + RISK.number + '.',
+        '4. Publish no decision and touch no piece.',
       ])
       : j([
         '- Create the decision issue: title ' + JSON.stringify(a.record.title) + ', labelled wayfinder:decision, body exactly:\n' + linkLine + '\nAnswers: #' + RISK.number + '\n\n' + renderRecord(a.record) + '\n\nThen close it — a decision is closed once posted.',

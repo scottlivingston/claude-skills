@@ -1,6 +1,6 @@
 export const meta = {
   name: 'wayfinder-steer',
-  description: 'One wayfinder Steer: replan from what landed ∥ cross-read the recent decisions → structural checks → reconsider each strained decision, a fresh refuter on every amend or supersede → apply every op in the effort store → progress and completion by script',
+  description: 'One wayfinder Steer: replan from what landed ∥ cross-read the recent decisions → structural checks → reconsider each strained decision, a fresh refuter on every amend or supersede → apply every op in sc → progress and completion by script',
   phases: [
     { title: 'Replan', detail: 'one decider-tier replanner turns defects, parks, landed code and redirects into ops, beside one decider-tier cross-read of the decisions since the last steer' },
     { title: 'Check', detail: 'structural checks by script on the replanned graph; one revision when they fail' },
@@ -29,15 +29,15 @@ export const meta = {
 const PLAN = FILL              // the plan issue's number, e.g. 12
 const PLAN_TITLE = FILL        // the plan issue's title, verbatim
 const STEER = FILL             // this steer's number n: one more than the last <!-- wayfinder steer <n> --> on the plan, 1 when there is none
-const REPO_ROOT = FILL         // absolute path of the repo's main checkout — agents run git and WF_CMD from here
-const SLUG = FILL              // the effort's slug (wf.py effort prints it)
+const REPO_ROOT = FILL         // absolute path of the repo's main checkout — agents run git and sc from here
+const SLUG = FILL              // the effort's slug (effort.py show prints it)
 const EFFORT_BRANCH = FILL     // "effort/<slug>"
-const EFFORT_HEAD = FILL       // the effort branch's head sha now (wf.py effort prints it)
+const EFFORT_HEAD = FILL       // the effort branch's head sha now (effort.py show prints it)
 const CHARTER = FILL           // the charter's full text, verbatim from docs/wayfinder/<slug>.md on the effort branch
 const BEHAVIORS = FILL         // every acceptance behavior in the charter: [{ id: "B1", text: "<the behavior line after the ID, verbatim>" }]
-const PIECES = FILL            // wf.py pieces, each object extended with body (the issue body, verbatim) and blockedBy
-                               // (the numbers of every issue it is blocked by, open or closed: blocked_by in wf.py issue show <n>)
-const RISKS = FILL             // the plan's open risks: [{ number, title, labels: [label names], body }] — [] when none
+const PIECES = FILL            // effort.py pieces, each object extended with body (the issue body, verbatim); its blockedBy is
+                               // the numbers of every issue it is blocked by, open or closed
+const RISKS = FILL             // the plan's open risks: [{ number, title, labels: [label names], assignee: <the claim on it, or null>, body }] — [] when none
 const TASKS = FILL             // the plan's open human tasks: [{ number, title, labels: [label names], body }] — [] when none
 const DECISIONS = FILL         // every wayfinder:decision issue of the plan, open or closed: [{ number, title }]
 const SKELETON_PIECE = FILL    // greenfield only: the number of the walking-skeleton piece (its Goal opens "Walking skeleton:") while it is not done; null otherwise
@@ -52,7 +52,6 @@ const HUMAN = FILL             // since the last steer summary: [{ kind: "answer
 const PREV_STEER = FILL        // the last <!-- wayfinder steer <n> --> summary on the plan, verbatim; "" when there is none
 const MERGED_SINCE = FILL      // the count of pieces whose change merged since the last steer summary (since the plan was published, when there is none)
 const RISKS_CLOSED_SINCE = FILL // risks closed in the same span
-const WF_CMD = FILL            // the effort's forge command: "<absolute path of the installed wayfinder skill's wf.py> --effort <slug>"
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model, or null to inherit
 const DECIDER_MODEL = FILL     // per /model-policy: the decider tier's resolved model, or null to inherit
@@ -71,7 +70,7 @@ const named = (title, n) => title + ' (#' + n + ')'
 const IN_FLIGHT = ['working', 'in-review', 'landing']
 const EDITABLE = ['ready', 'blocked', 'parked']
 
-const CODE_RULE = 'The code as it stands is the local branch ' + EFFORT_BRANCH + '; there is no remote, so fetch nothing. From ' + REPO_ROOT + ' read it by name — git ls-tree -r --name-only ' + EFFORT_BRANCH + ', git show ' + EFFORT_BRANCH + ':<path>, git grep <pattern> ' + EFFORT_BRANCH + ', git log ' + EFFORT_BRANCH + '. Check out nothing and touch no worktree: other workflows of this effort are using them. This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Read any issue and its comments with ' + WF_CMD + ' issue show <n>, and a change with ' + WF_CMD + ' change show <n>.'
+const CODE_RULE = 'The code as it stands is the local branch ' + EFFORT_BRANCH + '; there is no remote, so fetch nothing. From ' + REPO_ROOT + ' read it by name — git ls-tree -r --name-only ' + EFFORT_BRANCH + ', git show ' + EFFORT_BRANCH + ':<path>, git grep <pattern> ' + EFFORT_BRANCH + ', git log ' + EFFORT_BRANCH + '. Check out nothing and touch no worktree: other workflows of this effort are using them. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Read any issue and its comments with sc issue view <n>, and a change with sc change view <n>.'
 
 const CONTEXT = j([
   'You are working on a wayfinder effort: agents build it unattended from the charter below, which the human wrote and only the human changes. The plan is issue #' + PLAN + ' (' + PLAN_TITLE + '). This is its steer ' + STEER + ': the plan is kept honest against what landed, and bad calls are caught before more is built on them.',
@@ -508,7 +507,7 @@ const PLAN_RULES = j([
 ])
 
 const STATE = j([
-  'The plan\'s pieces (wf.py pieces, with each body and the numbers of the issues it is blocked by):',
+  'The plan\'s pieces (effort.py pieces, with each body and the numbers of the issues it is blocked by):',
   JSON.stringify(PIECES),
   'Open risks:\n' + (RISKS.length ? JSON.stringify(RISKS) : 'none'),
   'Open human tasks:\n' + (TASKS.length ? JSON.stringify(TASKS) : 'none'),
@@ -548,7 +547,7 @@ function reviewPrompt() {
     'You are the decision review: a cross-read of the decisions made since the last steer, held against each other, the decisions they rest on, the principles (load /principles and read the governing PRINCIPLES.md files, then the charter\'s Principles), the charter\'s Design, and the code. Each piece\'s builder saw only its own call; you read them together, because a call made early and confidently gets quietly built around until much of the code stands on it.',
     'The decisions in scope:',
     RECENT_DECISIONS.length ? RECENT_DECISIONS.map(d => '### ' + d.title + ' (' + d.ref + ', on #' + d.issue + ')\n' + d.text).join('\n\n') : 'none',
-    'Read every earlier decision they rest on, and any other decision issue you need, with ' + WF_CMD + ' issue show <n>. Open risks:\n' + (RISKS.length ? RISKS.map(r => '- #' + r.number + ' ' + r.title + (r.labels.includes('in-progress') ? ' (being spiked now)' : '')).join('\n') : 'none'),
+    'Read every earlier decision they rest on, and any other decision issue you need, with sc issue view <n>. Open risks:\n' + (RISKS.length ? RISKS.map(r => '- #' + r.number + ' ' + r.title + (r.assignee ? ' (being spiked now)' : '')).join('\n') : 'none'),
     j([
       'Hunt for:',
       '- Contradiction — two decisions that cannot both hold, or code built two ways because two pieces decided the same question differently.',
@@ -621,8 +620,9 @@ function riskPrompt(r, f) {
 }
 
 const APPLY_RULES = j([
-  'This effort has no GitHub: its tracker, changes and commit statuses live in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use). Never read or write the store\'s files directly and never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + ', and pass every body and comment with --body-file.',
-  'A relaunched run may find some of this already done: before creating an issue, look for one already in the store with the same title (' + WF_CMD + ' issue list --state all --search "<title>" — a piece whose parent is #' + PLAN + ', or an issue whose body opens with "Plan: #' + PLAN + '"); reuse it instead of creating a second, and make its body and labels match. An edge or label already in place counts as done.',
+  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
+  'A relaunched run may find some of this already done: before creating an issue, look for one already filed with the same title (sc issue list --json lists every issue, open and closed, with its title; sc issue view <n> --json has the body — a piece whose parent is #' + PLAN + ', or an issue whose body opens with "Plan: #' + PLAN + '"); reuse it instead of creating a second, and make its body and labels match. An edge or label already in place counts as done.',
+  'Every issue you create or switch to the label hitl also needs a question in sc, which is what shows it to the human as waiting on them. Unless sc question list --json already has an open one naming that issue, ask: sc question ask "<for a task: <its title> (#<n>) is a task only you can do, its checklist is the issue\'s body, tell the lead when it is done; for an escalation: the question in one or two sentences, and that the options are in the newest comment on <its title> (#<n>)>" --issue <n>.',
   'Post every body and comment exactly as given. A {{key}} token names an issue created earlier in the same list: replace it with #<its number>.',
 ])
 
@@ -630,7 +630,7 @@ function createPrompt(what, items) {
   return j([
     'You create the new ' + what + ' of steer ' + STEER + ' on wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + ').',
     APPLY_RULES,
-    'Create each issue below, in the order given, with its title, labels and body. An item with subIssue true is a piece of the plan: create it with --parent ' + PLAN + ', which can only be set at create; one with close true is closed once created. Report every number you created or reused.',
+    'Create each issue below, in the order given, with its title, labels and body. An item with subIssue true is a piece of the plan: create it with --parent ' + PLAN + '; one with close true is closed once created. Report every number you created or reused.',
     JSON.stringify(items),
   ])
 }
@@ -639,7 +639,7 @@ function mutatePrompt(actions) {
   return j([
     'You apply the changes of steer ' + STEER + ' to wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + ').',
     APPLY_RULES,
-    'Load /deciding before posting any escalation: post it per its contract, opening <!-- escalation -->, and switch the issue to hitl (removing afk). A blocking edge is ' + WF_CMD + ' issue block <blocked> --by <blocker>; removing one is --unblock <blocker>. Dropping a piece posts the reason as a comment on it, then closes it with --not-planned.',
+    'Load /deciding before posting any escalation: post it per its contract, opening <!-- escalation -->, and switch the issue to hitl (removing afk). A blocking edge is sc issue block <blocked> --by <blocker>; removing one is sc issue unblock <blocked> --by <blocker>. Dropping a piece posts the reason as a comment on it, then closes it with --reason not-planned.',
     'Apply each numbered action below, in order. Report how many landed and every one that failed, with its number and the error.',
     actions.map((a, i) => (i + 1) + '. ' + a).join('\n\n'),
   ])
@@ -647,8 +647,8 @@ function mutatePrompt(actions) {
 
 function recordPrompt(map, where, worktrees, summary) {
   return j([
-    'You record steer ' + STEER + ' of wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + '). Run git and ' + WF_CMD + ' from ' + REPO_ROOT + '. This effort has no GitHub: its tracker lives in a local store reached only through ' + WF_CMD + ' (run it with --help, and <command> --help, before first use); never read or write the store\'s files directly and never run gh.',
-    '1. Rewrite the body of plan #' + PLAN + ' (' + WF_CMD + ' issue edit ' + PLAN + ' --body-file <file>): keep its first two lines (Effort branch, Charter) and its Destination exactly as they are, replace its behavior map with the map below, and its Where it stands with the text below, keeping the headings it already uses.\nBehavior map:\n' + map + '\nWhere it stands:\n' + where,
+    'You record steer ' + STEER + ' of wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + '). Run git and sc from ' + REPO_ROOT + '. This effort has no GitHub: its tracker lives in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; a body or comment is passed as --body "$(cat <file>)"); never run gh.',
+    '1. Rewrite the body of plan #' + PLAN + ' (sc issue edit ' + PLAN + ' --body "$(cat <file>)"): keep its first two lines (Effort branch, Charter) and its Destination exactly as they are, replace its behavior map with the map below, and its Where it stands with the text below, keeping the headings it already uses.\nBehavior map:\n' + map + '\nWhere it stands:\n' + where,
     worktrees.length ? '2. Remove each of these worktrees that exists (git worktree remove --force <path>), then git worktree prune. One that is not there counts as removed:\n' + worktrees.map(w => '- ' + w).join('\n') : '2. No worktrees to remove.',
     '3. Post this comment on plan #' + PLAN + ', verbatim:\n' + summary,
     'Report how many of the three steps landed, and every one that failed with its error.',
@@ -694,7 +694,7 @@ const due = [...targets.values()].filter(t => !answered.has(t.issue) && (t.tensi
 
 const overProved = findings.filter(f => f.kind === 'over-proving')
 const riskOf = f => RISKS.find(r => r.number === f.subject.issue)
-const weighable = overProved.filter(f => riskOf(f) && !riskOf(f).labels.includes('in-progress'))
+const weighable = overProved.filter(f => riskOf(f) && !riskOf(f).assignee)
 const unweighed = overProved.filter(f => !weighable.includes(f))
 
 phase('Reconsider')
@@ -773,7 +773,7 @@ const g = graphWith(kept)
 const openPieces = g.pieces.filter(p => p.status === 'open')
 const proven = VERIFY ? VERIFY.proven : []
 const complete = !!VERIFY && VERIFY.sha === EFFORT_HEAD && BEHAVIORS.every(b => proven.includes(b.id)) && openPieces.length === 0 && g.risks.length === 0
-const inFlight = PIECES.some(p => IN_FLIGHT.includes(p.state)) || RISKS.some(r => r.labels.includes('in-progress'))
+const inFlight = PIECES.some(p => IN_FLIGHT.includes(p.state)) || RISKS.some(r => r.assignee)
 const retires = kept.some(o => o.type === 'closeRisk')
 const stalled = !complete && MERGED_SINCE === 0 && RISKS_CLOSED_SINCE === 0 && !retires && !inFlight && !replan.transientCause
 const status = complete ? 'complete' : stalled ? 'stalled' : 'continue'
