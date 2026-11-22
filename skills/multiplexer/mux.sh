@@ -12,7 +12,7 @@
 #       The same hand-off, into a new tab of the session (Rex) or workspace
 #       (Herdr) this one runs in. Prints mux=<name> TAB id=<tab id> TAB label=<label>.
 #   mux.sh pane <dir> <label> <command> [args...]
-#       Opens a pane below this one running the command, without taking focus,
+#       Opens a pane to the right of this one running the command, without taking focus,
 #       kept open after it exits. Prints mux=<name> TAB pane=<pane id>.
 #
 # Exit status 3: no multiplexer — the caller carries on without one. Any other
@@ -101,7 +101,7 @@ rex_session() {
 herdr_pane() {
   local dir=$1 label=$2; shift 2
   local out pane
-  out=$(herdr pane split --pane "$HERDR_PANE_ID" --direction down --ratio 0.3 --no-focus --cwd "$dir")
+  out=$(herdr pane split --pane "$HERDR_PANE_ID" --direction right --ratio 0.4 --no-focus --cwd "$dir")
   pane=$(jq -r '.result.pane.pane_id' <<< "$out")
   herdr pane rename "$pane" "$label" >/dev/null 2>&1 || true
   herdr pane run "$pane" "$(printf '%q ' "$@")" >/dev/null
@@ -111,7 +111,7 @@ herdr_pane() {
 rex_pane() {
   local dir=$1 label=$2; shift 2
   local out
-  out=$("$(rex_bin)" split -s "$REX_SESSION" -b "$REX_BLOCK" --split=below --ratio 30 --label "$label" \
+  out=$("$(rex_bin)" split -s "$REX_SESSION" -b "$REX_BLOCK" --split=right --ratio 40 --label "$label" \
     --focus=false --keep-open -c "$dir" --json -- "$@")
   printf 'mux=rex\tpane=%s\n' "$(jq -r '.block_ids[0]' <<< "$out")"
 }
