@@ -242,7 +242,7 @@ const POST_SCHEMA = {
   type: 'object', required: ['posted', 'comment', 'issues', 'statuses', 'worktreeRemoved', 'problem'],
   properties: {
     posted: { type: 'boolean', description: 'true when the round comment and both statuses are posted' },
-    comment: { type: 'integer', description: 'the id of the round comment on the change; 0 when it was not posted' },
+    comment: { type: 'integer', description: 'the id of the round comment on the change — its position among the change\'s comments, counted from 1, since sc prints no comment id; 0 when it was not posted' },
     issues: { type: 'array', items: { type: 'object', required: ['id', 'title', 'number'], properties: { id: { type: 'string', description: 'the finding ID' }, title: { type: 'string' }, number: { type: 'integer', description: 'the filed issue\'s number' } } } },
     statuses: { type: 'array', items: { type: 'string' }, description: 'each status posted, as "<context> <state>"' },
     worktreeRemoved: { type: 'boolean' },

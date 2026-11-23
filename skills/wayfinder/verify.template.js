@@ -31,7 +31,8 @@ const REPO_ROOT = FILL       // absolute path of the main checkout of the repo
 const WORKTREE = FILL        // absolute path of the verify worktree: <REPO_ROOT>/.claude/worktrees/<slug>/verify
 const VERIFY_SKILL = FILL    // repo path of the verify-<app> skill: the one the charter's verification line names, or, for a greenfield charter, the .claude/skills/verify-* directory on the effort branch that the walking-skeleton piece built, e.g. ".claude/skills/verify-web"
 const BEHAVIORS = FILL       // every charter behavior, in charter order: [{ id: "B1", text: "the charter's B1 line verbatim", built: true, pieces: [40, 41] }]
-                             // built = a piece whose Acceptance carries the ID is done (effort.py pieces); pieces = every piece whose Acceptance carries it
+                             // built = every piece whose Acceptance carries the ID is done (effort.py pieces) — one still open is delivering part of the
+                             // behavior, so driving it now fails on the part not built; pieces = every piece whose Acceptance carries it
 const OPEN_DEFECTS = FILL    // the plan's open wayfinder:defect pieces: [{ number, title, behaviors: ["B3"], harness: false }] — behaviors = the B<n> IDs in its Acceptance; harness = it fixes the verify harness; [] if none
 const FINAL = FILL           // true only for Close's last run on the commit the human will be asked to accept; false otherwise
 const AWAIT_CMD = FILL       // absolute path of the installed wayfinder skill's await.sh
@@ -95,7 +96,7 @@ const REPORT_SCHEMA = {
   properties: {
     defects: { type: 'array', items: { type: 'object', required: ['key', 'number'], properties: { key: { type: 'string' }, number: { type: 'integer' } } }, description: 'every defect piece you created, by its key' },
     commented: { type: 'array', items: { type: 'integer' }, description: 'open defect pieces you added this run\'s evidence to' },
-    reportComment: { type: 'integer', description: 'the id of the report comment on the plan; 0 when it was not posted' },
+    reportComment: { type: 'integer', description: 'the id of the report comment on the plan — its position among the plan\'s comments, counted from 1, since sc prints no comment id; 0 when it was not posted' },
     statusPosted: { type: 'boolean' },
     problems: { type: 'string', description: 'any step you could not complete, and why; "" when every step landed' },
   },
@@ -270,5 +271,6 @@ return {
   proven,
   failed,
   defects: rep.defects.map(d => d.number).concat(rep.commented),
+  filed: rep.defects.map(d => d.number),
   harnessBroken,
 }

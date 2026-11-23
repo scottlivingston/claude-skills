@@ -449,7 +449,7 @@ def cmd_fill(a):
     tiers = model_tiers(e.root)
     common = {
         "CHARTER_PATH": e.charter_path, "SLUG": e.slug, "EFFORT_BRANCH": e.branch, "REPO_ROOT": str(e.root),
-        "EFFORT_CMD": f"python3 {HERE / 'effort.py'} --effort {e.slug}", "AWAIT_CMD": str(HERE / "await.sh"),
+        "EFFORT_CMD": f"{sys.executable} {HERE / 'effort.py'} --effort {e.slug}", "AWAIT_CMD": str(HERE / "await.sh"),
         "EXECUTOR_MODEL": tiers["executor"], "DECIDER_MODEL": tiers["decider"],
     }
     if a.kind == "build":

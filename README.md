@@ -31,7 +31,7 @@ Builds and tests from every agent queue in Sous Chef's (`sc`) build pool, and ru
 
 ### 3. Catch compounding — friction and reconsideration
 
-Autonomy's characteristic failure is a confident early call that later code quietly builds around. When any agent has to bend around an earlier decision, it posts a **friction note** on it. Each Steer cross-reads the decisions made since the last one — contradictions, broken inputs, calls built around without a note, decisions resting on facts since disproved — and **reconsiders** any decision with friction from real code: stands, amend, or supersede, each attacked by a fresh agent before it applies. Code already built on a superseded call gets a rework piece, so a bad call costs at most what was built before it was caught.
+Autonomy's characteristic failure is a confident early call that later code quietly builds around. When any agent has to bend around an earlier decision, it posts a **friction note** on it. Each Steer cross-reads the decisions made since the last one — contradictions, broken inputs, calls built around without a note, decisions resting on facts since disproved — and **reconsiders** any decision with friction from real code: stands, amend, or supersede, a supersede attacked by a fresh agent before it applies. Code already built on a superseded call gets a rework piece, so a bad call costs at most what was built before it was caught.
 
 ### 4. Close
 

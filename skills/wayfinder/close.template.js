@@ -116,7 +116,7 @@ const FILE_SCHEMA = {
   type: 'object', required: ['pieces', 'summaryComment', 'problems'],
   properties: {
     pieces: { type: 'array', items: { type: 'object', required: ['id', 'number'], properties: { id: { type: 'string' }, number: { type: 'integer' } } }, description: 'every piece you created, by its finding ID' },
-    summaryComment: { type: 'integer', description: 'the id of the summary comment on the plan; 0 when it was not posted' },
+    summaryComment: { type: 'integer', description: 'the id of the summary comment on the plan — its position among the plan\'s comments, counted from 1, since sc prints no comment id; 0 when it was not posted' },
     problems: { type: 'string', description: 'any step you could not complete, and why; "" when every step landed' },
   },
 }

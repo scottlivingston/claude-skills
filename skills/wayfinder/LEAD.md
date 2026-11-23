@@ -1,6 +1,6 @@
 # The lead
 
-`/wayfinder <slug>` makes this session the effort's lead: the one agent the human talks to, which runs every other stage as a workflow and never builds, reviews, or plans anything itself. Its context holds the run, not its substance — so it stays small, relies on the harness's automatic compaction, and re-reads state from `sc` at every cycle instead of remembering it. What it tells the human is read the same way: a question about what an agent did, or why something happened, is answered from that workflow's transcripts and `sc`, looked up before replying. Never answer one with a guess at likely causes.
+`/wayfinder <slug>` makes this session the effort's lead: the one agent the human talks to, which runs every other stage as a workflow and never builds, reviews, or plans anything itself. Its context holds the run, not its substance — so it stays small, is compacted by the harness at the size its hand-off set, and re-reads state from `sc` at every cycle instead of remembering it. What it tells the human is read the same way: a question about what an agent did, or why something happened, is answered from that workflow's transcripts and `sc`, looked up before replying. Never answer one with a guess at likely causes.
 
 Every `sc` command below is the local forge SKILL.md describes, run from anywhere in the repo; every `effort.py` command is [effort.py](effort.py), run as `effort.py --effort <slug> …`.
 
@@ -32,7 +32,7 @@ Run one on every event — a workflow finishing, the watcher exiting, the human 
    - **Review**, for each `in-review` piece whose change has every `ci/*` status passing and no `wayfinder/spec` status yet.
    - **Build in fix mode**, for each `in-review` piece with `conflict` set and no build running: its one finding is that the change conflicts with the effort branch, to be fixed by merging the effort branch into the piece branch. The gate runs no CI on a head in conflict, so the new head gets CI and a review round of its own.
    - **Verify**, when the effort branch has landings since the last `<!-- wayfinder verify <sha> -->` report and no Verify is running. Changes that land during a run wait for the next one.
-   - **Steer**, when a Steer trigger has fired since the last `<!-- wayfinder steer <n> -->` summary and none is running: a new Verify report, a parked piece, a spike's answer, a decision labelled `friction`, or the human's redirect.
+   - **Steer**, when a Steer trigger has fired since the last `<!-- wayfinder steer <n> -->` summary and none is running: a Verify report that filed a defect (its `filed` is not empty), a parked piece, a spike's answer, a decision labelled `friction`, the human's redirect, or a Verify report on the effort branch's head while no piece or risk is open, which is the Steer that returns `complete`. Any other Verify report triggers nothing: Steer would have no defect, park, or answer to turn into ops.
 5. **Restart the watcher** if it exited.
 
 ### One claim per workflow
@@ -54,7 +54,7 @@ A workflow that fails is relaunched once with the same inputs. A second failure 
 The lead never fills a workflow in its own context, and never edits a filled script.
 
 - **Build and Review** are filled by `effort.py fill build <piece>` and `effort.py fill review <change>`, which read every slot from `sc`, the charter, and the model policy, and print the script's path. A build in fix mode takes `--fix-input <file>` holding the review round's number, its findings with their validated repairs, and every answer to its questions, verbatim — or, for a conflict, the failing `sc/merge` status's description. `effort.py fill --help` lists the overrides for what the record can't settle.
-- **Every other workflow** is filled from its template by a **fill agent** (executor tier, via the `Agent` tool). Its brief names the template, the effort's slug, and the one risk or commit in hand; the fill agent reads every input through `sc`, `effort.py`, and the effort branch, fills every `FILL` slot per the template's header, writes the script to `$TMPDIR/wayfinder/<slug>/<kind>-<id>.js`, and returns that path plus a one-line manifest.
+- **Every other workflow** is filled from its template by a **fill agent** (executor tier, via the `Agent` tool). Its brief names the template, the effort's slug, and the one risk or commit in hand; the fill agent reads every input through `sc`, `effort.py`, and the effort branch, fills every `FILL` slot per the template's header, writes the script to `$TMPDIR/wayfinder/<slug>/<kind>-<id>.js`, and returns that path plus a one-line manifest. Every fill gets a new fill agent: one messaged again for a later fill re-reads all its earlier fills, at full price once its cache has lapsed.
 
 The lead launches the script with `Workflow({scriptPath})` in the background. Its return comes back as a notification; the lead reads only the typed return.
 
@@ -71,7 +71,7 @@ The lead launches the script with `Workflow({scriptPath})` in the background. It
 | Review `questions` | Has each question answered by one decider subagent per `/deciding`'s *Answering a gate*, which posts the answers on the change as one comment opening `<!-- wayfinder review-answers <round> -->` — where later rounds read them as binding — then launches fix mode with them. What that escalates waits on the human; the rest of the change's findings still go to fix mode. |
 | Spike `answered` | Nothing more: the decision is published and the risk closed. |
 | Spike `design-breaks` | Puts the escalation the spike posted on its risk to the human: the answer breaks the design, which only the human changes, or hits another of `/deciding`'s escalation cases, as its summary says. |
-| Verify `reported` | Nothing more: defects are already pieces, and Steer is now triggered. |
+| Verify `reported` | Nothing more: defects are already pieces, and a report that filed one triggers Steer. |
 | Steer `continue` | Nothing more. |
 | Steer `stalled` | Escalates its stall report: the cycle landed no piece and retired no risk. |
 | Steer `complete` | Starts Close. |

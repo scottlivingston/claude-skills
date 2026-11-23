@@ -1,10 +1,10 @@
 export const meta = {
   name: 'wayfinder-steer',
-  description: 'One wayfinder Steer: replan from what landed ∥ cross-read the recent decisions → structural checks → reconsider each strained decision, a fresh refuter on every amend or supersede → apply every op in sc → progress and completion by script',
+  description: 'One wayfinder Steer: replan from what landed ∥ cross-read the recent decisions → structural checks → reconsider each strained decision, a fresh refuter on every supersede → apply every op in sc → progress and completion by script',
   phases: [
     { title: 'Replan', detail: 'one decider-tier replanner turns defects, parks, landed code and redirects into ops, beside one decider-tier cross-read of the decisions since the last steer' },
     { title: 'Check', detail: 'structural checks by script on the replanned graph; one revision when they fail' },
-    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each amend or supersede attacked by a fresh planner-tier refuter, one refuted twice settled by a third planner-tier agent, and a supersede that reworks the same piece as another settled again beside it; over-proved risks weighed for a best guess by decider-tier agents' },
+    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each supersede attacked by a fresh planner-tier refuter, one refuted twice settled by a third planner-tier agent, and a supersede that reworks the same piece as another settled again beside it; over-proved risks weighed for a best guess by decider-tier agents' },
     { title: 'Apply', detail: 'executor-tier agents create decisions, then pieces, risks and tasks, then every edit, unpark, drop, decision outcome and escalation' },
     { title: 'Record', detail: 'one executor-tier agent rewrites the plan body, removes finished worktrees, and posts the steer summary' },
   ],
@@ -729,6 +729,8 @@ async function settle(t, beside) {
     if (!v) return { t, outcome: 'none' }
     if (v.escalation.case !== 'none') return { t, outcome: 'escalate', v, draft: v.escalation.draft }
     if (v.verdict === 'stands') return { t, outcome: 'stands', v }
+    // An amend changes no dependent's code, so a wrong one costs a record the next cross-read corrects: it is applied unattacked.
+    if (v.verdict === 'amend') return { t, outcome: 'amend', v }
     const r = await agent(refutePrompt(t, v, beside), { ...opts('refute'), schema: REFUTE_SCHEMA })
     if (!r) return { t, outcome: 'none' }
     if (r.verdict === 'holds') return { t, outcome: v.verdict, v }
