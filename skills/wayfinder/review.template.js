@@ -65,7 +65,7 @@ const STANDARDS_IDLE = !STANDARDS_SOURCES.length
 // Nothing has a link: a human reads an issue as its title and number, a change as its title and change number.
 const ref = x => x.title + ' (#' + x.number + ')'
 const changeRef = x => x.title + ' (change ' + x.number + ')'
-const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary.'
+const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary.'
 
 // Set by the Locate stage: the change's merge-base with the effort branch.
 let BASE = ''

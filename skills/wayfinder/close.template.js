@@ -194,7 +194,7 @@ function pieceBody(f) {
 
 function filePrompt(survivors, summary) {
   return j([
-    'You publish a wayfinder Close review. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a piece with the same title open under the plan, the summary already posted — reuse it rather than repeating it.',
+    'You publish a wayfinder Close review. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a piece with the same title open under the plan, the summary already posted — reuse it rather than repeating it.',
     survivors.length
       ? '1. Create each piece below as a piece of the plan — issue create with --parent set to the plan\'s number, labelled impl — with exactly the title and body given. Add no blocking edges.\n' + survivors.map(f => '--- ' + f.id + ' ---\nTitle: ' + f.title + '\nBody:\n' + pieceBody(f)).join('\n')
       : '1. There are no pieces to create.',
@@ -229,7 +229,7 @@ function writerPrompt(systemic) {
 
 function storePrompt(report) {
   return j([
-    'You store the closing report of a wayfinder effort. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary. The plan is issue ' + PLAN_REF + '.',
+    'You store the closing report of a wayfinder effort. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary. The plan is issue ' + PLAN_REF + '.',
     'Write the report below to a file under $TMPDIR, verbatim — the title as a level-one heading, then the body — with <!-- wayfinder report --> on a first line of its own above it, and post that file as one comment on the plan (sc issue comment <plan> --body "$(cat <that file>)"). The newest such comment is the effort\'s closing report, so post it even when an earlier run posted one. Report where it is.',
     'Title: ' + report.title,
     'Body:\n' + report.body,

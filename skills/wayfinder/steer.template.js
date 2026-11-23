@@ -4,7 +4,7 @@ export const meta = {
   phases: [
     { title: 'Replan', detail: 'one decider-tier replanner turns defects, parks, landed code and redirects into ops, beside one decider-tier cross-read of the decisions since the last steer' },
     { title: 'Check', detail: 'structural checks by script on the replanned graph; one revision when they fail' },
-    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each amend or supersede attacked by a fresh planner-tier refuter, and a supersede that reworks the same piece as another settled again beside it; over-proved risks weighed for a best guess by decider-tier agents' },
+    { title: 'Reconsider', detail: 'one planner-tier reconsideration per strained decision, each amend or supersede attacked by a fresh planner-tier refuter, one refuted twice settled by a third planner-tier agent, and a supersede that reworks the same piece as another settled again beside it; over-proved risks weighed for a best guess by decider-tier agents' },
     { title: 'Apply', detail: 'executor-tier agents create decisions, then pieces, risks and tasks, then every edit, unpark, drop, decision outcome and escalation' },
     { title: 'Record', detail: 'one executor-tier agent rewrites the plan body, removes finished worktrees, and posts the steer summary' },
   ],
@@ -34,6 +34,7 @@ const SLUG = FILL              // the effort's slug (effort.py show prints it)
 const EFFORT_BRANCH = FILL     // "effort/<slug>"
 const EFFORT_HEAD = FILL       // the effort branch's head sha now (effort.py show prints it)
 const CHARTER = FILL           // the charter's full text, verbatim from docs/wayfinder/<slug>.md on the effort branch
+const PRINCIPLES = FILL        // every PRINCIPLES.md on the effort branch, the root file first: [{ path, text: "<the file, verbatim>" }] — [] when the repo has none
 const BEHAVIORS = FILL         // every acceptance behavior in the charter: [{ id: "B1", text: "<the behavior line after the ID, verbatim>" }]
 const PIECES = FILL            // effort.py pieces, each object extended with body (the issue body, verbatim); its blockedBy is
                                // the numbers of every issue it is blocked by, open or closed
@@ -70,12 +71,15 @@ const named = (title, n) => title + ' (#' + n + ')'
 const IN_FLIGHT = ['working', 'in-review', 'landing']
 const EDITABLE = ['ready', 'blocked', 'parked']
 
-const CODE_RULE = 'The code as it stands is the local branch ' + EFFORT_BRANCH + '; there is no remote, so fetch nothing. From ' + REPO_ROOT + ' read it by name — git ls-tree -r --name-only ' + EFFORT_BRANCH + ', git show ' + EFFORT_BRANCH + ':<path>, git grep <pattern> ' + EFFORT_BRANCH + ', git log ' + EFFORT_BRANCH + '. Check out nothing and touch no worktree: other workflows of this effort are using them. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Read any issue and its comments with sc issue view <n>, and a change with sc change view <n>.'
+const CODE_RULE = 'The code as it stands is the local branch ' + EFFORT_BRANCH + '; there is no remote, so fetch nothing. From ' + REPO_ROOT + ' read it by name — git ls-tree -r --name-only ' + EFFORT_BRANCH + ', git show ' + EFFORT_BRANCH + ':<path>, git grep <pattern> ' + EFFORT_BRANCH + ', git log ' + EFFORT_BRANCH + '. Check out nothing and touch no worktree: other workflows of this effort are using them. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Read any issue and its comments with sc issue view <n>, and a change with sc change view <n>.'
 
 const CONTEXT = j([
   'You are working on a wayfinder effort: agents build it unattended from the charter below, which the human wrote and only the human changes. The plan is issue #' + PLAN + ' (' + PLAN_TITLE + '). This is its steer ' + STEER + ': the plan is kept honest against what landed, and bad calls are caught before more is built on them.',
   'The charter (docs/wayfinder/' + SLUG + '.md):',
   CHARTER,
+  PRINCIPLES.length
+    ? 'The repo\'s principles, verbatim. Per /principles, a file in a directory binds what lies beneath it as a delta over the root file, and the charter\'s Principles rank above them all:\n\n' + PRINCIPLES.map(f => '### ' + f.path + '\n' + f.text).join('\n\n')
+    : 'The repo has no PRINCIPLES.md: the charter\'s Principles are the only ones.',
   CODE_RULE,
 ])
 
@@ -387,14 +391,16 @@ const parseAcceptance = lines => lines.map(l => l.match(/^- (?:(B\d+):\s*)?(.*\S
 const parseBuildsOn = lines => lines.map(l => l.match(/^- #(\d+)/)).filter(Boolean).map(m => '#' + m[1])
 
 const pieceState = new Map(PIECES.map(p => ['#' + p.number, p.state]))
-const pieceNums = new Set(PIECES.map(p => p.number))
+// A dropped piece is out of the graph, as a drop op leaves it: it is not open work, and nothing waits on it.
+const LIVE = PIECES.filter(p => p.state !== 'dropped')
+const pieceNums = new Set(LIVE.map(p => p.number))
 const riskNums = new Set(RISKS.map(r => r.number))
 const taskNums = new Set(TASKS.map(t => t.number))
 const titleOf = new Map([...PIECES, ...RISKS, ...TASKS, ...DECISIONS].map(x => ['#' + x.number, x.title]))
 const sectionsBy = new Map(PIECES.map(p => ['#' + p.number, sectionsOf(p.body)]))
 
 const GRAPH0 = {
-  pieces: PIECES.map(p => {
+  pieces: LIVE.map(p => {
     const secs = sectionsBy.get('#' + p.number)
     return {
       id: '#' + p.number, status: p.state === 'done' ? 'done' : 'open',
@@ -517,7 +523,7 @@ const STATE = j([
 function replanPrompt(prior, fails) {
   return j([
     CONTEXT,
-    'You are the replanner. Load /deciding and /principles, read the governing PRINCIPLES.md files, and read the code as it stands. Then turn what happened since the last steer into ops on the plan, and rewrite its Where it stands.',
+    'You are the replanner. Load /deciding, and read the code as it stands. Then turn what happened since the last steer into ops on the plan, and rewrite its Where it stands.',
     PLAN_RULES,
     STATE,
     VERIFY ? 'The latest Verify report (on ' + VERIFY.sha + (VERIFY.sha === EFFORT_HEAD ? ', the effort branch\'s head' : '; the effort branch has moved on to ' + EFFORT_HEAD) + '):\n' + VERIFY.report : 'No Verify report yet.',
@@ -544,7 +550,7 @@ function replanPrompt(prior, fails) {
 function reviewPrompt() {
   return j([
     CONTEXT,
-    'You are the decision review: a cross-read of the decisions made since the last steer, held against each other, the decisions they rest on, the principles (load /principles and read the governing PRINCIPLES.md files, then the charter\'s Principles), the charter\'s Design, and the code. Each piece\'s builder saw only its own call; you read them together, because a call made early and confidently gets quietly built around until much of the code stands on it.',
+    'You are the decision review: a cross-read of the decisions made since the last steer, held against each other, the decisions they rest on, the repo\'s principles and the charter\'s Principles above, the charter\'s Design, and the code. Each piece\'s builder saw only its own call; you read them together, because a call made early and confidently gets quietly built around until much of the code stands on it.',
     'The decisions in scope:',
     RECENT_DECISIONS.length ? RECENT_DECISIONS.map(d => '### ' + d.title + ' (' + d.ref + ', on #' + d.issue + ')\n' + d.text).join('\n\n') : 'none',
     'Read every earlier decision they rest on, and any other decision issue you need, with sc issue view <n>. Open risks:\n' + (RISKS.length ? RISKS.map(r => '- #' + r.number + ' ' + r.title + (r.assignee ? ' (being spiked now)' : '')).join('\n') : 'none'),
@@ -608,6 +614,22 @@ function refutePrompt(t, v, beside) {
   ])
 }
 
+function tiebreakPrompt(t, v, r, beside) {
+  return j([
+    CONTEXT,
+    'You settle a reconsideration of one decision of this effort: ' + t.title + ' (' + t.ref + ', on #' + t.issue + '). Its verdict was refuted twice, and you wrote neither side. Load /deciding and read its SKILL.md in full; read the decision, its dependents, and the code they built.',
+    'What strained it:',
+    strains(t),
+    'The verdict, as revised after its first refutation:',
+    JSON.stringify(v),
+    'The second refutation:',
+    r.reasons,
+    r.escalationDraft ? 'What the refuter would put to the human, with the call it would make instead:\n' + r.escalationDraft : null,
+    beside ? besideText(beside) + ' Your verdict and every rework it gives must hold beside them.' : null,
+    'Decide between them from the grounds /deciding orders, and return the verdict that stands, whole: the verdict as given, the refuter\'s alternative, or the decision unchanged, with every dependent and every rework it needs, in the shapes a reconsideration returns. Two agents disagreeing is not a reason to ask the human. Name an escalation case and draft the escalation only when the call itself falls in one of /deciding\'s three cases. Quote each principle, design line, or decision your verdict turns on from the file or issue you read it in.',
+  ])
+}
+
 function riskPrompt(r, f) {
   return j([
     CONTEXT,
@@ -620,7 +642,7 @@ function riskPrompt(r, f) {
 }
 
 const APPLY_RULES = j([
-  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)"). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
+  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
   'A relaunched run may find some of this already done: before creating an issue, look for one already filed with the same title (sc issue list --json lists every issue, open and closed, with its title; sc issue view <n> --json has the body — a piece whose parent is #' + PLAN + ', or an issue whose body opens with "Plan: #' + PLAN + '"); reuse it instead of creating a second, and make its body and labels match. An edge or label already in place counts as done.',
   'Every issue you create or switch to the label hitl also needs a question in sc, which is what shows it to the human as waiting on them. Unless sc question list --json already has an open one naming that issue, ask: sc question ask "<for a task: <its title> (#<n>) is a task only you can do, its checklist is the issue\'s body, tell the lead when it is done; for an escalation: the question in one or two sentences, and that the options are in the newest comment on <its title> (#<n>)>" --issue <n>.',
   'Post every body and comment exactly as given. A {{key}} token names an issue created earlier in the same list: replace it with #<its number>.',
@@ -647,7 +669,7 @@ function mutatePrompt(actions) {
 
 function recordPrompt(map, where, worktrees, summary) {
   return j([
-    'You record steer ' + STEER + ' of wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + '). Run git and sc from ' + REPO_ROOT + '. This effort has no GitHub: its tracker lives in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; a body or comment is passed as --body "$(cat <file>)"); never run gh.',
+    'You record steer ' + STEER + ' of wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + '). Run git and sc from ' + REPO_ROOT + '. This effort has no GitHub: its tracker lives in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body); never run gh.',
     '1. Rewrite the body of plan #' + PLAN + ' (sc issue edit ' + PLAN + ' --body "$(cat <file>)"): keep its first two lines (Effort branch, Charter) and its Destination exactly as they are, replace its behavior map with the map below, and its Where it stands with the text below, keeping the headings it already uses.\nBehavior map:\n' + map + '\nWhere it stands:\n' + where,
     worktrees.length ? '2. Remove each of these worktrees that exists (git worktree remove --force <path>), then git worktree prune. One that is not there counts as removed:\n' + worktrees.map(w => '- ' + w).join('\n') : '2. No worktrees to remove.',
     '3. Post this comment on plan #' + PLAN + ', verbatim:\n' + summary,
@@ -710,7 +732,13 @@ async function settle(t, beside) {
     const r = await agent(refutePrompt(t, v, beside), { ...opts('refute'), schema: REFUTE_SCHEMA })
     if (!r) return { t, outcome: 'none' }
     if (r.verdict === 'holds') return { t, outcome: v.verdict, v }
-    if (round === 2) return { t, outcome: 'escalate', v, draft: r.escalationDraft || ('Refuted twice: ' + r.reasons) }
+    if (round === 2) {
+      // Refuted twice is two agents disagreeing, which is none of /deciding's escalation cases: a third settles it.
+      const f = await agent(tiebreakPrompt(t, v, r, beside), { ...opts('tiebreak'), schema: RECONSIDER_SCHEMA })
+      if (!f) return { t, outcome: 'escalate', v, draft: r.escalationDraft || ('Refuted twice: ' + r.reasons) }
+      if (f.escalation.case !== 'none') return { t, outcome: 'escalate', v: f, draft: f.escalation.draft }
+      return { t, outcome: f.verdict, v: f }
+    }
     v = await agent(reconsiderPrompt(t, { verdict: v, refutation: r }, beside), { ...opts('reconsider-2'), schema: RECONSIDER_SCHEMA })
   }
 }

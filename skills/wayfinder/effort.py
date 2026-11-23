@@ -185,6 +185,30 @@ def unprotect(text, branch):
     return re.sub(rf"(?ms)^\[gates\.{quoted}\]\n.*?(?=^\[|\Z)", "", text).rstrip("\n") + "\n"
 
 
+CHARTER_SECTIONS = ("Destination", "Acceptance behaviors", "Principles", "Design", "Out of scope", "Limits", "Delegated")
+CHARTER_LIMITS = ("Pieces at once", "Build slots", "Drive slots")
+
+
+def charter_problems(text):
+    """What in a charter's shape would stop an effort, per CHARTER.md; empty when it is sound."""
+    out = [f"charter has no '## {s}' section" for s in CHARTER_SECTIONS if not re.search(rf"^## {re.escape(s)}", text, re.M)]
+    behaviors = re.findall(r"^- \*\*(B\d+):.*$", text, re.M)
+    if not behaviors:
+        out.append("charter lists no '- **B<n>: …**' behaviors")
+    bad = [m.group(1) for m in re.finditer(r"^- \*\*(B\d+):.*$", text, re.M) if "→" not in m.group(0)]
+    if bad:
+        out.append("behaviors with no '→ <observable end state>': " + " ".join(bad))
+    out += [f"charter Limits has no number for '{l}'" for l in CHARTER_LIMITS if not re.search(rf"^- \*\*{re.escape(l)}:\*\* *\d+", text, re.M)]
+    return out
+
+
+def cmd_charter_check(a):
+    problems = charter_problems(Path(a.file).read_text() if a.file else Effort.resolve(a.effort).charter())
+    for line in problems:
+        print(line)
+    sys.exit(1 if problems else 0)
+
+
 def cmd_setup(a):
     e = Effort(a.slug)
     if a.slug in Effort.known() or e.head():
@@ -192,6 +216,9 @@ def cmd_setup(a):
     src = Path(a.charter).resolve()
     if not src.exists():
         die(f"no charter file at {a.charter}")
+    problems = charter_problems(src.read_text())
+    if problems:
+        die("the charter is not in CHARTER.md's shape, so nothing was created:\n  " + "\n  ".join(problems))
     base = a.base or git("rev-parse", "--abbrev-ref", "HEAD", cwd=e.root).stdout.strip()
     toml_src = Path(a.sc_toml).resolve() if a.sc_toml else None
     if toml_src and not toml_src.exists():
@@ -489,6 +516,10 @@ def main():
     s.add_argument("--base", help="branch to start from (default: the main checkout's current branch)")
     s.add_argument("--add", action="append", help="a file or directory in the main checkout to commit beside the charter (repeatable)")
     s.set_defaults(fn=cmd_setup)
+
+    s = sub.add_parser("charter-check", help="print what in the charter's shape would stop the effort; exits 1 when anything does")
+    s.add_argument("--file", help="a charter file to check (default: the charter on the effort branch)")
+    s.set_defaults(fn=cmd_charter_check)
 
     s = sub.add_parser("show", help="print the effort: branch, base, charter, plan, head, CI jobs, required statuses, gate")
     s.set_defaults(fn=cmd_show)

@@ -26,16 +26,12 @@ field() { python3 -c 'import json,sys; print(eval(sys.argv[1], {"e": json.load(s
 
 if body=$(git show "$branch:$charter" 2>/dev/null); then
   pass "charter is at $charter on $branch"
-  for s in "Destination" "Acceptance behaviors" "Principles" "Design" "Out of scope" "Limits" "Delegated"; do
-    grep -q "^## $s" <<< "$body" || fail "charter has no '## $s' section"
-  done
-  behaviors=$(grep -cE '^- \*\*B[0-9]+:' <<< "$body")
-  [ "$behaviors" -gt 0 ] && pass "charter lists $behaviors acceptance behaviors" || fail "charter lists no '- **B<n>: …**' behaviors"
-  bad=$(grep -E '^- \*\*B[0-9]+:' <<< "$body" | grep -v '→' | grep -oE 'B[0-9]+' | tr '\n' ' ')
-  [ -z "$bad" ] || fail "behaviors with no '→ <observable end state>': $bad"
-  for l in "Pieces at once" "Build slots" "Drive slots"; do
-    grep -qE "^- \*\*$l:\*\* *[0-9]+" <<< "$body" || fail "charter Limits has no number for '$l'"
-  done
+  # effort.py owns the charter's shape; setup refuses a charter that fails it.
+  if problems=$(effort charter-check); then
+    pass "charter has every section, $(grep -cE '^- \*\*B[0-9]+:' <<< "$body") acceptance behaviors with an end state, and its limits"
+  else
+    while IFS= read -r line; do fail "$line"; done <<< "$problems"
+  fi
   limit() { grep -E "^- \*\*$1:\*\* *[0-9]+" <<< "$body" | grep -oE '[0-9]+' | head -1; }
   slots() { sc pool list --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next((p["slots"] for p in (d if isinstance(d, list) else d["pools"]) if p["name"] == sys.argv[1]), ""))' "$1"; }
   pool() {  # <pool> <the charter's number>
