@@ -31,18 +31,18 @@ An effort needs no GitHub, no remote, and no hosted CI. Its forge is Sous Chef, 
 - **An issue** is the plan, a piece, a risk, a human task, a shared decision, or a repo-wide review finding. Labels are `/issue-tracker`'s vocabulary.
 - **A change** is a piece branch proposed for the effort branch — what a pull request would be. It has a body, comments, and the statuses of its head commit. Changes are numbered apart from issues.
 - **CI** is the jobs in the `sc.toml` at the repo root: named shell commands, each run from the root of a clean checkout.
-- **The gate** runs inside `sc`'s daemon, which any `sc` command starts. It runs every CI job on each open change's head, and squash-merges a change into the effort branch once every required status passes and its piece has no open blocker. A change that conflicts with the effort branch gets a failing `sc/merge` status instead, and no CI until it is resolved.
-- **Protection** is `sc`'s git hook: only the gate moves a protected branch, and `effort/<slug>` is one. Nothing checks the effort branch out.
+- **The gate** runs inside `sc`'s daemon, which any `sc` command starts. It runs every CI job on each open change's head, and squash-merges a change into the effort branch once every required status passes and its piece has no open blocker and no hold. A change that conflicts with the effort branch gets a failing `sc/merge` status instead, and no CI until it is resolved.
+- **Protection** is `sc`'s git hook: only the gate moves a protected branch, and `sc.toml` protects every `effort/*` branch by pattern. Plain git can neither create nor delete one: `sc branch create` and `sc branch delete` do. Nothing checks the effort branch out.
 - **Pools** cap what the machine runs at once. Every build and test goes through `sc run --pool build`, as CI jobs do, and every running copy of the app through `sc run --pool drive-<app>`. Only the human resizes a pool, in `sc tui`.
 - **A question** (`sc question ask --issue <n>`) is how an issue is shown to the human as waiting on them: it lists on the Questions screen of `sc tui` and makes the issue `waiting` until it is answered.
 
-What `sc` leaves to the workflow is [effort.py](effort.py), beside this file: `setup` and `finish` for the effort branch, `show`, `pieces` for each piece's state, `fill` for the build and review templates, and `pr-lint` for the change body. Each takes `--effort <slug>`.
+What `sc` leaves to the workflow is [effort.py](effort.py), beside this file: `fill` for the build and review templates, and `charter-check` for the charter's shape. Each takes `--effort <slug>`.
 
 ## Where state lives
 
 Everything the lead needs to resume is in `sc` or the repo — never only in a session — so the lead can compact or die and pick up from the record alone.
 
-- **The repo, on the effort branch:** the charter at `docs/wayfinder/<slug>.md` (format: [CHARTER.md](CHARTER.md)), `sc.toml` with the CI jobs and the effort branch's gate, and the `verify-<app>` skill with its feature map. All merge with the effort.
+- **The repo, on the effort branch:** the charter at `docs/wayfinder/<slug>.md` (format: [CHARTER.md](CHARTER.md)), `sc.toml` with the CI jobs and the gate every effort branch is held to, and the `verify-<app>` skill with its feature map. All merge with the effort.
 - **Issues:** the plan, its pieces, risks, human tasks, and shared decisions.
 - **Changes:** a piece's code, its evidence, review comments, the reviewer statuses, and CI.
 
@@ -52,9 +52,9 @@ Everything the lead needs to resume is in `sc` or the repo — never only in a s
 
 - **Effort branch** `effort/<slug>`, protected: only the gate moves it. **Piece branch** `piece/<slug>/<n>`, where `<n>` is the piece's issue number; **spike branch** `spike/<slug>/<n>`, which keeps a spike's evidence and never merges. All are local branches of the one repo, so a commit is visible to every worktree at once.
 - **Worktrees** under `.claude/worktrees/<slug>/`: `piece-<n>` and `spike-<n>` (one per workflow, shared by its stages, removed when the piece merges or parks), `verify`, and `review-<change>`.
-- **Required statuses** on a change: one `ci/<job>` per CI job, `wayfinder/pr-format`, `wayfinder/spec`, and `wayfinder/standards`, listed under `[gates."effort/<slug>"]` in `sc.toml`, plus `sc/merge`, which `sc` always requires. Only the gate posts `ci/*` and `sc/merge`; only `effort.py pr-lint` posts the format status; only the review workflow posts the other two. A status is `pass`, `fail`, or `pending`.
+- **Required statuses** on a change: one `ci/<job>` per CI job, `wayfinder/spec`, and `wayfinder/standards`, listed under `[gates."effort/*"]` in `sc.toml`, plus `sc/merge`, which `sc` always requires. Only the gate posts `ci/*` and `sc/merge`; only the review workflow posts the other two. A status is `pass`, `fail`, or `pending`.
 - **A claim** is the issue's assignee: `sc issue assign <n> lead` takes it and `sc issue unassign <n>` releases it. This is `/issue-tracker`'s `in-progress`.
-- **A comment's id** is its position among its issue's or change's comments, counted from 1: `sc` numbers none and replaces none, so the newest comment carrying a marker is the one that counts.
+- **A comment's id** is the `id` that `sc issue view --json` and `sc change view --json` give it, and `--edit <id>` on either `comment` command replaces that comment's body. Where several comments carry one marker, the newest counts.
 - **Behaviors** are numbered `B<n>` in the charter, and the same IDs head their feature-map files and every piece's acceptance.
 
 ### Issues and their markers
@@ -66,6 +66,7 @@ All labels are `/issue-tracker` vocabulary.
   ```markdown
   Effort branch: effort/<slug>
   Charter: docs/wayfinder/<slug>.md
+  Base: <the branch the effort started from and returns to>
 
   ## Destination
   <copied from the charter>
@@ -90,8 +91,8 @@ All labels are `/issue-tracker` vocabulary.
   - #<decision issue> <title>
   ```
 
-  A defect Verify filed also carries `wayfinder:defect`. A parked piece carries `wayfinder:parked` and a `<!-- wayfinder park -->` comment with the reason.
-- **A risk** (`wayfinder:risk` + `afk`) and **a human task** (`wayfinder:task` + `hitl`) — linked to the plan by a `Plan: #<plan>` first line, never children, so the frontier never holds them. Each blocks only the pieces that rest on it.
+  A defect Verify filed also carries `wayfinder:defect`. A parked piece has a hold (`sc issue hold`), which keeps its change from landing, and a `<!-- wayfinder park -->` comment saying exactly what is missing.
+- **A risk** (`wayfinder:risk` + `afk`) and **a human task** (`wayfinder:task` + `hitl`) — linked to the plan (`sc issue link <n> <plan> --kind related`, listed by `sc issue list --linked <plan>`), never children, so the frontier never holds them. Each blocks only the pieces that rest on it.
 - **A shared decision** — a call two or more pieces need — is its own issue labelled `wayfinder:decision`, linked the same way, its body the decision record per `/deciding`. Friction notes are comments on it. Every piece that builds on it lists it under **Builds on** and is blocked by it until it is closed, which it is when published. A call only one piece needs is a `<!-- decision-record -->` comment on that piece.
 - **Escalations** are `<!-- escalation -->` comments on the issue they concern, which is switched to `hitl` and named by a question in `sc`. A human task carries a question the same way from the moment it is filed.
 
@@ -99,17 +100,17 @@ Plan-level records are comments on the plan: `<!-- wayfinder verify <sha> -->` f
 
 ### A piece's state is derived, never stored
 
-`sc` works each issue's state out from its record, and `effort.py pieces` lays `parked` over it and adds each piece's open change, that change's statuses, and `conflict`. Every reader uses it rather than its own reckoning. The first row that holds wins:
+`sc` works each issue's state out from its record, and `sc issue list --parent <plan> --json` gives every piece's state with its changes and the statuses on each change's head. Every reader uses it rather than its own reckoning. The first row that holds wins:
 
 | State | Derived from |
 | --- | --- |
 | `done` | closed by the gate when its change landed |
 | `dropped` | closed as not planned (Steer dropped it) |
-| `parked` | the `wayfinder:parked` label |
+| `held` | a hold: the piece is parked |
 | `blocked` | an open blocker |
 | `waiting` | an open question names it: it waits on the human |
 | `landing` | its open change has every required status passing: the gate lands it next |
-| `in-review` | an open change from its piece branch; `conflict` is set when `sc/merge` is failing on its head |
+| `in-review` | an open change from its piece branch, which is in conflict when `sc/merge` is failing on its head |
 | `working` | claimed, no open change |
 | `ready` | none of the above |
 

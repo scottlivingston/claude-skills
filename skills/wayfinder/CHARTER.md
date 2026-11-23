@@ -1,6 +1,6 @@
 # The effort charter
 
-Shape writes it, `effort.py setup` commits it, the effort branch carries it at `docs/wayfinder/<slug>.md`, and every agent of the run reads it from its checkout. Only the human changes it: an agent that finds it wrong escalates per `/deciding`'s third case.
+Shape writes it and commits it in the effort branch's first commit, the effort branch carries it at `docs/wayfinder/<slug>.md`, and every agent of the run reads it from its checkout. Only the human changes it: an agent that finds it wrong escalates per `/deciding`'s third case.
 
 ```markdown
 # <effort title>
@@ -46,13 +46,20 @@ Every section is present; **Delegated** and **Out of scope** may say "none". A b
 
 ## CI lives in `sc.toml`
 
-The effort's CI is not in the charter: it is the jobs of the `sc.toml` at the repo root, which `effort.py setup` commits beside the charter (`sc init --help` shows the file's shape).
+The effort's CI is not in the charter: it is the jobs of the `sc.toml` at the repo root, which Shape commits beside the charter (`sc init --help` shows the file's shape). An effort's `sc.toml` holds all of this:
 
 ```toml
+protected = ["effort/*"]   # beside any entry already there
+
 [jobs.<job name>]
 command = "<one shell command, run from the repo root of a clean checkout; exit 0 is green>"
 pool = "build"
 timeout = "<how long it may run, e.g. 30m; sc's default is 20m>"
+
+[gates."effort/*"]
+required = ["ci/<each job name>", "wayfinder/spec", "wayfinder/standards"]
 ```
 
-The jobs are what a hosted pipeline would run, as commands the gate runs on this machine against every change: the repo's Green set per `/testing`, plus its build, lint, and type checks. A job that needs several steps is a script in the repo. A job installs what it needs, runs anywhere a clean checkout sits, takes any port or data directory from the environment, and leaves no process running — the gate fails one that does. There is at least one job, and each names the `build` pool so CI and the agents' own builds share one cap. Setup adds the effort branch to `protected` and writes its `[gates."effort/<slug>"]` table, so Shape writes neither.
+The jobs are what a hosted pipeline would run, as commands the gate runs on this machine against every change: the repo's Green set per `/testing`, plus its build, lint, and type checks. A job that needs several steps is a script in the repo. A job installs what it needs, runs anywhere a clean checkout sits, takes any port or data directory from the environment, and leaves no process running — the gate fails one that does. There is at least one job, and each names the `build` pool so CI and the agents' own builds share one cap.
+
+The pattern entries protect and gate every effort branch, so an `sc.toml` that already has them needs only its jobs checked, and nothing is taken out when an effort ends.

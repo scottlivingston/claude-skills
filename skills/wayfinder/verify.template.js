@@ -31,11 +31,10 @@ const REPO_ROOT = FILL       // absolute path of the main checkout of the repo
 const WORKTREE = FILL        // absolute path of the verify worktree: <REPO_ROOT>/.claude/worktrees/<slug>/verify
 const VERIFY_SKILL = FILL    // repo path of the verify-<app> skill: the one the charter's verification line names, or, for a greenfield charter, the .claude/skills/verify-* directory on the effort branch that the walking-skeleton piece built, e.g. ".claude/skills/verify-web"
 const BEHAVIORS = FILL       // every charter behavior, in charter order: [{ id: "B1", text: "the charter's B1 line verbatim", built: true, pieces: [40, 41] }]
-                             // built = every piece whose Acceptance carries the ID is done (effort.py pieces) — one still open is delivering part of the
+                             // built = every piece whose Acceptance carries the ID is done (sc issue list --parent <plan> --json) — one still open is delivering part of the
                              // behavior, so driving it now fails on the part not built; pieces = every piece whose Acceptance carries it
 const OPEN_DEFECTS = FILL    // the plan's open wayfinder:defect pieces: [{ number, title, behaviors: ["B3"], harness: false }] — behaviors = the B<n> IDs in its Acceptance; harness = it fixes the verify harness; [] if none
 const FINAL = FILL           // true only for Close's last run on the commit the human will be asked to accept; false otherwise
-const AWAIT_CMD = FILL       // absolute path of the installed wayfinder skill's await.sh
 const TEST_NOTES = FILL      // per /testing: the governing TESTING.md sections verbatim (Green included), or "" when the repo has none
 
 const EXECUTOR_MODEL = FILL  // per /model-policy: the executor tier's resolved model, or null to inherit
@@ -54,8 +53,8 @@ const HARNESS_PREREQ = 'the verify harness'
 const clean = t => t.replace(/\*\*/g, '').replace(/^\s*-\s*/, '').trim()
 
 // A workflow agent's turn ending is its final report, so it waits on a long run in the
-// foreground, through await.sh, never on a completion notice.
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, e2e sections, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the sc run command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
+// foreground, in bounded sc job wait calls, never on a completion notice.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, e2e sections, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: queue it with sc run --detach --pool build -- <command>, which prints its job id and returns, then wait for it in the foreground with sc job wait <id> --timeout 9m, which exits with the command\'s own status, or 205 when the nine minutes ran out first; call it again until it exits anything but 205, and read the output with sc job logs <id>. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 const DRIVE_SLOTS_RULE = 'Start the app through the host\'s drive slots: sc run --pool drive-' + APP + ' -- <the skill\'s launch command>, run with run_in_background, so the slot is held exactly as long as the app runs; the skill\'s Cleanup stops it and frees the slot. A copy started this way outlives the shell that started it: when it is still running after Cleanup, end it with sc job cancel <the job id sc run printed>. Where the app has no long-lived process, run each command that drives it through the drive slots instead. Any build the launch needs goes through the build slots first.'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
@@ -96,7 +95,7 @@ const REPORT_SCHEMA = {
   properties: {
     defects: { type: 'array', items: { type: 'object', required: ['key', 'number'], properties: { key: { type: 'string' }, number: { type: 'integer' } } }, description: 'every defect piece you created, by its key' },
     commented: { type: 'array', items: { type: 'integer' }, description: 'open defect pieces you added this run\'s evidence to' },
-    reportComment: { type: 'integer', description: 'the id of the report comment on the plan — its position among the plan\'s comments, counted from 1, since sc prints no comment id; 0 when it was not posted' },
+    reportComment: { type: 'integer', description: 'the id of the report comment on the plan, as sc issue view --json lists it; 0 when it was not posted' },
     statusPosted: { type: 'boolean' },
     problems: { type: 'string', description: 'any step you could not complete, and why; "" when every step landed' },
   },
@@ -144,7 +143,7 @@ function defectBody(goal, acceptance) {
 
 function reportPrompt(reportBody, toFile, toComment) {
   return j([
-    'You publish a wayfinder Verify report. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a defect piece with the same title open under the plan, the report comment already posted — reuse it rather than repeating it.',
+    'You publish a wayfinder Verify report. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a defect piece with the same title open under the plan, the report comment already posted — reuse it rather than repeating it.',
     toFile.length
       ? '1. Create each defect piece below as a piece of the plan — issue create with --parent set to the plan\'s number, labelled impl and wayfinder:defect — with exactly the title and body given:\n' + toFile.map(d => '--- key ' + d.key + ' ---\nTitle: ' + d.title + '\nBody:\n' + d.body).join('\n')
       : '1. There are no new defect pieces to create.',

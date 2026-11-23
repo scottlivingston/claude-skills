@@ -37,7 +37,7 @@ Workflow roles:
 - `hitl` / `afk` — a wayfinder risk's or task's mode: waiting on the human (escalated, or a task only they can do), or agent-worked. Each carries exactly one.
 - `friction` — a decision carrying friction notes (per `/deciding`) not yet acted on; cleared when its reconsideration opens.
 - `wayfinder:plan`, `wayfinder:risk`, `wayfinder:task`, `wayfinder:decision` — a `/wayfinder` plan, a risk a spike answers, a task only the human can do, and a decision several of its pieces build on. Risks, tasks, and decisions are **linked** to their plan, never its children, so they stay off the plan's frontier.
-- `wayfinder:defect`, `wayfinder:parked` — a piece filed from a failed verification, and a piece its build stopped on, with the reason in a comment.
+- `wayfinder:defect` — a piece filed from a failed verification.
 
 ### Ticket operations
 
@@ -136,4 +136,4 @@ Issues and specs live as markdown files in `.scratch/`. Vocabulary roles map to 
 
 A `/wayfinder` effort keeps its tickets in Sous Chef, the `sc` command — never GitHub, never `.scratch/`. Every operation of the contract is an `sc issue` command (`sc issue --help` lists them, and every read takes `--json`): `create|view|list|edit|comment|label|close` for tickets and marking, `--parent <plan>` for parent/child, `block` and `unblock` for blocking edges, and the `blocks` field of `sc issue view <n> --json` for dependents. Vocabulary roles are labels with the same string, with one exception: the claim is the issue's assignee (`sc issue assign`, `sc issue unassign`), never an `in-progress` label. The frontier is the pieces `sc issue list --parent <plan> --state ready` lists. There is nothing to bootstrap.
 
-The **plan** is the issue labelled `wayfinder:plan`; its pieces are `impl` issues whose parent is the plan. Risks, tasks, and decisions are ordinary issues with the plan link line, never children. `/wayfinder` owns the bodies and comment markers.
+The **plan** is the issue labelled `wayfinder:plan`; its pieces are `impl` issues whose parent is the plan. Risks, tasks, and decisions are ordinary issues linked to the plan (`sc issue link`), never children. `/wayfinder` owns the bodies and comment markers.

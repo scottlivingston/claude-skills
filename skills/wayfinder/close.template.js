@@ -31,7 +31,7 @@ const PLAN_REF = FILL        // the plan issue as "#<n>", e.g. "#12"
 const CHARTER = FILL         // the charter's full text verbatim, read from the effort branch at the path on the plan body's Charter: line
 const BEHAVIORS = FILL       // every charter behavior, in charter order: [{ id: "B1", text: "the charter's B1 line verbatim" }]
 const EFFORT_BRANCH = FILL   // the plan body's Effort branch: line, e.g. "effort/<slug>"
-const BASE_BRANCH = FILL     // the branch the effort started from and returns to, e.g. "main" — `effort.py show` prints it as base
+const BASE_BRANCH = FILL     // the branch the effort started from and returns to, e.g. "main" — the plan body's Base: line
 const BASE_SHA = FILL        // the effort's base: git merge-base <BASE_BRANCH> <EFFORT_BRANCH>
 const HEAD_SHA = FILL        // the effort branch's head at fill time — the diff and the report describe this commit
 const REPO_ROOT = FILL       // absolute path of the main checkout of the repo
@@ -116,7 +116,7 @@ const FILE_SCHEMA = {
   type: 'object', required: ['pieces', 'summaryComment', 'problems'],
   properties: {
     pieces: { type: 'array', items: { type: 'object', required: ['id', 'number'], properties: { id: { type: 'string' }, number: { type: 'integer' } } }, description: 'every piece you created, by its finding ID' },
-    summaryComment: { type: 'integer', description: 'the id of the summary comment on the plan — its position among the plan\'s comments, counted from 1, since sc prints no comment id; 0 when it was not posted' },
+    summaryComment: { type: 'integer', description: 'the id of the summary comment on the plan, as sc issue view --json lists it; 0 when it was not posted' },
     problems: { type: 'string', description: 'any step you could not complete, and why; "" when every step landed' },
   },
 }
@@ -132,7 +132,7 @@ const REPORT_SCHEMA = {
 const STORE_SCHEMA = {
   type: 'object', required: ['report', 'problems'],
   properties: {
-    report: { type: 'string', description: 'where the report is, as "comment <id> on #<plan>", its id being its position among the plan\'s comments counted from 1; "" when it could not be posted' },
+    report: { type: 'string', description: 'where the report is, as "comment <id> on #<plan>", its id as sc issue view --json lists it; "" when it could not be posted' },
     problems: { type: 'string', description: 'any step you could not complete, and why; "" when every step landed' },
   },
 }
@@ -194,7 +194,7 @@ function pieceBody(f) {
 
 function filePrompt(survivors, summary) {
   return j([
-    'You publish a wayfinder Close review. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a piece with the same title open under the plan, the summary already posted — reuse it rather than repeating it.',
+    'You publish a wayfinder Close review. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Labels are /issue-tracker\'s vocabulary (load it). The plan is issue ' + PLAN_REF + '. Do every step exactly once: if an earlier run of this step already did one — a piece with the same title open under the plan, the summary already posted — reuse it rather than repeating it.',
     survivors.length
       ? '1. Create each piece below as a piece of the plan — issue create with --parent set to the plan\'s number, labelled impl — with exactly the title and body given. Add no blocking edges.\n' + survivors.map(f => '--- ' + f.id + ' ---\nTitle: ' + f.title + '\nBody:\n' + pieceBody(f)).join('\n')
       : '1. There are no pieces to create.',
@@ -229,8 +229,8 @@ function writerPrompt(systemic) {
 
 function storePrompt(report) {
   return j([
-    'You store the closing report of a wayfinder effort. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary. The plan is issue ' + PLAN_REF + '.',
-    'Write the report below to a file under $TMPDIR, verbatim — the title as a level-one heading, then the body — with <!-- wayfinder report --> on a first line of its own above it, and post that file as one comment on the plan (sc issue comment <plan> --body "$(cat <that file>)"). The newest such comment is the effort\'s closing report, so post it even when an earlier run posted one. Report where it is.',
+    'You store the closing report of a wayfinder effort. Work from ' + REPO_ROOT + '. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Labels are /issue-tracker\'s vocabulary. The plan is issue ' + PLAN_REF + '.',
+    'Write the report below to a file under $TMPDIR, verbatim — the title as a level-one heading, then the body — with <!-- wayfinder report --> on a first line of its own above it, and post that file as one comment on the plan (sc issue comment <plan> --body-file <that file>). The newest such comment is the effort\'s closing report, so post it even when an earlier run posted one. Report where it is.',
     'Title: ' + report.title,
     'Body:\n' + report.body,
     'Then comment on the plan, one line: the closing report for ' + HEAD_SHA + ' is posted and ' + EFFORT_BRANCH + ' is ready for the human to take into ' + BASE_BRANCH + '.',

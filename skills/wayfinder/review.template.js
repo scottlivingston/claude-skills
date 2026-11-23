@@ -46,7 +46,6 @@ const VERIFY_SKILL = FILL      // the verify-<app> skill's path from the repo ro
 const APP = FILL               // the <app> of verify-<app> (the app's workspace or directory name), e.g. "web" — names the drive pool
 const REPO_ROOT = FILL         // absolute path of the main checkout
 const WORKTREE = FILL          // absolute path of the review worktree: <REPO_ROOT>/.claude/worktrees/<slug>/review-<change number>
-const AWAIT_CMD = FILL         // absolute path of the installed wayfinder skill's await.sh
 const TEST_NOTES = FILL        // per /testing: the governing TESTING.md sections verbatim (Typecheck, Unit, Integration, Scoping to a change, Green — each with the scope it binds), or "" when the repo has none
 
 const EXECUTOR_MODEL = FILL    // per /model-policy: the executor tier's resolved model, or null to inherit
@@ -65,7 +64,7 @@ const STANDARDS_IDLE = !STANDARDS_SOURCES.length
 // Nothing has a link: a human reads an issue as its title and number, a change as its title and change number.
 const ref = x => x.title + ' (#' + x.number + ')'
 const changeRef = x => x.title + ' (change ' + x.number + ')'
-const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary.'
+const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Labels are /issue-tracker\'s vocabulary.'
 
 // Set by the Locate stage: the change's merge-base with the effort branch.
 let BASE = ''
@@ -76,8 +75,8 @@ const logCmd = () => 'git log ' + BASE + '..' + HEAD_SHA
 const SCOPE_RULE = 'SCOPE — the diff is the material. A finding must name something the diff DID: a line it added, changed, or removed. Code the diff never touched is out of scope however wrong it is, and whether or not an issue already covers it. You will legitimately see far more code than you may report on — diff context lines, the repo grep behind a repo-wide flag, the files you open to check a rule — and none of it is reportable on its own. Two cases are in scope and only look like exceptions: a requirement this piece was meant to deliver and did not (an absence has no anchor), and the repo-wide counts, which are evidence about a pattern the diff instantiates, never findings about the untouched instances.'
 
 // A workflow agent's turn ending is its final report, so it waits on a long run in the
-// foreground, through await.sh, never on a completion notice.
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the sc run command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
+// foreground, in bounded sc job wait calls, never on a completion notice.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: queue it with sc run --detach --pool build -- <command>, which prints its job id and returns, then wait for it in the foreground with sc job wait <id> --timeout 9m, which exits with the command\'s own status, or 205 when the nine minutes ran out first; call it again until it exits anything but 205, and read the output with sc job logs <id>. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 
 const DRIVE_SLOTS_RULE = 'Run every copy of the app through the host\'s drive slots: start it with its Launch command as sc run --pool drive-' + APP + ' -- <launch command>, run_in_background, so the slot is held for as long as that copy runs; drive it; then tear it down per the skill\'s Cleanup, which ends the command and frees the slot. A copy started this way outlives the shell that started it: when it is still running after Cleanup, end it with sc job cancel <the job id sc run printed>. An app with no long-running process (a short-lived CLI) wraps each drive command the same way instead. Never drive a copy you did not start.'
 
@@ -242,7 +241,7 @@ const POST_SCHEMA = {
   type: 'object', required: ['posted', 'comment', 'issues', 'statuses', 'worktreeRemoved', 'problem'],
   properties: {
     posted: { type: 'boolean', description: 'true when the round comment and both statuses are posted' },
-    comment: { type: 'integer', description: 'the id of the round comment on the change — its position among the change\'s comments, counted from 1, since sc prints no comment id; 0 when it was not posted' },
+    comment: { type: 'integer', description: 'the id of the round comment on the change, as sc change view --json lists it; 0 when it was not posted' },
     issues: { type: 'array', items: { type: 'object', required: ['id', 'title', 'number'], properties: { id: { type: 'string', description: 'the finding ID' }, title: { type: 'string' }, number: { type: 'integer', description: 'the filed issue\'s number' } } } },
     statuses: { type: 'array', items: { type: 'string' }, description: 'each status posted, as "<context> <state>"' },
     worktreeRemoved: { type: 'boolean' },
@@ -399,9 +398,9 @@ function postPrompt(body, repoWide) {
   return j([
     'You are the post agent of a wayfinder review round — tracker mechanics only, no review. Work from the main checkout ' + REPO_ROOT + '. ' + FORGE_RULE + ' Do the steps in this order.',
     repoWide.length
-      ? '1. File one standalone issue per repo-wide finding below (sc issue create with no --parent, so it is never a piece of the plan; no Plan: line) — labelled review-finding and needs-triage. Title it by the pattern in plain words. Body: the pattern and the rule it breaks (title, gist, quoted sentence), the grep and its governed counts inside and outside the diff, the validated proposal, and where it was found: ' + changeRef(CHANGE) + ' for ' + ref(PIECE) + ' in ' + ref(PLAN) + '. Say it does not block that CHANGE. Findings:\n' + JSON.stringify(repoWide)
+      ? '1. File one standalone issue per repo-wide finding below (sc issue create with no --parent and no link to the plan, so it is never part of it) — labelled review-finding and needs-triage. Title it by the pattern in plain words. Body: the pattern and the rule it breaks (title, gist, quoted sentence), the grep and its governed counts inside and outside the diff, the validated proposal, and where it was found: ' + changeRef(CHANGE) + ' for ' + ref(PIECE) + ' in ' + ref(PLAN) + '. Say it does not block that CHANGE. Findings:\n' + JSON.stringify(repoWide)
       : '1. No repo-wide findings this round — file nothing.',
-    '2. Post the round comment below on change ' + CHANGE.number + ' (sc change comment ' + CHANGE.number + ' --body "$(cat <file>)"), verbatim, after replacing each {{issue:<ID>}} with the filed issue\'s title followed by its number, as Title (#N). If the change already has a comment opening with <!-- wayfinder review ' + ROUND + ' --> (a dead run of this round), post this one all the same: sc replaces no comment, and the newest comment for a round is the round\'s.',
+    '2. Post the round comment below on change ' + CHANGE.number + ' (sc change comment ' + CHANGE.number + ' --body-file <file>), verbatim, after replacing each {{issue:<ID>}} with the filed issue\'s title followed by its number, as Title (#N). If the change already has a comment opening with <!-- wayfinder review ' + ROUND + ' --> (a dead run of this round), replace that comment\'s body with this one instead of posting a second: sc change comment ' + CHANGE.number + ' --edit <its id> --body-file <file>.',
     '3. Post the reviewer statuses on ' + HEAD_SHA + ' with sc status set <sha> <name> <state> --description "<description>", exactly these two:\n' + statusLines().map(s => '- ' + s.context + ' ' + s.state + ' "' + s.description + '"').join('\n'),
     '4. Remove the review worktree: git worktree remove --force ' + WORKTREE + '.',
     'posted is true only when step 2 and both statuses of step 3 succeeded.',

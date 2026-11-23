@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Shape's preflight, per SHAPE.md: proves an effort can run unattended before
-# the lead takes over. Run from inside the repo after `effort.py setup <slug>`.
+# the lead takes over. Run from inside the repo once effort/<slug> exists.
 #
 #   preflight.sh <slug>
 #
 # Prints one PASS, WARN, or FAIL line per check; exits 1 on any FAIL. The last
-# check runs every CI job once on the effort branch, so it takes as long as CI.
+# check has the gate run every CI job once on the effort branch, so it takes as
+# long as CI.
 set -uo pipefail
 
 slug=${1:?usage: preflight.sh <slug>}
@@ -19,14 +20,15 @@ warn() { echo "WARN  $*"; }
 fail() { echo "FAIL  $*"; failed=1; }
 
 for t in git python3 sc; do command -v "$t" >/dev/null || fail "$t is not on PATH"; done
-python3 -c 'import tomllib' 2>/dev/null || fail "python3 is older than 3.11, which effort.py needs"
 git rev-parse --git-dir >/dev/null 2>&1 || { fail "not inside a git repository"; exit 1; }
-shown=$(effort show 2>&1) && pass "effort $slug is set up" || { fail "$shown"; exit 1; }
+git rev-parse -q --verify "refs/heads/$branch" >/dev/null || { fail "no branch $branch — create it per SHAPE.md"; exit 1; }
+# The gate's own view of the branch: it answers only for a branch sc protects.
+shown=$(sc gate view "$branch" --json 2>&1) && pass "$branch is protected: it has a gate" || { fail "$shown"; exit 1; }
 field() { python3 -c 'import json,sys; print(eval(sys.argv[1], {"e": json.load(sys.stdin)}))' "$1" <<< "$shown"; }
 
 if body=$(git show "$branch:$charter" 2>/dev/null); then
   pass "charter is at $charter on $branch"
-  # effort.py owns the charter's shape; setup refuses a charter that fails it.
+  # effort.py owns the charter's shape.
   if problems=$(effort charter-check); then
     pass "charter has every section, $(grep -cE '^- \*\*B[0-9]+:' <<< "$body") acceptance behaviors with an end state, and its limits"
   else
@@ -44,7 +46,7 @@ if body=$(git show "$branch:$charter" 2>/dev/null); then
   skill=$(grep -oE '\.claude/skills/verify-[A-Za-z0-9._-]+' <<< "$body" | head -1)
   [ -z "$skill" ] || pool "drive-${skill##*verify-}" "$(limit 'Drive slots')"
   if [ -n "$skill" ]; then
-    git cat-file -e "$branch:$skill/SKILL.md" 2>/dev/null && pass "verification skill $skill exists" || fail "charter names $skill but $branch has no $skill/SKILL.md — pass it to effort.py setup with --add"
+    git cat-file -e "$branch:$skill/SKILL.md" 2>/dev/null && pass "verification skill $skill exists" || fail "charter names $skill but $branch has no $skill/SKILL.md — it has to be in the commit the branch was created from"
   elif grep -qi 'built by the first foundation piece' <<< "$body"; then
     warn "greenfield: Plan must make the walking skeleton plus its verify skill the first piece"
   else
@@ -54,11 +56,11 @@ else
   fail "no charter at $charter on $branch"
 fi
 
-sc repo view --json | grep -q "\"$branch\"" && pass "$branch is protected: only the gate moves it" || fail "sc does not list $branch as protected — run sc init from a checkout of $branch"
-for s in wayfinder/pr-format wayfinder/spec wayfinder/standards; do
-  [ "$(field "'$s' in e['required']")" = True ] || fail "sc.toml on $branch does not require $s under [gates.\"$branch\"]"
+[ "$(field "e['required'] is not None")" = True ] || fail "no [gates] table in sc.toml on $branch matches it, so nothing can land"
+for s in wayfinder/spec wayfinder/standards; do
+  [ "$(field "'$s' in (e['required'] or [])")" = True ] || fail "sc.toml on $branch does not require $s in the gate table that holds $branch"
 done
-[ "$(field "all('ci/' + j['name'] in e['required'] for j in e['ci'])")" = True ] && pass "every CI job is a required status" || fail "sc.toml on $branch has a job its gate does not require"
+[ "$(field "all('ci/' + j['name'] in (e['required'] or []) for j in e['jobs'])")" = True ] && pass "every CI job is a required status" || fail "sc.toml on $branch has a job its gate does not require"
 head=$(git rev-parse -q --verify "$branch^{commit}"); prev=$(git rev-parse -q --verify "$branch~1")
 if [ -z "$prev" ]; then
   warn "$branch has one commit, so the protection could not be tried"
@@ -79,10 +81,10 @@ case $planner in
   *) pass "planner tier runs on $planner" ;;
 esac
 
-jobs=$(field "len(e['ci'])")
+jobs=$(field "len(e['jobs'])")
 if [ "$jobs" -gt 0 ]; then
   pass "sc.toml lists $jobs CI job(s); running them on $branch"
-  effort check-base || { failed=1; echo "FAIL  CI is red on $branch before anything is built — fix the jobs or the base, then rerun"; }
+  sc gate run "$branch" && sc gate wait "$branch" || { failed=1; echo "FAIL  CI is red on $branch before anything is built — fix the jobs or the base, then rerun"; }
 else
   fail "sc.toml on $branch lists no [jobs.<name>]"
 fi

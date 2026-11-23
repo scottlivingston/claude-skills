@@ -30,20 +30,21 @@ const PLAN = FILL              // the plan issue's number, e.g. 12
 const PLAN_TITLE = FILL        // the plan issue's title, verbatim
 const STEER = FILL             // this steer's number n: one more than the last <!-- wayfinder steer <n> --> on the plan, 1 when there is none
 const REPO_ROOT = FILL         // absolute path of the repo's main checkout — agents run git and sc from here
-const SLUG = FILL              // the effort's slug (effort.py show prints it)
+const SLUG = FILL              // the effort's slug
 const EFFORT_BRANCH = FILL     // "effort/<slug>"
-const EFFORT_HEAD = FILL       // the effort branch's head sha now (effort.py show prints it)
+const EFFORT_HEAD = FILL       // the effort branch's head sha now (sc gate view <effort branch> --json prints it as head)
 const CHARTER = FILL           // the charter's full text, verbatim from docs/wayfinder/<slug>.md on the effort branch
 const PRINCIPLES = FILL        // every PRINCIPLES.md on the effort branch, the root file first: [{ path, text: "<the file, verbatim>" }] — [] when the repo has none
 const BEHAVIORS = FILL         // every acceptance behavior in the charter: [{ id: "B1", text: "<the behavior line after the ID, verbatim>" }]
-const PIECES = FILL            // effort.py pieces, each object extended with body (the issue body, verbatim); its blockedBy is
-                               // the numbers of every issue it is blocked by, open or closed
+const PIECES = FILL            // every piece of the plan (sc issue list --parent <plan> --json, then sc issue view for each body):
+                               // [{ number, title, labels, state (sc's derived state — a parked piece is "held"), blockedBy: [the numbers of every issue it is blocked by, open or closed],
+                               //    change: <the number of its newest change into the effort branch, or null>, body: "<the issue body, verbatim>" }]
 const RISKS = FILL             // the plan's open risks: [{ number, title, labels: [label names], assignee: <the claim on it, or null>, body }] — [] when none
 const TASKS = FILL             // the plan's open human tasks: [{ number, title, labels: [label names], body }] — [] when none
 const DECISIONS = FILL         // every wayfinder:decision issue of the plan, open or closed: [{ number, title }]
 const SKELETON_PIECE = FILL    // greenfield only: the number of the walking-skeleton piece (its Goal opens "Walking skeleton:") while it is not done; null otherwise
 const VERIFY = FILL            // the latest <!-- wayfinder verify <sha> --> report on the plan: { sha, proven: ["B1", …] (the behaviors it reports proven), report: "<the comment, verbatim>" } — null when there is none
-const PARKED = FILL            // every parked piece: [{ number, title, park: "<its latest <!-- wayfinder park --> comment, verbatim>" }] — [] when none
+const PARKED = FILL            // every parked piece, the ones whose state is "held": [{ number, title, park: "<its latest <!-- wayfinder park --> comment, verbatim>" }] — [] when none
 const RECENT_DECISIONS = FILL  // every decision made since the last steer summary (all of them when there is none): decision issues created, <!-- decision-record --> comments on pieces, spike answers, gap-fills —
                                // [{ ref: "#<n>" for a decision issue or "comment <id> on #<n>" for a record on a piece, issue: <the issue it lives on>, title, text: "<the record, verbatim>" }]
 const FRICTION = FILL          // every decision with a <!-- friction --> note since its last <!-- wayfinder reconsider --> comment (since it was made, when it has none):
@@ -69,9 +70,9 @@ const j = lines => lines.filter(s => s !== null && s !== undefined && s !== '').
 // Nothing has a link: a human reads a title followed by its number.
 const named = (title, n) => title + ' (#' + n + ')'
 const IN_FLIGHT = ['working', 'in-review', 'landing']
-const EDITABLE = ['ready', 'blocked', 'parked']
+const EDITABLE = ['ready', 'blocked', 'held'] // held is sc's state for a parked piece
 
-const CODE_RULE = 'The code as it stands is the local branch ' + EFFORT_BRANCH + '; there is no remote, so fetch nothing. From ' + REPO_ROOT + ' read it by name — git ls-tree -r --name-only ' + EFFORT_BRANCH + ', git show ' + EFFORT_BRANCH + ':<path>, git grep <pattern> ' + EFFORT_BRANCH + ', git log ' + EFFORT_BRANCH + '. Check out nothing and touch no worktree: other workflows of this effort are using them. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Read any issue and its comments with sc issue view <n>, and a change with sc change view <n>.'
+const CODE_RULE = 'The code as it stands is the local branch ' + EFFORT_BRANCH + '; there is no remote, so fetch nothing. From ' + REPO_ROOT + ' read it by name — git ls-tree -r --name-only ' + EFFORT_BRANCH + ', git show ' + EFFORT_BRANCH + ':<path>, git grep <pattern> ' + EFFORT_BRANCH + ', git log ' + EFFORT_BRANCH + '. Check out nothing and touch no worktree: other workflows of this effort are using them. This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Read any issue and its comments with sc issue view <n>, and a change with sc change view <n>.'
 
 const CONTEXT = j([
   'You are working on a wayfinder effort: agents build it unattended from the charter below, which the human wrote and only the human changes. The plan is issue #' + PLAN + ' (' + PLAN_TITLE + '). This is its steer ' + STEER + ': the plan is kept honest against what landed, and bad calls are caught before more is built on them.',
@@ -444,7 +445,7 @@ function replanOps(rp) {
     ops.push({ type: 'edit', ref: e.ref, set, why: e.why })
   }
   for (const u of rp.unparks) {
-    if (pieceState.get(u.ref) !== 'parked') { skipped.push('unpark of ' + u.ref + ' skipped: it is ' + (pieceState.get(u.ref) || 'not a piece of the plan')); continue }
+    if (pieceState.get(u.ref) !== 'held') { skipped.push('unpark of ' + u.ref + ' skipped: it is ' + (pieceState.get(u.ref) || 'not a piece of the plan')); continue }
     ops.push({ type: 'unpark', ...u })
   }
   for (const d of rp.drops) {
@@ -513,7 +514,7 @@ const PLAN_RULES = j([
 ])
 
 const STATE = j([
-  'The plan\'s pieces (effort.py pieces, with each body and the numbers of the issues it is blocked by):',
+  'The plan\'s pieces, each with its state as sc derives it (a parked piece shows held), its body, and the numbers of the issues it is blocked by:',
   JSON.stringify(PIECES),
   'Open risks:\n' + (RISKS.length ? JSON.stringify(RISKS) : 'none'),
   'Open human tasks:\n' + (TASKS.length ? JSON.stringify(TASKS) : 'none'),
@@ -642,8 +643,8 @@ function riskPrompt(r, f) {
 }
 
 const APPLY_RULES = j([
-  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
-  'A relaunched run may find some of this already done: before creating an issue, look for one already filed with the same title (sc issue list --json lists every issue, open and closed, with its title; sc issue view <n> --json has the body — a piece whose parent is #' + PLAN + ', or an issue whose body opens with "Plan: #' + PLAN + '"); reuse it instead of creating a second, and make its body and labels match. An edge or label already in place counts as done.',
+  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
+  'A relaunched run may find some of this already done: before creating an issue, look for one already filed with the same title among the plan\'s pieces (sc issue list --parent ' + PLAN + ' --json) and the issues linked to it (sc issue list --linked ' + PLAN + ' --json), open or closed; reuse it instead of creating a second, and make its body and labels match. An edge or label already in place counts as done.',
   'Every issue you create or switch to the label hitl also needs a question in sc, which is what shows it to the human as waiting on them. Unless sc question list --json already has an open one naming that issue, ask: sc question ask "<for a task: <its title> (#<n>) is a task only you can do, its checklist is the issue\'s body, tell the lead when it is done; for an escalation: the question in one or two sentences, and that the options are in the newest comment on <its title> (#<n>)>" --issue <n>.',
   'Post every body and comment exactly as given. A {{key}} token names an issue created earlier in the same list: replace it with #<its number>.',
 ])
@@ -652,7 +653,7 @@ function createPrompt(what, items) {
   return j([
     'You create the new ' + what + ' of steer ' + STEER + ' on wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + ').',
     APPLY_RULES,
-    'Create each issue below, in the order given, with its title, labels and body. An item with subIssue true is a piece of the plan: create it with --parent ' + PLAN + '; one with close true is closed once created. Report every number you created or reused.',
+    'Create each issue below, in the order given, with its title, labels and body. An item with subIssue true is a piece of the plan: create it with --parent ' + PLAN + '. Every other item is linked to the plan once created (sc issue link <its number> ' + PLAN + ' --kind related), never created with --parent. One with close true is closed once created. Report every number you created or reused.',
     JSON.stringify(items),
   ])
 }
@@ -669,8 +670,8 @@ function mutatePrompt(actions) {
 
 function recordPrompt(map, where, worktrees, summary) {
   return j([
-    'You record steer ' + STEER + ' of wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + '). Run git and sc from ' + REPO_ROOT + '. This effort has no GitHub: its tracker lives in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body); never run gh.',
-    '1. Rewrite the body of plan #' + PLAN + ' (sc issue edit ' + PLAN + ' --body "$(cat <file>)"): keep its first two lines (Effort branch, Charter) and its Destination exactly as they are, replace its behavior map with the map below, and its Where it stands with the text below, keeping the headings it already uses.\nBehavior map:\n' + map + '\nWhere it stands:\n' + where,
+    'You record steer ' + STEER + ' of wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + '). Run git and sc from ' + REPO_ROOT + '. This effort has no GitHub: its tracker lives in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; a body or comment is written to a file and passed as --body-file <file>); never run gh.',
+    '1. Rewrite the body of plan #' + PLAN + ' (sc issue edit ' + PLAN + ' --body-file <file>): keep its first three lines (Effort branch, Charter, Base) and its Destination exactly as they are, replace its behavior map with the map below, and its Where it stands with the text below, keeping the headings it already uses.\nBehavior map:\n' + map + '\nWhere it stands:\n' + where,
     worktrees.length ? '2. Remove each of these worktrees that exists (git worktree remove --force <path>), then git worktree prune. One that is not there counts as removed:\n' + worktrees.map(w => '- ' + w).join('\n') : '2. No worktrees to remove.',
     '3. Post this comment on plan #' + PLAN + ', verbatim:\n' + summary,
     'Report how many of the three steps landed, and every one that failed with its error.',
@@ -824,7 +825,7 @@ const titled = id => ref(id) + ' ' + (id.startsWith('#') ? titleOf.get(id) || ''
 const newDecisions = kept.filter(o => o.type === 'decision')
 if (newDecisions.length) {
   take(await agent(createPrompt('decisions', newDecisions.map(d => ({
-    key: d.key, title: d.title, labels: ['wayfinder:decision'], subIssue: false, close: true, body: 'Plan: #' + PLAN + '\n\n' + renderRecord(d.record),
+    key: d.key, title: d.title, labels: ['wayfinder:decision'], subIssue: false, close: true, body: renderRecord(d.record),
   }))), { ...tier('executor'), schema: CREATED_SCHEMA, label: 'apply:decisions', phase: 'Apply' }), 'decision')
 }
 
@@ -836,9 +837,9 @@ const blockList = ids => ids.map(b => '- ' + titled(b))
 const created = [
   ...kept.filter(o => o.type === 'piece').map(p => ({ key: p.key, title: p.title, labels: ['impl'], subIssue: true, close: false, body: pieceBody(p) })),
   ...kept.filter(o => o.type === 'risk').map(r => ({ key: r.key, title: r.title, labels: ['wayfinder:risk', 'afk'], subIssue: false, close: false,
-    body: ['Plan: #' + PLAN, '', '## Question', '', r.question, '', '## Stop when', '', r.stopCondition, '', '## Blocks', '', ...blockList(r.blocks)].join('\n') })),
+    body: ['## Question', '', r.question, '', '## Stop when', '', r.stopCondition, '', '## Blocks', '', ...blockList(r.blocks)].join('\n') })),
   ...kept.filter(o => o.type === 'task').map(t => ({ key: t.key, title: t.title, labels: ['wayfinder:task', 'hitl'], subIssue: false, close: false,
-    body: ['Plan: #' + PLAN, '', '## What only you can do', '', ...t.checklist.map(c => '- [ ] ' + c), '', '## Unblocks', '', ...blockList(t.blocks)].join('\n') })),
+    body: ['## What only you can do', '', ...t.checklist.map(c => '- [ ] ' + c), '', '## Unblocks', '', ...blockList(t.blocks)].join('\n') })),
 ]
 if (created.length) {
   take(await agent(createPrompt('pieces, risks and tasks', created), { ...tier('executor'), schema: CREATED_SCHEMA, label: 'apply:create', phase: 'Apply' }), 'piece, risk and task')
@@ -877,7 +878,7 @@ for (const id of edited) {
   for (const n of edges(before).filter(n => !edges(after).includes(n))) actions.push(edge(id, n, false))
 }
 for (const o of kept.filter(o => o.type === 'drop')) actions.push('Drop ' + o.ref + ': close it as not planned with the comment "Dropped at steer ' + STEER + ': ' + o.why + '".')
-for (const o of kept.filter(o => o.type === 'unpark')) actions.push('Unpark ' + o.ref + ': post this gap-fill record as a comment on it, verbatim, then remove its wayfinder:parked label.\n' + renderRecord(o.record))
+for (const o of kept.filter(o => o.type === 'unpark')) actions.push('Unpark ' + o.ref + ': post this gap-fill record as a comment on it, verbatim, then release its hold (sc issue release <n>).\n' + renderRecord(o.record))
 for (const o of kept.filter(o => o.type === 'closeRisk')) actions.push('Close risk ' + o.ref + ' with the comment "Closed at steer ' + STEER + ' without a spike: ' + o.why + ' — the best guess is ' + ref(o.decision) + '."')
 for (const o of kept.filter(o => o.type === 'retitle')) actions.push('Retitle #' + o.issue + ' to "' + o.title + '" (' + o.why + ').')
 const reconsiderNote = (o, verdict, extra) => '<!-- wayfinder reconsider ' + STEER + ' -->\n**' + verdict + '** at steer ' + STEER + (extra ? ' — ' + extra : '') + '\n\n' + o.why
@@ -886,7 +887,7 @@ for (const o of kept.filter(o => o.type === 'outcome')) {
   const onIssue = t.ref.startsWith('#')
   if (o.verdict === 'amend') {
     actions.push(onIssue
-      ? 'Amend decision ' + t.ref + ': replace its body with this, verbatim:\nPlan: #' + PLAN + '\n\n' + renderRecord(o.record)
+      ? 'Amend decision ' + t.ref + ': replace its body with this, verbatim:\n' + renderRecord(o.record)
       : 'Amend the decision record at ' + t.ref + ': post this as a new comment on #' + t.issue + ', verbatim:\n' + renderRecord(o.record) + '\n\nAmends ' + t.ref)
   }
   const extra = o.verdict === 'supersede' ? 'superseded by ' + ref(o.replacement) : ''
@@ -921,7 +922,7 @@ const unparked = new Set(kept.filter(o => o.type === 'unpark').map(o => o.ref))
 const wt = REPO_ROOT + '/.claude/worktrees/' + SLUG + '/'
 const worktrees = [
   ...PIECES.filter(p => p.state === 'done').flatMap(p => [wt + 'piece-' + p.number, ...(p.change ? [wt + 'review-' + p.change] : [])]),
-  ...PIECES.filter(p => p.state === 'parked' && !unparked.has('#' + p.number)).map(p => wt + 'piece-' + p.number),
+  ...PIECES.filter(p => p.state === 'held' && !unparked.has('#' + p.number)).map(p => wt + 'piece-' + p.number),
 ]
 
 const escalated = kept.filter(o => o.type === 'escalate').map(o => '#' + o.target.issue)

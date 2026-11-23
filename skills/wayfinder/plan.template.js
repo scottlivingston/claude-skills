@@ -30,7 +30,7 @@ export const meta = {
 const PLAN = FILL            // the plan issue's number, e.g. 12
 const PLAN_TITLE = FILL      // the plan issue's title, verbatim
 const REPO_ROOT = FILL       // absolute path of the repo's main checkout — agents run git and sc from here
-const SLUG = FILL            // the effort's slug (effort.py show prints it)
+const SLUG = FILL            // the effort's slug
 const EFFORT_BRANCH = FILL   // "effort/<slug>"
 const CHARTER = FILL         // the charter's full text, verbatim from docs/wayfinder/<slug>.md on the effort branch
 const BEHAVIORS = FILL       // every acceptance behavior in the charter: [{ id: "B1", text: "<the behavior line after the ID, verbatim>" }]
@@ -351,8 +351,8 @@ function revisePrompt(plan, findings, fails) {
 }
 
 const PUBLISH_RULES = j([
-  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
-  'A relaunched run may find some of this already done: before creating an issue, look for one already linked to plan #' + PLAN + ' with the same title (a piece of the plan — sc issue list --parent ' + PLAN + ' --json — or an issue whose body opens with "Plan: #' + PLAN + '" — sc issue list --json lists every issue, open and closed, with its title, and sc issue view <n> --json has the body); reuse it instead of creating a second, and make its body and labels match. An edge or link that already exists counts as made.',
+  'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '',
+  'A relaunched run may find some of this already done: before creating an issue, look for one already linked to plan #' + PLAN + ' with the same title (a piece of the plan — sc issue list --parent ' + PLAN + ' --json — or an issue linked to it — sc issue list --linked ' + PLAN + ' --json; both list open and closed issues); reuse it instead of creating a second, and make its body and labels match. An edge or link that already exists counts as made.',
   'Every issue you create or reuse with the label hitl also needs a question in sc, which is what shows it to the human as waiting on them. Unless sc question list --json already has an open one naming that issue, ask: sc question ask "<the issue\'s title> (#<n>) is a task only you can do; its checklist is the issue\'s body. Tell the lead when it is done." --issue <n>.',
   'Post every body exactly as given. Report every issue number you created or reused, and every operation that failed with its error.',
 ])
@@ -361,7 +361,7 @@ function decisionsPrompt(decisions) {
   return j([
     'You publish the shared decisions of wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + ').',
     PUBLISH_RULES,
-    'Create each decision below, in the order given, as an issue labelled wayfinder:decision with the title and body given, and close it once it is created. A body may contain {{key}} tokens: each names a decision earlier in this list — replace it with #<that issue\'s number> before posting.',
+    'Create each decision below, in the order given, as an issue labelled wayfinder:decision with the title and body given, link it to the plan (sc issue link <its number> ' + PLAN + ' --kind related), and close it. A body may contain {{key}} tokens: each names a decision earlier in this list — replace it with #<that issue\'s number> before posting.',
     JSON.stringify(decisions),
   ])
 }
@@ -379,9 +379,9 @@ function finishPrompt(items, edges, map, whereItStands) {
   return j([
     'You finish publishing wayfinder plan #' + PLAN + ' (' + PLAN_TITLE + ').',
     PUBLISH_RULES,
-    items.length ? '1. Create each issue below with its title, labels and body. These are linked to the plan by their first line, never created with --parent.\n' + JSON.stringify(items) : '1. No risks or tasks to create.',
+    items.length ? '1. Create each issue below with its title, labels and body. Link each to the plan once it is created (sc issue link <its number> ' + PLAN + ' --kind related); never create one with --parent.\n' + JSON.stringify(items) : '1. No risks or tasks to create.',
     '2. Add every blocking edge below with issue block <blocked> --by <by>: the issue "blocked" is blocked by the issue "by". Edges naming a {{key}} refer to the issues you created in step 1. Edges onto closed decision issues record what rests on them; they block nothing.\n' + JSON.stringify(edges),
-    '3. Rewrite the body of plan #' + PLAN + ': keep its first two lines (Effort branch, Charter) and its Destination exactly as they are, replace its behavior map with the map below, and its Where it stands with the text below, keeping the headings it already uses. A {{key}} here also refers to step 1.',
+    '3. Rewrite the body of plan #' + PLAN + ': keep its first three lines (Effort branch, Charter, Base) and its Destination exactly as they are, replace its behavior map with the map below, and its Where it stands with the text below, keeping the headings it already uses. A {{key}} here also refers to step 1.',
     'Behavior map:\n' + map,
     'Where it stands:\n' + whereItStands,
   ])
@@ -473,7 +473,7 @@ pubDecisions.forEach(d => place(d))
 if (ordered.length) {
   const items = ordered.map(d => ({
     key: d.key, title: d.title,
-    body: 'Plan: #' + PLAN + '\n\n' + renderRecord({ ...d.record, grounds: d.record.grounds.map(g => (keyed.has(g.source) ? { ...g, source: '{{' + g.source + '}} ' + titleOf[g.source] } : g)) }),
+    body: renderRecord({ ...d.record, grounds: d.record.grounds.map(g => (keyed.has(g.source) ? { ...g, source: '{{' + g.source + '}} ' + titleOf[g.source] } : g)) }),
   }))
   take(await agent(decisionsPrompt(items), { ...tier('executor'), schema: CREATED_SCHEMA, label: 'publish:decisions', phase: 'Publish' }), 'decisions')
 }
@@ -496,9 +496,9 @@ const pubRisks = plan.risks.filter(r => !held.has(r.key))
 const pubTasks = plan.tasks.filter(t => !held.has(t.key))
 const items = [
   ...pubRisks.map(r => ({ key: r.key, title: r.title, labels: ['wayfinder:risk', 'afk'],
-    body: ['Plan: #' + PLAN, '', '## Question', '', r.question, '', '## Stop when', '', r.stopCondition, '', '## Blocks', '', ...blockList(r.blocks)].join('\n') })),
+    body: ['## Question', '', r.question, '', '## Stop when', '', r.stopCondition, '', '## Blocks', '', ...blockList(r.blocks)].join('\n') })),
   ...pubTasks.map(t => ({ key: t.key, title: t.title, labels: ['wayfinder:task', 'hitl'],
-    body: ['Plan: #' + PLAN, '', '## What only you can do', '', ...t.checklist.map(c => '- [ ] ' + c), '', '## Unblocks', '', ...blockList(t.blocks)].join('\n') })),
+    body: ['## What only you can do', '', ...t.checklist.map(c => '- [ ] ' + c), '', '## Unblocks', '', ...blockList(t.blocks)].join('\n') })),
 ]
 const edges = []
 for (const p of pubPieces) {

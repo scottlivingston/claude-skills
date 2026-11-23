@@ -6,9 +6,9 @@ export const meta = {
     { title: 'Plan', detail: 'decider-tier: the build plan, from the code as it stands, posted on the piece (build mode only)' },
     { title: 'Build', detail: 'decider-tier: build, or in fix mode apply the review findings, in the worktree; committed as it goes' },
     { title: 'Prove', detail: 'executor-tier: drive every Acceptance line through the verify skill, capture evidence, update the feature map; one rework round' },
-    { title: 'Open change', detail: 'executor-tier: post decision records and friction notes, write the change body, open or update the change, pr-lint' },
+    { title: 'Open change', detail: 'executor-tier: post decision records and friction notes, write the change body, open or update the change' },
     { title: 'CI', detail: 'executor-tier waits on the gate\'s CI; decider-tier fixes red, at most two attempts' },
-    { title: 'Park', detail: 'executor-tier: label the piece parked, post what is missing, remove the worktree' },
+    { title: 'Park', detail: 'executor-tier: hold the piece, post what is missing, remove the worktree' },
   ],
 }
 
@@ -37,7 +37,7 @@ const PLAN_REF = FILL      // the plan issue, as "#<n>"
 const PIECE = FILL         // { number: <n>, title: "<issue title>", body: "<issue body verbatim>" }
 const DECISIONS = FILL     // every decision issue under the piece's Builds on: [{ ref: "#<n>", title, body: "<issue body verbatim>" }] — [] when none
 const CHARTER_PATH = FILL  // the plan body's Charter: line, e.g. "docs/wayfinder/<slug>.md"
-const SLUG = FILL          // the effort's slug (effort.py show prints it)
+const SLUG = FILL          // the effort's slug
 const EFFORT_BRANCH = FILL // "effort/<slug>"
 const PIECE_BRANCH = FILL  // "piece/<slug>/<piece number>"
 const WORKTREE = FILL      // absolute path: <REPO_ROOT>/.claude/worktrees/<slug>/piece-<piece number>
@@ -46,8 +46,6 @@ const MODE = FILL          // "build" for a ready piece; "fix" when the lead is 
 const FIX_INPUT = FILL     // fix mode: the review round number, its findings with their validated proposed repairs, and every answer to its questions, verbatim from the review's return and the answers posted; for a conflict, the failing sc/merge status's description — "" in build mode
 const VERIFY_SKILL = FILL  // the verify skill's directory relative to the repo root, from the charter's Verified through line, e.g. ".claude/skills/verify-web" — "" when this piece is the one that builds it
 const APP = FILL           // the <app> of verify-<app> — from VERIFY_SKILL, or, when this piece builds the skill, the app name its Goal or the charter names
-const AWAIT_CMD = FILL     // absolute path of the installed wayfinder skill's await.sh
-const EFFORT_CMD = FILL    // the effort's own command for what sc leaves to wayfinder: "python3 <absolute path of the installed wayfinder skill's effort.py> --effort <slug>"
 const TEST_NOTES = FILL    // per /testing: the governing TESTING.md sections verbatim (Typecheck, Unit, Integration, Scoping to a change, Green — each with the scope it binds), or "" when the repo has none
 
 const EXECUTOR_MODEL = FILL // per /model-policy: the executor tier's resolved model, or null to inherit
@@ -84,7 +82,7 @@ function need(result, what) {
 const GIT_RULE = 'There is no remote: never fetch or push — every worktree shares one repo, so a commit on a branch is visible to all at once. The code as it stands is the local branch ' + EFFORT_BRANCH + '. Never check that branch out (the gate\'s own checkout holds it), commit to it, or move it — a hook refuses. Read it with git show ' + EFFORT_BRANCH + ':<path> or git diff ' + EFFORT_BRANCH + '...<ref>.'
 
 // The one sentence that introduces the forge to an agent that touches the tracker.
-const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is passed as --body "$(cat <file>)", in a command of its own after the one that writes the file, with the $ unescaped: \\$(cat <file>) posts those characters as the body). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '.'
+const FORGE_RULE = 'This effort has no GitHub: its tracker, changes and commit statuses live in sc, this machine\'s forge, reached only through the sc command (run sc --help, and sc <noun> <verb> --help, before first use; every read takes --json, and a body or comment is written to a file and passed as --body-file <file>). Never run gh. Labels are /issue-tracker\'s vocabulary. Run it from ' + REPO_ROOT + '.'
 
 const CONTEXT = j([
   'You are one stage of the build workflow for one piece of a wayfinder effort: piece #' + N + ' "' + PIECE.title + '" of plan ' + PLAN_REF + '. The effort runs unattended. The human set its destination, acceptance behaviors, principles and design in the charter, ' + CHARTER_PATH + ' (read it in the worktree); agents make every call in between per /deciding.',
@@ -99,8 +97,8 @@ const CONTEXT = j([
 // Every build and test runs through sc's build pool, so the efforts and agents on
 // one host never run more of them at once than the pool has slots.
 // A workflow agent's turn ending is its final report, so it waits on a long run in the
-// foreground, through await.sh, never on a completion notice.
-const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again; every agent and every CI job on this host shares that pool, so never run one outside it. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: start it with run_in_background as <the sc run command>; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
+// foreground, in bounded sc job wait calls, never on a completion notice.
+const BUILD_SLOTS_RULE = 'Run every build and test command — compiles, test suites, anything from the test recipes — through the host\'s build pool: sc run --pool build -- <command>. It waits for a free slot, then runs the command and exits with its status. sc starts the command directly, with no shell, so wrap a pipeline or an && chain as sh -c "..."; exit 201 (the worktree changed while it waited) or 202 (the same command was queued again from this directory) means run it again; every agent and every CI job on this host shares that pool, so never run one outside it. Run it in the foreground with the Bash timeout at its 600000 ms maximum. One that can outlast that: queue it with sc run --detach --pool build -- <command>, which prints its job id and returns, then wait for it in the foreground with sc job wait <id> --timeout 9m, which exits with the command\'s own status, or 205 when the nine minutes ran out first; call it again until it exits anything but 205, and read the output with sc job logs <id>. Never end your turn to wait: your turn ending is your final report, and it stops the run. A run you have not seen finish has no result yet.'
 
 // Every running copy of the app holds a drive slot, so the host never runs more copies than
 // the verify skill says can live side by side.
@@ -251,23 +249,21 @@ const PROVE_SCHEMA = {
 }
 
 const CHANGE_SCHEMA = {
-  type: 'object', required: ['change', 'sha', 'lintPassed', 'problems'],
+  type: 'object', required: ['change', 'sha', 'problems'],
   properties: {
     change: { type: 'integer', description: 'the change number; 0 when none could be opened' },
     sha: { type: 'string', description: 'the change\'s head sha' },
-    lintPassed: { type: 'boolean' },
-    problems: { type: 'array', items: { type: 'string' }, description: 'pr-lint\'s last output when it still fails, or what stopped the change' },
+    problems: { type: 'array', items: { type: 'string' }, description: 'what stopped the change; [] when it is open' },
   },
 }
 
 const CI_WAIT_SCHEMA = {
-  type: 'object', required: ['result', 'sha', 'failing', 'lintPassed', 'problems'],
+  type: 'object', required: ['result', 'sha', 'failing', 'problems'],
   properties: {
     result: { enum: ['green', 'red', 'none'], description: 'green when sc change wait exited 0, red when 1, none otherwise' },
     sha: { type: 'string' },
     failing: { type: 'array', items: { type: 'string' }, description: 'the failing statuses sc change wait printed: each ci/<job> that failed, or sc/merge' },
-    lintPassed: { type: 'boolean' },
-    problems: { type: 'array', items: { type: 'string' }, description: 'pr-lint\'s output when it fails' },
+    problems: { type: 'array', items: { type: 'string' }, description: 'when the result is none: what the wait printed, or that it never finished' },
   },
 }
 
@@ -284,7 +280,7 @@ const CI_FIX_SCHEMA = {
 const PARK_SCHEMA = {
   type: 'object', required: ['parked', 'note'],
   properties: {
-    parked: { type: 'boolean', description: 'the label is on and the park comment posted' },
+    parked: { type: 'boolean', description: 'the hold is on and the park comment posted' },
     note: { type: 'string', description: 'anything that did not go through, e.g. a worktree that would not remove' },
   },
 }
@@ -303,7 +299,7 @@ function locatePrompt() {
     '- The branch does not exist → ' + (FIX ? 'report the missing branch as the problem; fix mode needs the piece\'s existing branch.' : 'create it from the effort branch\'s current head with its worktree: git worktree add -b ' + PIECE_BRANCH + ' ' + WORKTREE + ' ' + EFFORT_BRANCH + '.'),
     'Then report:',
     '- commitsAhead: commits on ' + PIECE_BRANCH + ' that ' + EFFORT_BRANCH + ' does not have.',
-    '- The newest change into ' + EFFORT_BRANCH + ' whose issue is ' + N + ' and whose state is open or landed (sc change list --json); a closed change counts as none. For an open one (sc change view <change> --json): its head sha; the state of the ci/* statuses on that head (green when every one is pass, red when any is fail, pending when any is pending, none when there is none yet); and conflict — whether that head carries a failing sc/merge status.',
+    '- The newest change into ' + EFFORT_BRANCH + ' whose issue is ' + N + ' and whose state is open or landed (sc change list --issue ' + N + ' --target ' + EFFORT_BRANCH + ' --json); a closed change counts as none. For an open one (sc change view <change> --json): its head sha; the state of the ci/* statuses on that head (green when every one is pass, red when any is fail, pending when any is pending, none when there is none yet); and conflict — whether that head carries a failing sc/merge status.',
     '- The newest comment on issue #' + N + ' opening with <!-- wayfinder build-plan -->, verbatim, or "" (sc issue view ' + N + ').',
     'Leave the tracker, the labels and every other branch as you found them.',
   ])
@@ -313,7 +309,7 @@ function planPrompt() {
   return j([
     CONTEXT,
     'You write the piece\'s build plan. Read the code in the worktree — the effort branch\'s current head — and plan from the code as it stands now, not from the plan issue\'s picture of it. Write: where the work lands, the approach, the seams and files it touches, the tests TESTING.md calls for, and how each Acceptance line will be shown working through the verify skill (' + (BUILDS_SKILL ? 'which this piece builds, at ' + SKILL_DIR : SKILL_DIR) + '). One screen at most: the builder gets exactly this.',
-    'Write no code and commit nothing. Post the plan as one comment on issue #' + N + ' whose first line is <!-- wayfinder build-plan --> (sc issue comment ' + N + ' --body "$(cat <file>)") and return it in plan. ' + FORGE_RULE,
+    'Write no code and commit nothing. Post the plan as one comment on issue #' + N + ' whose first line is <!-- wayfinder build-plan --> (sc issue comment ' + N + ' --body-file <file>) and return it in plan. ' + FORGE_RULE,
     DECIDE_RULE + ' State each call in the plan too.',
     PARK_RULE + ' When you park, post no plan.',
   ])
@@ -358,34 +354,24 @@ function provePrompt() {
   ])
 }
 
-function changePrompt(built, proof, toPost, resume) {
-  const behaviorLines = proof
-    ? proof.results.map(r => '- ' + r.line + ': ' + r.observed + ' — evidence: ' + r.evidence).join('\n')
-    : ''
+function changePrompt(built, proof, toPost) {
+  const behaviorLines = proof.results.map(r => '- ' + r.line + ': ' + r.observed + ' — evidence: ' + r.evidence).join('\n')
   return j([
     'You are the change stage of the build workflow for piece #' + N + ' "' + PIECE.title + '" of plan ' + PLAN_REF + ' — tracker mechanics, no code. The piece\'s work is committed on ' + PIECE_BRANCH + '; the worktree is ' + WORKTREE + '. A change is that branch proposed for ' + EFFORT_BRANCH + '; the gate runs CI on its head and lands it once every required status passes, so there is nothing to merge yourself.',
     FORGE_RULE,
-    resume
-      ? 'Change ' + resume + ' for ' + PIECE_BRANCH + ' is already open from an earlier run. Keep its body; only repair its format where pr-lint fails. A Behaviors line with no evidence is never filled in by you: report it in problems.'
-      : null,
     toPost.length
-      ? 'First post these, each as one comment, verbatim (sc issue comment <n> --body "$(cat <file>)"), keeping each one\'s id — its position among that issue\'s comments, counted from 1, as sc issue view <n> --json lists them:\n' + toPost.map((p, i) => (i + 1) + '. On ' + p.where + (p.label ? ' (then add the label ' + p.label + ' to that issue)' : '') + ':\n' + p.body).join('\n\n')
+      ? 'First post these, each as one comment, verbatim (sc issue comment <n> --body-file <file>), keeping each one\'s id, as sc issue view <n> --json lists it:\n' + toPost.map((p, i) => (i + 1) + '. On ' + p.where + (p.label ? ' (then add the label ' + p.label + ' to that issue)' : '') + ':\n' + p.body).join('\n\n')
       : null,
-    !resume
-      ? j([
-          'Write the change body in exactly this shape (pr-lint reads it):',
-          'Closes #' + N + '\n\n<one paragraph: what the piece delivers>\n\n## Behaviors\n- B<n>: <what was observed> — evidence: <what was captured and where it lives>\n\n## Decisions\n- <each call made, one line, naming its decision-record comment on the piece as "comment <id> on #' + N + '"; "none">\n\n## Deviations\n- <where the build departed from its build plan and why; "none">',
-          'Fill it from these:',
-          '- What it delivers: ' + built.summary,
-          '- Behaviors (one line per Acceptance line, behavior IDs first; every B<n> needs its evidence):\n' + behaviorLines,
-          '- Decisions: one line per decision record you posted above, naming its comment' + (FIX ? '; keep every Decisions and Deviations line already in the change body.' : '.'),
-          '- Deviations:\n' + (built.deviations.concat(built.notApplied.map(x => 'review finding ' + x.finding + ' not applied as proposed: ' + x.reason)).map(d => '  - ' + d).join('\n') || '  - none'),
-          FIX
-            ? 'The change for ' + PIECE_BRANCH + ' is open (sc change list --state open --json shows it by its branch): replace its body with this one (sc change edit <change> --body "$(cat <file>)").'
-            : 'Open the change from ' + WORKTREE + ', since sc proposes the branch checked out where it runs: sc change open --target ' + EFFORT_BRANCH + ' --issue ' + N + ' --title "' + PIECE.title + '" --body "$(cat <file>)" — or, when one is already open for that branch, replace its body (sc change edit <change> --body "$(cat <file>)").',
-        ])
-      : null,
-    'Then run ' + EFFORT_CMD + ' pr-lint <change>. When it fails, fix the body for each problem it prints and run it again, up to three runs. Report the last run\'s output in problems when it still fails.',
+    'Write the change body in exactly this shape, which the reviewers read:',
+    'Closes #' + N + '\n\n<one paragraph: what the piece delivers>\n\n## Behaviors\n- B<n>: <what was observed> — evidence: <what was captured and where it lives>\n\n## Decisions\n- <each call made, one line, naming its decision-record comment on the piece as "comment <id> on #' + N + '"; "none">\n\n## Deviations\n- <where the build departed from its build plan and why; "none">',
+    'Fill it from these:',
+    '- What it delivers: ' + built.summary,
+    '- Behaviors (one line per Acceptance line, behavior IDs first; every B<n> needs its evidence):\n' + behaviorLines,
+    '- Decisions: one line per decision record you posted above, naming its comment' + (FIX ? '; keep every Decisions and Deviations line already in the change body.' : '.'),
+    '- Deviations:\n' + (built.deviations.concat(built.notApplied.map(x => 'review finding ' + x.finding + ' not applied as proposed: ' + x.reason)).map(d => '  - ' + d).join('\n') || '  - none'),
+    FIX
+      ? 'The change for ' + PIECE_BRANCH + ' is open (sc change list --state open --issue ' + N + ' --json shows it): replace its body with this one (sc change edit <change> --body-file <file>).'
+      : 'Open the change: sc change open --branch ' + PIECE_BRANCH + ' --target ' + EFFORT_BRANCH + ' --issue ' + N + ' --title "' + PIECE.title + '" --body-file <file> — or, when one is already open for that branch, replace its body (sc change edit <change> --body-file <file>).',
   ])
 }
 
@@ -394,11 +380,10 @@ function ciWaitPrompt(change, toPost, fixSummary) {
     'You are the CI wait of the build workflow for piece #' + N + ' of plan ' + PLAN_REF + ' — tracker mechanics, no code. The gate runs the charter\'s CI jobs on the change\'s head as ci/<job> statuses; you only wait for them.',
     FORGE_RULE,
     toPost.length
-      ? 'A CI fix just landed on change ' + change + '. First post these on issue #' + N + ', each as one comment, verbatim, then add one line per comment to the change body\'s ## Decisions section naming it as "comment <id> on #' + N + '", its id being its position among the issue\'s comments, counted from 1 (sc change edit ' + change + ' --body "$(cat <file>)"):\n' + toPost.map(p => p.body).join('\n\n---\n\n')
+      ? 'A CI fix just landed on change ' + change + '. First post these on issue #' + N + ', each as one comment, verbatim, then add one line per comment to the change body\'s ## Decisions section naming it as "comment <id> on #' + N + '", its id as sc issue view ' + N + ' --json lists it (sc change edit ' + change + ' --body-file <file>):\n' + toPost.map(p => p.body).join('\n\n---\n\n')
       : null,
     fixSummary ? 'Add one line to the change body\'s ## Deviations section (replacing a lone "none") saying what the CI fix changed: ' + fixSummary : null,
-    'Run ' + EFFORT_CMD + ' pr-lint ' + change + ' (the head may have moved, and the format status is per commit); report whether it passed and its output.',
-    'Then wait for the gate\'s CI on the change\'s head. sc change wait ' + change + ' --json blocks until every CI job has finished, which can take over an hour, so start it with run_in_background as sc change wait ' + change + ' --json; echo "exit: $?" — then wait for it in the foreground with sh ' + AWAIT_CMD + ' <its output file>, which returns within nine minutes saying finished or still running; call it again until it says finished, up to eight times. Never end your turn to wait: your turn ending is your final report. Report result from its exit status — 0 green, 1 red, anything else none — with the head it printed as sha and, when red, every status it printed as fail in failing (sc/merge when that is what fails). When the result is none, put what it printed, or that it never finished, in problems. A wait you have not seen finish has no result yet.',
+    'Then wait for the gate\'s CI on the change\'s head. sc change wait ' + change + ' --json blocks until every CI job has finished, which can take over an hour, so run it in the foreground as sc change wait ' + change + ' --json --timeout 9m: exit 205 means the nine minutes ran out with CI still running, so run it again, up to eight times. Never end your turn to wait: your turn ending is your final report. Report result from its exit status — 0 green, 1 red, anything else (205 after the eighth run included) none — with the head it printed as sha and, when red, every status it printed as fail in failing (sc/merge when that is what fails). When the result is none, put what it printed, or that it never finished, in problems. A wait you have not seen finish has no result yet.',
   ])
 }
 
@@ -423,9 +408,9 @@ function parkPrompt(reason, changeNumber) {
     FORGE_RULE,
     'The piece cannot go on. What is missing:',
     reason,
-    '1. Add the label wayfinder:parked to issue #' + N + '. Leave its assignee alone: that is the lead\'s claim, and the lead releases it.',
+    '1. Hold issue #' + N + ': sc issue hold ' + N + ' --reason "<what is missing, in one line>". The hold is what parks the piece: it shows held, and its change cannot land until the hold is released. Leave its assignee alone: that is the lead\'s claim, and the lead releases it.',
     '2. Post one comment on issue #' + N + ' whose first line is <!-- wayfinder park -->, then exactly what is missing as above, written so whoever fills the gap needs nothing else.',
-    changeNumber ? '3. Change ' + changeNumber + ' is open: leave it open. It cannot land while a required status on its head is failing or missing.' : null,
+    changeNumber ? '3. Change ' + changeNumber + ' is open: leave it open. It cannot land while the piece is held.' : null,
     'Then commit any uncommitted work in ' + WORKTREE + ' to ' + PIECE_BRANCH + ' as one commit titled "WIP at park", so nothing is lost, and remove the worktree (git worktree remove --force ' + WORKTREE + '). The branch stays.',
   ])
 }
@@ -454,7 +439,6 @@ async function landCi(change) {
     const wait = need(await agent(ciWaitPrompt(change, toPost, fixSummary), { ...tier('executor'), schema: CI_WAIT_SCHEMA, label: 'ci-wait:change-' + change, phase: 'CI' }), 'the CI wait agent')
     toPost = []
     fixSummary = ''
-    if (!wait.lintPassed) return park('The body of change ' + change + ' fails pr-lint:\n' + wait.problems.map(p => '- ' + p).join('\n'), change)
     if (wait.result === 'green') return { status: 'green', change, sha: wait.sha, reason: '' }
     if (wait.result === 'none') return park('The gate\'s CI did not finish on change ' + change + ' (head ' + wait.sha + '): ' + (wait.problems.join('; ') || 'the wait for CI timed out') + '. Either the head\'s sc.toml lists no job or the sc daemon is not running its gate (sc gate list shows it).', change)
     if (attempt === CI_FIXES) return park('CI is still red on change ' + change + ' (head ' + wait.sha + ') after ' + CI_FIXES + ' fix attempts. Failing: ' + wait.failing.join(', '), change)
@@ -477,11 +461,8 @@ if (loc.changeState === 'landed') {
 }
 if (FIX && loc.changeState !== 'open') return await park('Fix mode found no open change for ' + PIECE_BRANCH + ' to apply its findings to.', 0)
 
-// Build mode with its change already open: only the lint and CI are left.
+// Build mode with its change already open: only CI is left.
 if (!FIX && loc.changeState === 'open') {
-  phase('Open change')
-  const r = need(await agent(changePrompt(null, null, [], loc.change), { ...tier('executor'), schema: CHANGE_SCHEMA, label: 'change:#' + N, phase: 'Open change' }), 'the change agent')
-  if (!r.lintPassed) return await park('The body of change ' + loc.change + ' fails pr-lint:\n' + r.problems.map(p => '- ' + p).join('\n'), loc.change)
   return await landCi(loc.change)
 }
 
@@ -534,7 +515,6 @@ for (let round = 1; round <= PROVE_ROUNDS; round++) {
 // ── Open change ──────────────────────────────────────────────────────────────
 
 phase('Open change')
-const opened = need(await agent(changePrompt(built, proof, postings(decisions, friction), 0), { ...tier('executor'), schema: CHANGE_SCHEMA, label: 'change:#' + N, phase: 'Open change' }), 'the change agent')
+const opened = need(await agent(changePrompt(built, proof, postings(decisions, friction)), { ...tier('executor'), schema: CHANGE_SCHEMA, label: 'change:#' + N, phase: 'Open change' }), 'the change agent')
 if (!opened.change) return await park('The change could not be opened: ' + opened.problems.join('; '), 0)
-if (!opened.lintPassed) return await park('The body of change ' + opened.change + ' fails pr-lint:\n' + opened.problems.map(p => '- ' + p).join('\n'), opened.change)
 return await landCi(opened.change)
